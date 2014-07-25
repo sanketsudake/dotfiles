@@ -16,8 +16,8 @@ HISTCONTROL=ignoreboth
 shopt -s histappend
 
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=1000000
+HISTFILESIZE=2000000
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -47,12 +47,12 @@ esac
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
     else
-	color_prompt=
+        color_prompt=
     fi
 fi
 
@@ -89,30 +89,31 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+function findf
+{
+        find . -name $1
+}
 
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+# Correct misspelled typed directories in cd
+shopt -s cdspell
 
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
+alias emacs="/lhome/ssudake/emacs-24.2/src/emacs"
+alias build="~/cmds/build_cmd/build"
+export PATH="$HOME/.cask/bin:$HOME/downloads/git-2.0.2:$PATH"
+export TERM=xterm-256color
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
-fi
-
-
-export PS1='$(__git_ps1) \w\$ '
-export PATH="/home/sanket/.cask/bin:$PATH"
+function pd
+{
+    for i in $(seq 1 $1)
+    do
+        cd ..
+    done
+}
+function ppd
+{
+    pushd .
+    for i in $(seq 1 $1)
+    do
+        cd ..
+    done
+}
