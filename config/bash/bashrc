@@ -10,22 +10,24 @@ esac
 
 # don't put duplicate lines or lines starting with space in the history.
 # See bash(1) for more options
-HISTCONTROL=ignoreboth
+HISTCONTROL="erasedups:ignoreboth"
 
 # append to the history file, don't overwrite it
 shopt -s histappend
-
-# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000000
-HISTFILESIZE=2000000
-
+shopt -s cmdhist
+# Correct misspelled typed directories in cd
+shopt -s cdspell
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
 # If set, the pattern "**" used in a pathname expansion context will
 # match all files and zero or more directories and subdirectories.
-#shopt -s globstar
+# shopt -s globstar
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000000
+HISTFILESIZE=2000000
 
 # make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
@@ -89,21 +91,15 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias meow="less"
+alias emacs="export TERM=xterm-256color;/lhome/ssudake/emacs-24.2/src/emacs"
+alias r="fc -s"
+alias reload="cat ~/.profile > ~/.bashrc; source ~/.bashrc"
+alias deldirs="rm -r */"
 
 function findf
 {
         find . -name $1
 }
-
-# Correct misspelled typed directories in cd
-shopt -s cdspell
-
-alias emacs="export TERM=xterm-256color;/lhome/ssudake/emacs-24.2/src/emacs"
-alias r="fc -s"
-alias reload="cat ~/.profile > ~/.bashrc; source ~/.bashrc"
-
-alias deldirs="rm -r */"
-export PATH="$HOME/.cask/bin:$HOME/downloads/git-2.0.2:$PATH"
 function fullpath
 {
     case "$1" in /*)printf "%s\n" "$1";; *)printf "%s\n" "$PWD/$1";;
@@ -111,11 +107,8 @@ function fullpath
 }
 function pd
 {
-        if [ $1 ] ; then
-                MAX=$1;
-        else
-                MAX=0
-        fi
+        MAX=0
+        [ $1 ] && MAX=$1
         PR="../"
         _COUNTER=1
         while [ $_COUNTER -lt $MAX ]; do
@@ -129,4 +122,6 @@ function ppd
     pushd .
     pd $1
 }
+
+export PATH="$HOME/.cask/bin:$HOME/downloads/git-2.0.2:$PATH"
 export PATH="$HOME/cmds/build_cmd/:$PATH"
