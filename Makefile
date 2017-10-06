@@ -9,6 +9,7 @@ vim-rc:
 	ln -sf ${CWD}/vimrc ${HOME}/.vimrc
 
 vim-plug:
+	sudo apt-get install -y build-essential cmake
 	mkdir -p ~/.vim/autoload ~/.vim/bundle
 	curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 
