@@ -185,3 +185,5 @@ client.unfocused        #c9cabb  #222222  #888888  #292d2e   #222222
 client.urgent           #2f343a  #900000  #ffffff  #199475   #900000
 client.placeholder      #a2b4ba  #0c0c0c  #ffffff  #1793d0   #0c0c0c
 client.background #82abba
+
+bindsym $mod+p exec ~/.config/i3/monitor.sh
