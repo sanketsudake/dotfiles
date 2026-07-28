@@ -25,7 +25,7 @@ Get a logged-in Outlook tab on the **week** view:
 ## Phase 2 — Pick the week
 
 - Default to the **current week**.
-- For another week: `chrome-cdp snap --role button --grep "specific date|Next|Previous" --json` to get the exact names of the prev/next arrows and the date-range button, then `chrome-cdp click --by name "<name>" --role button --json`, and `chrome-cdp wait --stable --json` (or `--idle`) for the grid to reload — a condition, not a fixed sleep.
+- For another week: `chrome-cdp find "next week" --role button --json` (likewise `"previous"` / `"date range"`) returns the exact names of the arrows and date-range button in one ranked call (the snap-grep `snap --role button --grep "specific date|Next|Previous" --json` is the validated equivalent), then `chrome-cdp click --by name "<name>" --role button --json`, and `chrome-cdp wait --stable --json` (or `--idle`) for the grid to reload — a condition, not a fixed sleep.
 - Note the displayed range: `chrome-cdp snap --grep "\d.*–.*\d.*20\d\d$" --json` surfaces the heading (e.g. "12–18 July, 2026") — the first short match is the range.
 - If a **"Filter applied"** button shows up in a `snap`, the calendar is filtered — say so in the report (results reflect the user's active filter).
   Only clear it if the user asks.
@@ -71,4 +71,4 @@ End with a count (e.g. "9 meetings across the week") and note the week range, an
 
 - Read-only — do not click into events to modify them, and do not change calendar settings or the active filter unless asked.
 - Avoid actions that trigger a native browser dialog (alert/confirm) — they block `chrome-cdp`.
-- If the grid won't load or `snap` reads come back empty after scrolling, stop and report rather than guessing.
+- If the grid won't load or `snap` reads come back empty after scrolling, check `chrome-cdp console --only-errors --json` and `chrome-cdp net --failed --json` first — a failed calendar API call explains an empty grid — then stop and report rather than guessing.

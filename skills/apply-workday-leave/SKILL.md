@@ -13,7 +13,7 @@ Submitting an absence writes real data and pings the approver — never submit w
 > ⚠️ **DRAFT — needs live validation.**
 > The flow and safety rules are complete, but the Workday calendar / radio / in-page-modal interactions have **not** yet been validated end-to-end against a live tenant.
 > On the first real run, go slowly and `snap`-and-verify at each step.
-> Follow the **`drive-chrome-cdp`** skill for the CLI (setup, `--json`/exit codes, `--by name` addressing, `snap`, `wait`, passkey rule).
+> Follow the **`drive-chrome-cdp`** skill for the CLI (setup, `--json`/exit codes, `--by name` addressing, `find`, `snap`, `wait --request`, `console`/`net`, passkey rule).
 > Soft deps: `login-microsoft-sso` (logged-in tab) and `fill-workday-timesheet` (Enter Time grid mechanics, Phase 6).
 
 ## Defaults (local config, never committed)
@@ -37,10 +37,10 @@ Follow **`login-microsoft-sso`** (app `workday`) to get a logged-in Workday tab;
 ## Phase 2 — Open Request Absence
 
 1. Focus the global **Search** and submit: `chrome-cdp type --by name "Search" "Request Absence\n" --json` (the trailing `\n` presses Enter).
-   If the field's accessible name differs, `snap` to find it.
+   If the field's accessible name differs, `chrome-cdp find "search bar" --role textbox --json` returns the exact name in one call.
 2. On the results page, open the **Request Absence** *task* — **not** a home tile.
-   `snap --json` first: pick the item whose role is `link` under Tasks/Reports, then `chrome-cdp click --by name "Request Absence" --role link --json`.
-   (Tiles like "Requests"/"Request Absence" shift and are easy to mis-hit — the `--role link` + snap check guards against it; use `--nth` if two links share the name.)
+   `chrome-cdp find "request absence" --role link --json` ranks the Tasks/Reports *link* with its exact name and `ref`, then `chrome-cdp click --by name "Request Absence" --role link --json` (or `--by ref e<id>`).
+   (Tiles like "Requests"/"Request Absence" shift and are easy to mis-hit — the `--role link` hard filter guards against it; use `--nth` if two links share the name.)
 3. Wait for the dialog: `chrome-cdp wait --visible "…" --json` (a Request Absence dialog control) or `snap` until the "For <user> (Myself)" dialog with a Calendar / Date Range toggle is present.
 
 ## Phase 3 — Select the date(s)
@@ -66,7 +66,8 @@ Show the plan as one table before touching Submit:
 Present it via `AskUserQuestion` with **Submit as-is** recommended, plus "add a comment first" and "don't submit".
 **Do not** `click "Submit Request"` until the user accepts.
 Then: `chrome-cdp click --by name "Submit Request" --role button --json`.
-After submitting (no toast), verify via **Manage Absence**: search for it (`type --by name "Search" "Manage Absence\n"`), open it, and `snap`/`screenshot` — the calendar must show the absence block on the date (a clock icon = pending approval) and the Balances panel must reflect the plan.
+There is **no toast** — confirm the write at the XHR level: `chrome-cdp wait --request "<absence submit endpoint substr>" --method POST --json` right after the click (identify the endpoint once with `chrome-cdp net --xhr --json`).
+Then verify via **Manage Absence**: search for it (`type --by name "Search" "Manage Absence\n"`), open it, and `snap`/`screenshot` — the calendar must show the absence block on the date (a clock icon = pending approval) and the Balances panel must reflect the plan.
 
 ## Phase 6 — Reconcile the timesheet (clear project hours on the leave day)
 
@@ -86,5 +87,7 @@ An absence does not remove project time already entered for that day — the day
 - Deleting a time block (Phase 6) is destructive — only on the confirmed leave day(s), never elsewhere.
 - Pre-existing **"Time Period Lockout"** alerts on other (closed) days are noise — surface, don't act; never enter/delete time on a locked day.
 - Avoid actions that trigger a native browser dialog (they block cdp); Workday's own in-page modals (Delete Time Block) are fine.
+- If a click/submit seems to do nothing, read the tab's own evidence before retrying: `chrome-cdp console --only-errors --json` and `chrome-cdp net --failed --json` (reset with `--clear` first) — never blind re-click a Submit.
+- For an audit trail of the first live runs, wrap the flow in `record start` … `record stop -o leave.gif` — review the capture before it leaves the machine (it shows the logged-in session).
 - If a step fails repeatedly or the UI differs, stop and report — don't guess.
   Given this is a draft, prefer stopping over improvising.

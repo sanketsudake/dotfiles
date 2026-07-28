@@ -48,8 +48,8 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 
 | Skill | Purpose |
 |-------|---------|
-| [`make-pr-easy-to-review`](https://github.com/cursor/plugins/tree/a29f5a8ca161b1de4ffc5484454958bebc04eaa5/cursor-team-kit/skills/make-pr-easy-to-review) | Prepare PRs for review by cleaning noisy history, improving PR descriptions, and adding reviewer guidance without changing code behavior. |
-| [`deslop`](https://github.com/cursor/plugins/tree/a29f5a8ca161b1de4ffc5484454958bebc04eaa5/cursor-team-kit/skills/deslop) | Remove AI-generated code slop and clean up code style |
+| [`make-pr-easy-to-review`](https://github.com/cursor/plugins/tree/91be0f994b5de7a75f4d6f2b3b00958126d9195e/cursor-team-kit/skills/make-pr-easy-to-review) | Prepare PRs for review by cleaning noisy history, improving PR descriptions, and adding reviewer guidance without changing code behavior. |
+| [`deslop`](https://github.com/cursor/plugins/tree/91be0f994b5de7a75f4d6f2b3b00958126d9195e/cursor-team-kit/skills/deslop) | Remove AI-generated code slop and clean up code style |
 | [`resolve-bot-review-threads`](../../skills/resolve-bot-review-threads/SKILL.md) | Use when a PR has bot/Copilot review comments to clear — fix them, mark the threads resolved, and re-request the bot until the PR is at a good base (triggers... |
 | [`watch-ci`](../../skills/watch-ci/SKILL.md) | After pushing to a PR, watch its CI checks to terminal state and surface each transition as a notification instead of busy-polling. |
 | [`debug-ci`](../../skills/debug-ci/SKILL.md) | Triage and root-cause a failing GitHub Actions CI run on a PR efficiently. |

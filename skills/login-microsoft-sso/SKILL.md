@@ -48,7 +48,7 @@ All commands take `--json`; parse the envelope and branch on the exit code (see 
    Confirm with a content check: `chrome-cdp snap --grep "Log ?in|Sign ?in" --json` — if a login/SSO control is present, you're on a sign-in page regardless of the URL; if it's absent (or a known app control like a nav/menu is present), you're in.
    - **On the app** (no login control, an app control present): **done — return the tab id.**
    - **On the app's sign-in page** (a login/SSO control is present, or a vendor identity host such as a Workday `*-identity.*` domain / an app `/account/login` page): click that app's SSO entry.
-     - `chrome-cdp snap --json` to confirm the button's exact accessible name, then
+     - `chrome-cdp find "$SSO_BUTTON" --json` to confirm the button's exact accessible name in one ranked call (`count: 0` means it isn't on this page — an answer, not an error), then
      - `chrome-cdp click --by name "$SSO_BUTTON" --json` (accessible-name addressing — robust; add `--role button`/`link` if the name is ambiguous). If the app has **no** SSO button (e.g. `outlook`), skip the click.
      - `chrome-cdp wait --url "<app host>" --timeout 15s --json` (or `wait --idle` — a condition, not a fixed sleep).
 6. **Re-check** (again, content over URL — re-`snap --grep "Log ?in|Sign ?in"` to be sure a login control is gone): `chrome-cdp eval "location.href" --json`:
@@ -65,4 +65,5 @@ The Chrome tab id (from `list`/`use`) logged in to the requested app, for the ca
 
 - Never type or handle credentials; the user's live session and passkey do the auth.
 - If login can't be confirmed, stop and report — do not click blindly.
-- `click --by name` targets the control by its accessible name; if it stalls, re-`snap` and retry (or `--wait ready`) rather than falling back to coordinates.
+- If a nav/click seems to do nothing, `chrome-cdp console --only-errors --json` and `chrome-cdp net --failed --json` show what actually failed (an SSO redirect that 4xx'd, a blocked script) before you retry.
+- `click --by name` targets the control by its accessible name; if it stalls, re-run `find`/`snap` and retry (or `--wait ready`) rather than falling back to coordinates.
