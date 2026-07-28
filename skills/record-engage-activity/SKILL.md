@@ -9,10 +9,11 @@ disable-model-invocation: true
 Assisted, review-first automation of the Engage **Add Activity** form, driven by the **`chrome-cdp`** CLI (the user's real, logged-in Chrome).
 It fills category, type, date, quantity, and notes, then **shows the entry and the points it will add, and submits only after the user confirms** — submitting writes real data and points.
 
-> ✅ **Validated live (2026-07-16).** A real `billed-week` (Direct Revenue › 40 Billable Hour Week, 5 points) was recorded end-to-end: `open` + `wait --idle` → content-based auth (Engage renders "Login with Improving" at the app URL) → Category/Type are native `<select>`s with no accessible name, driven by **`select --by label`** (its native sub-mode) → `fill --by label` for Date/Notes → confirm → submit → `grid` verify.
+> ✅ **Validated live (2026-07-16).**
+> A real `billed-week` (Direct Revenue › 40 Billable Hour Week, 5 points) was recorded end-to-end: `open` + `wait --idle` → content-based auth (Engage renders "Login with Improving" at the app URL) → Category/Type are native `<select>`s with no accessible name, driven by **`select --by label`** (its native sub-mode) → `fill --by label` for Date/Notes → confirm → submit → `grid` verify.
 > The date shifted a day (timezone, see Phase 4) but stayed in-week.
 > Go slowly and `snap`-verify each step.
-> Follow **`drive-chrome-cdp`** for the CLI (`--json`/exit codes, `--by name`, `snap`, `wait`, passkey rule).
+> Follow **`drive-chrome-cdp`** for the CLI (`--json`/exit codes, `--by name`, `find`, `snap`, `wait --request`, `console`/`net`, passkey rule).
 > Soft dep: **`login-microsoft-sso`** (app `engage`).
 
 ## Defaults & presets (local config, never committed)
@@ -61,14 +62,15 @@ Category/Type are native `<select>`s with **no accessible name** (their labels a
 3. **Date** (only if not default), **Quantity**, **Notes**: set each with **`fill --by label`** (the Notes/Date labels are separate text nodes, not accessible names — `--by label` finds the control by its visible label, and `fill` replaces the default rather than appending): `chrome-cdp fill --by label "Notes" "<value>" --json`, `chrome-cdp fill --by label "Date" "MM/DD/YYYY" --json`.
    - **Timezone shift**: the widget stores local midnight → UTC, so in a behind-UTC timezone the stored date is the **previous day** — this shifts even *weekly* activities by one (e.g. `07/10` stored as `7/9`).
      Harmless as long as it stays inside the target week; **always verify the submitted row's Date after**, and if you need the exact day set the field to **target + 1**.
-   - A date-picker click is sometimes ignored (only highlights); re-check and re-`fill` if unchanged.
+   - A date-picker click is sometimes ignored (only highlights); re-check and re-`fill` if unchanged — and if a fill keeps not sticking, `chrome-cdp console --only-errors --json` / `chrome-cdp net --failed --json` show whether the widget threw rather than ignored you.
 
 ## Phase 5 — Review and submit
 
 - Re-`snap` (or `screenshot`): the submit button now reads **"Add N points"** — N is the points the chosen type grants.
 - Present the full entry — category, type, date, quantity, notes, **and N points** — via `AskUserQuestion`, submit recommended alongside "edit first" / "don't submit".
 - Only on explicit confirmation: `chrome-cdp click --by name "Add" --match contains --role button --json` (matches "Add N points" without needing to read N first).
-- `chrome-cdp wait --stable --json` (or `--idle`), then re-`snap`/`text` **Current Activities** to confirm the new row (matching category/type/date/notes) is at the top.
+- Engage submits via XHR with no toast — confirm at the request level: `chrome-cdp wait --request "<activity endpoint substr>" --method POST --json` (identify the endpoint once with `chrome-cdp net --xhr --json` after a submit; thereafter it's the reliable write-confirm).
+- Then re-`snap`/`text` **Current Activities** to confirm the new row (matching category/type/date/notes) is at the top — this is also where the Phase 4 timezone shift is caught, so always check the row's Date.
   Report a summary.
 
 ## Removing an entry (cleanup / testing)

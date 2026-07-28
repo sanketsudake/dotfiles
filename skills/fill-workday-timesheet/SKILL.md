@@ -10,10 +10,12 @@ Assisted, review-first automation of the Workday **Enter Time** flow, driven by 
 For the current week it proposes hours per weekday against a project, **shows the whole-week plan, and only saves after the user confirms**.
 Entering time writes real data — never save without explicit confirmation.
 
-> ⚠️ **DRAFT — needs live validation.** The read/propose/confirm/save/verify loop is complete but not yet validated end-to-end.
+> ⚠️ **DRAFT — needs live validation.**
+> The read/propose/confirm/save/verify loop is complete but not yet validated end-to-end.
 > Go slowly and `snap`-verify each step.
-> Follow **`drive-chrome-cdp`** for the CLI (setup, `--json`/exit codes, `--by name` addressing, `snap`, `wait`, passkey rule).
+> Follow **`drive-chrome-cdp`** for the CLI (setup, `--json`/exit codes, `--by name` addressing, `find`, `snap`, `wait --request`, `console`/`net`, passkey rule).
 > Soft dep: `login-microsoft-sso` (logged-in tab, app `workday`).
+> Once the flow has run clean end-to-end, capture it as a saved **`recipe`** (`recipe new`; inputs: day headers + hours) so later weeks are a `recipe run`, not a re-derivation from `snap` — a flow a skill repeats every run belongs in a recipe.
 
 ## Approach — enter the whole week at once
 
@@ -42,7 +44,7 @@ Follow **`login-microsoft-sso`** (app `workday`) to get a logged-in Workday tab;
 
 ## Phase 2 — Open the current week's Enter Time grid
 
-1. `snap` for **MENU**'s accessible name, `chrome-cdp click --by name "MENU" --json` → open **Time** → click **"This Week (… Hours)"** under "Enter Time" (confirm names via `snap` — labels vary by tenant).
+1. `chrome-cdp find "menu" --role button --json` for **MENU**'s exact name, `chrome-cdp click --by name "MENU" --json` → open **Time** → click **"This Week (… Hours)"** under "Enter Time" (labels vary by tenant — `find "this week"` returns the exact rendered name).
 2. `chrome-cdp wait --visible "Enter Time" --json` (or re-`snap`) for the weekly grid: title "Enter Time", `Sun … Sat` header row, each showing "Hours: N".
 3. `chrome-cdp screenshot --json` to read the current state.
 
@@ -85,7 +87,9 @@ The old `type --by name "Time Type" "Time Entry\n"` search-and-Enter is a fallba
 3. Enter each day's hours with **`fill --by cell`** — addresses the hour input by its **day column header**, and *replaces* the cell's `0` (not appends → `80`), so no per-day `snap` for input names and no session-specific ids:
 `chrome-cdp fill --by cell "Mon, 7/13" "8" --json` (repeat per weekday; the day headers come from the grid, e.g. `Mon, 7/13` … `Fri, 7/17`).
 In a multi-row grid disambiguate with `"<Time Type row>|Mon, 7/13"`.
+The five per-day fills are identical argv shapes — run them as one **`session`** batch (one held connection, one envelope per line) instead of five process spawns.
 4. Only after confirmation, save and confirm in one call: `chrome-cdp click --by name "Save and Close" --role button --wait-text "saved" --json` (`--wait-text` blocks until Workday's "Your changes have been saved" appears — no separate verify).
+If a tenant shows **no toast**, confirm at the XHR level instead: identify the save endpoint once with `chrome-cdp net --xhr --json` after a manual save, then follow the click with `chrome-cdp wait --request "<endpoint substr>" --method POST --json` — the only reliable confirm for a toastless write.
 
 > **Why `select`, not `click`, for the menu option and the cascade prompt:** Workday renders these as portal popups that open on a real pointer sequence, mount briefly collapsed (a zero-scale transform) then animate open, and delegate events to capture-phase handlers.
 > A single `click` lands mid-animation on a zero-size box (registering as an outside-click that closes the popup); `select` dispatches a real `Input.dispatchMouseEvent` at the element's live, occlusion-verified centre and re-reads geometry between the open and the option click — all in one held connection.
@@ -104,6 +108,7 @@ Repeat per day; slower, not preferred.
 ## Safety
 
 - Never save without the user's explicit confirmation of the per-day plan.
+- If a `select`/`fill`/save seems to do nothing, read the tab's own evidence before retrying: `chrome-cdp console --only-errors --json` and `chrome-cdp net --failed --json` (reset with `--clear`, act, re-read) — not a blind re-click or screenshot.
 - Never enter time on a locked time period; surface it instead.
 - Avoid native browser dialogs (they block cdp); prefer in-page controls.
 - If a step fails repeatedly or the UI differs, stop and report — don't guess.
