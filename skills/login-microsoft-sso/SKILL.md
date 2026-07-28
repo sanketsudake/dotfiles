@@ -23,6 +23,20 @@ The caller passes one app; the current set (add more in the local config):
 App URLs and SSO button labels are org/tenant-specific, so they live in a never-committed local config read at runtime: `~/.config/harness-configs/login-microsoft-sso/config` (`<APP>_HOME_URL`, `<APP>_SSO_BUTTON`).
 Do not hardcode URLs or button labels.
 
+**Quote every value in that config file.** It's `source`d as shell, and SSO button labels routinely contain spaces — an unquoted value like `WORKDAY_SSO_BUTTON=Single Sign-on Login Using SSO` gets parsed as multiple shell words, which emits `command not found: Sign-on` on stderr and leaves the variable **empty**.
+A downstream `click --by name "$WORKDAY_SSO_BUTTON"` then clicks by an empty name, and can silently misfire.
+Always quote, as in this correct example:
+
+```bash
+WORKDAY_HOME_URL="https://wd5.myworkday.com/acme/d/home.htmld"
+WORKDAY_SSO_BUTTON="Single Sign-on Login Using SSO"
+ENGAGE_HOME_URL="https://engage.improving.com/"
+ENGAGE_SSO_BUTTON="Login with Improving"
+OUTLOOK_HOME_URL="https://outlook.office.com/mail/"
+```
+
+`outlook` needs no `_SSO_BUTTON` entry at all (see above) — don't add an empty or unquoted placeholder for it.
+
 ## Steps
 
 All commands take `--json`; parse the envelope and branch on the exit code (see `drive-chrome-cdp`).
