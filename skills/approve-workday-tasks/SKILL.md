@@ -15,7 +15,7 @@ Never approve anything the user did not explicitly choose.
 > Event approved" page — it does **not** auto-advance to the next task, so you re-open each item from the inbox; the My Tasks count decrements per approval as an independent check.
 > Follow the **`drive-chrome-cdp`** skill for the CLI (setup, `--json`/exit codes, `--by name` addressing, `find`, `snap`, `console`/`net`, passkey rule).
 > Soft dep: `login-microsoft-sso` (logged-in tab).
-> The `find`-based name discovery below arrived with chrome-cdp 0.2.0 (2026-07-28) — it feeds the same validated click path, but has not itself been re-validated live.
+> The `find`-based name discovery below arrived with chrome-cdp 0.2.0 (2026-07-28) and has now itself been validated live — three Time Entry approvals on 2026-07-28 used exactly that path.
 
 ## Phase 1 — Authenticate
 
@@ -55,8 +55,9 @@ For each item the user selected, and only those:
 4. **Return to the inbox for the next item.**
    The approval lands on a **"Success!
    Event approved" page that is a dead end** — no navigation, and it does **not** auto-advance to the next task.
-   Go back: `chrome-cdp nav "<Workday home>" --json` (the `WORKDAY_HOME_URL` from `login-microsoft-sso`'s config) → `chrome-cdp wait --stable --json` → `chrome-cdp click --by name "Go to My Tasks (N)" --role button --json`.
-   The count **N** decrements by one per approval — use it as an independent confirmation the item cleared — then repeat from step 1 until every selected item is done.
+   Go back: `chrome-cdp nav "<Workday home>" --json` (the `WORKDAY_HOME_URL` from `login-microsoft-sso`'s config) → `chrome-cdp wait --stable --json` → re-`find "my tasks" --role button --json` → click that name.
+   **Don't hardcode `"Go to My Tasks (N)"` for the return hop.** The count **N** decrements by one per approval — use it as an independent confirmation the item cleared — but when the queue empties the count **disappears entirely** and the control is named just `"My Tasks Items"`, so a hardcoded `"Go to My Tasks (N)"` click will not match on the final pass.
+   Re-discover the name with `find` each iteration instead, then repeat from step 1 until every selected item is done.
    This return hop repeats identically every iteration — batch it over one held connection with `session`, and once a sweep has run clean, capture the whole loop as a saved **`recipe`** (see `drive-chrome-cdp`, "Saved flows") instead of re-deriving names each run.
 
 > Naming note: exact accessible-name matching (`--by name`) means the string must match what the a11y tree reports, not the visible label (they differ, as with "Review").
