@@ -50,7 +50,7 @@ They also differ in what gets committed, which turns on a resource's **provenanc
 - **Authored** — born in this repo (`repo: null`, e.g. `harvest-automation`, `itr-india`); this repo is its only home.
   `update` and `delete` treat it as having no upstream.
 
-**Vendored skills are not committed** (see `docs/adr/0001-vendored-skills-manifest.md`).
+**Vendored skills are not committed.**
 They are recorded in a single committed manifest, `skills/vendored.json` — a name-sorted array of `{name, repo, subpath, ref, commit, category, description}`, where `commit` is the resolved SHA of `ref` and `category`/`description` are cached so the catalog and doctor render without materializing.
 Each vendored skill's `skills/<name>/` dir — including its regenerated `.source.json` sidecar — is **gitignored** (a managed block in `.gitignore`, rewritten by the tool) and **materialized** from the pinned `commit` by `make install`.
 So for skills the manifest is the source of truth; the on-disk `.source.json` is a materialization artifact, not the committed record.
