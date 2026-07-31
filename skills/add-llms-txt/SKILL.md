@@ -1,6 +1,10 @@
 ---
 name: add-llms-txt
 description: Use to add LLM-friendly outputs to a Hugo site — /llms.txt and /llms-full.txt indexes plus a per-page markdown twin at <url>/index.md — generated from content so they stay in sync. Triggers "add llms.txt", "make the site agent-friendly", "markdown twin".
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Add llms.txt + markdown twins to a Hugo site
@@ -47,10 +51,10 @@ Never hand-edit `public/` — these outputs are generated from content.
        rel = "alternate"
    ```
 
-2. Copy the templates from this skill dir into the site's `layouts/`:
-   - `index.llms.txt` → `layouts/index.llms.txt`
-   - `index.llmsfull.txt` → `layouts/index.llmsfull.txt`
-   - `single.markdown.md` → `layouts/_default/single.markdown.md`
+2. Copy the templates from this skill's `assets/` into the site's `layouts/`:
+   - `assets/index.llms.txt` → `layouts/index.llms.txt`
+   - `assets/index.llmsfull.txt` → `layouts/index.llmsfull.txt`
+   - `assets/single.markdown.md` → `layouts/_default/single.markdown.md`
 
 Adjust section names (`"posts"`, `"talks"`) to the target site's content sections.
 If the site has no canonical-URL field, the `canonicalURL` references are no-ops (`.Params.canonicalURL` returns empty string).

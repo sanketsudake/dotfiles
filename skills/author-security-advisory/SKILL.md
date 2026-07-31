@@ -1,6 +1,10 @@
 ---
 name: author-security-advisory
 description: Use when triaging or preparing a GitHub repository security advisory as a maintainer (triggers "draft the advisory", "prepare GHSA content", "request CVE", "publish advisory"). Lists/triages advisories via the API and produces paste-ready GHSA form content; CVE-request and Publish are UI actions. Generic to any maintainer-owned repo.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Author a GitHub Security Advisory (Maintainer Side)
@@ -155,7 +159,7 @@ You cannot PATCH state to `published` via the API — that is a UI-only action.
 This is the primary deliverable.
 Produce one file per advisory with a form-fields table, Description markdown, and Fix section, ready to copy-paste into the GitHub GHSA UI edit form.
 
-See `reference/ghsa-form-template.md` for the paste-ready form structure (form-fields table, Description markdown, Fix section).
+See `references/ghsa-form-template.md` for the paste-ready form structure (form-fields table, Description markdown, Fix section).
 
 CVSS scoring guidance:
 - Node/cluster escape: `S:C/C:H/I:H/A:H` → Critical (9.9)

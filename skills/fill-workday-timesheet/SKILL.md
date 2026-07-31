@@ -2,6 +2,10 @@
 name: fill-workday-timesheet
 description: Use when the user wants to fill in their Workday timesheet for the current week (hours per weekday against a project), invoked as /fill-workday-timesheet. Review-first — shows the week's planned hours and waits for confirmation before saving. Drives the user's real Chrome via the chrome-cdp CLI (logs in through login-microsoft-sso).
 disable-model-invocation: true
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Fill Workday Timesheet

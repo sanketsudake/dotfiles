@@ -1,6 +1,10 @@
 ---
 name: bump-hugo-versions
 description: Use when bumping Hugo, Go, or a theme loaded as a Hugo Module via go.mod, with versions pinned in a deploy config (netlify.toml or a GitHub Actions workflow). Triggers "update go version", "bump the theme", "upgrade hugo".
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Bumping Hugo, Go, and Theme Versions

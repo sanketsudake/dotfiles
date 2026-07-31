@@ -1,6 +1,10 @@
 ---
 name: verify-hugo-build
 description: Use when verifying a Hugo site build before declaring it done or pushing (triggers "does it build", "verify the site", after editing layouts/SCSS/content). Builds the way the host runs it and explains why hugo --gc --quiet is not enough.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Verify a Hugo Build
@@ -33,7 +37,7 @@ A clean build prints the full page table untruncated and the page count rises as
 
 After editing **layouts or SCSS**, start `hugo server` and load the affected pages in a browser.
 A build-clean flag does not catch visual regressions.
-Use the `browser-tools` skill to automate browser interaction if needed.
+Use the `agent-browser` skill to automate browser interaction if needed.
 
 ## Common Mistakes
 

@@ -1,6 +1,10 @@
 ---
 name: resolve-bot-review-threads
 description: Use when a PR has bot/Copilot review comments to clear — fix them, mark the threads resolved, and re-request the bot until the PR is at a good base (triggers "resolve copilot comments", "mark review threads resolved", "re-request copilot review"). Generic to any GitHub repo with bot reviewers.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Resolve Bot Review Threads
@@ -239,7 +243,7 @@ The mutation is idempotent — running it multiple times on the same PR+bot is s
 
 ## 5. Poll CI and Monitor New Threads
 
-After each fix push, re-run the unresolved-thread query; see the `watch-ci` skill for CI polling and `reference/poll-loop.md` for a combined example loop.
+After each fix push, re-run the unresolved-thread query; see the `watch-ci` skill for CI polling and `references/poll-loop.md` for a combined example loop.
 
 ### Final status check
 

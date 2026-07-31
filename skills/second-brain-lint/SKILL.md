@@ -5,6 +5,10 @@ description: >
   and missing cross-references. Use when the user says "audit",
   "health check", "lint", "find problems", or wants to improve wiki quality.
 allowed-tools: Bash Read Write Edit Glob Grep
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Second Brain — Lint

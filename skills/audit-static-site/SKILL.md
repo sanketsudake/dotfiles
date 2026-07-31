@@ -1,6 +1,10 @@
 ---
 name: audit-static-site
 description: Use to crawl a built static-site output dir and flag SEO/UX issues (titles, meta descriptions, alt text, thin/orphan/duplicate pages) before publishing. Triggers "audit the site", "SEO check", "check the build for SEO". Generic to any static site whose output is plain HTML.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Audit a built static site
@@ -12,7 +16,7 @@ Run after a production build, before publishing — or as a gate in an improveme
 Run the vendored script against the built output:
 
 ```bash
-python3 <skill-dir>/site-audit.py \
+python3 {baseDir}/scripts/site-audit.py \
   --public public \
   --site-suffix " | My Site" \
   --sections posts,talks \

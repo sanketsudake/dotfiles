@@ -1,6 +1,10 @@
 ---
 name: triage-gh-backlog
 description: Use when scrubbing or triaging a GitHub repo's open issue/PR backlog — e.g. "go through all open issues and PRs and see what can be closed", "scrub the outstanding issues", "close stale/duplicate items" — closing stale/duplicate/already-shipped/EOL items and categorizing the rest (type, area, priority) like a product manager. Use for one-off backlog cleanups or a recurring triage cadence. Backed by gitcrawl (local SQLite mirror, no API-quota burn). Portable across OSS repos via --repo + a per-repo config.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # triage-gh-backlog
@@ -41,7 +45,7 @@ Plus `scrub.sh protect --repo R [--execute]` — adds `keep-open` to the numbers
 `scrub.sh run --repo R [--full]` chains sync→extract→triage→report (never writes).
 Use `--full` on the first run (full backfill); omit it after (incremental, with closed-sweep).
 
-**Read the detailed stage contract in `resources/pipeline.md` before running.**
+**Read the detailed stage contract in `references/pipeline.md` before running.**
 
 For `review`-tier items: copy the ones you approve from `apply-plan.jsonl` into `approved.jsonl`, then `apply.py --from approved.jsonl --execute`.
 
@@ -63,10 +67,10 @@ bash scrub.sh apply --repo R --auto --execute
 ## How it decides
 
 The rule engine, taxonomy, and write playbook are documented in:
-- `resources/triage-rules.md` — every disposition, its heuristic, its tier
-- `resources/labels.md` — full label taxonomy + mapping + proposed extensions
-- `resources/write-actions.md` — gh write playbook, comment templates, safety gates
-- `resources/gitcrawl-reference.md` — the gitcrawl commands + SQLite schema this skill relies on
+- `references/triage-rules.md` — every disposition, its heuristic, its tier
+- `references/labels.md` — full label taxonomy + mapping + proposed extensions
+- `references/write-actions.md` — gh write playbook, comment templates, safety gates
+- `references/gitcrawl-reference.md` — the gitcrawl commands + SQLite schema this skill relies on
 
 ## Safety gates (apply stage) — non-negotiable
 

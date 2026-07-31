@@ -13,6 +13,10 @@ description: >-
   portal schedule-by-schedule, fixing validation defects, and guiding payment and
   e-verification. India personal income tax only — not US/UK/other-country tax,
   GST, TDS-return (24Q/26Q), or company returns.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Filing an Indian Income Tax Return (ITR)
@@ -287,3 +291,5 @@ challan and source documents.
   u/s 115BBH, no loss set-off, 1% TDS u/s 194S, Schedule VDA reporting.
 - `references/portal-workflow.md` — step-by-step portal navigation, every known
   quirk with its workaround, and the validation-defect catalogue.
+- `evals/evals.json` — regression scenarios (income mixes, regime picks, expected
+  computations) for spot-checking this skill after edits.

@@ -2,6 +2,10 @@
 name: list-week-meetings
 description: Use when the user wants a list of their meetings for a week from the Outlook (Microsoft 365) calendar — invoked as /list-week-meetings. Read-only: it reads the week's events and presents them grouped by day (time, title, organizer, online/in-person, status). Drives the user's real Chrome via the chrome-cdp CLI (logs in through login-microsoft-sso, app outlook).
 disable-model-invocation: true
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # List Week Meetings

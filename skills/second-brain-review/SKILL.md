@@ -7,6 +7,10 @@ description: >
   something", "what should I revisit", or wants spaced-repetition-style
   engagement with their wiki.
 allowed-tools: Bash Read Write Edit Glob Grep
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Second Brain — Review

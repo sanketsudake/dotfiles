@@ -1,11 +1,15 @@
 ---
 name: remediate-codeql-alerts
 description: Use when fixing or triaging GitHub code-scanning / CodeQL alerts (triggers "fix codeql issues", "check code-scanning alerts", "dismiss false-positive alert"). Lists alerts, finds the taint source, fixes real ones, dismisses won't-fix, and verifies on the PR merge ref. Generic to any repo with CodeQL enabled.
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Remediate GitHub Code-Scanning / CodeQL Alerts
 
-Work in an isolated git worktree — use the `using-git-worktrees` skill.
+Work in an isolated git worktree — use the `superpowers:using-git-worktrees` skill if available, else `git worktree add`.
 
 ## 0. Auth Prerequisite
 
@@ -132,7 +136,7 @@ Read `.message.markdown` to find the source file:line before deciding how to fix
 
 ### Step 4 — fix in a git worktree
 
-Use the `using-git-worktrees` skill to create an isolated worktree:
+Use the `superpowers:using-git-worktrees` skill (if available) to create an isolated worktree:
 
 ```bash
 git worktree add .claude/worktrees/fix-codeql-issues -b fix/codeql-{rule-slug}
@@ -173,7 +177,7 @@ Expected: `{"state":"dismissed","reason":"won't fix","comment":"..."}`
 
 Comments longer than ~400-500 chars fail silently (state stays `open`; exit code may not surface the error).
 Keep dismiss comments under ~280 chars; for longer justifications, pass JSON via `--input`.
-See `reference/dismiss-recipes.md`.
+See `references/dismiss-recipes.md`.
 
 ---
 

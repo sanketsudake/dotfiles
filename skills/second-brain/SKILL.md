@@ -4,8 +4,12 @@ description: >
   Set up a new Obsidian knowledge base with the LLM Wiki pattern. Use when
   the user wants to create a second brain, initialize a vault, set up a
   personal knowledge base, or says "onboard". Guides through an interactive
-  wizard to configure vault name, location, domain, agent support, and tooling.
+  setup wizard.
 allowed-tools: Bash Read Write Glob Grep
+license: Apache-2.0
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Second Brain — Onboarding Wizard
@@ -93,14 +97,14 @@ After collecting all answers, execute these steps in order:
 Run the onboarding script, passing the full vault path:
 
 ```
-bash <skill-directory>/scripts/onboarding.sh <vault-path>
+bash {baseDir}/scripts/onboarding.sh <vault-path>
 ```
 
 This creates all directories and the initial `wiki/index.md` and `wiki/log.md` files.
 
 ### 2. Generate agent config file(s)
 
-For each selected agent, read the corresponding template from `<skill-directory>/references/agent-configs/`:
+For each selected agent, read the corresponding template from `{baseDir}/references/agent-configs/`:
 
 | Agent | Template | Output File | Output Location |
 |---|---|---|---|
@@ -114,7 +118,7 @@ For each template, replace the placeholders:
 - `{{VAULT_NAME}}` → the vault name from Step 1
 - `{{DOMAIN_DESCRIPTION}}` → a one-line description derived from Step 3
 - `{{DOMAIN_TAGS}}` → generate 5-8 domain-relevant tags as a bullet list based on the domain from Step 3
-- `{{WIKI_SCHEMA}}` → read `<skill-directory>/references/wiki-schema.md` and insert everything from `## Architecture` onward
+- `{{WIKI_SCHEMA}}` → read `{baseDir}/references/wiki-schema.md` and insert everything from `## Architecture` onward
 
 Write the generated config to the vault.
 
@@ -151,7 +155,7 @@ Show the user:
 
 ## Reference Files
 
-These files are bundled with this skill and available at `<skill-directory>/references/`:
+These files are bundled with this skill and available at `{baseDir}/references/`:
 
 - `wiki-schema.md` — canonical wiki rules (single source of truth for all agent configs)
 - `tooling.md` — CLI tool details, install commands, and verification steps
