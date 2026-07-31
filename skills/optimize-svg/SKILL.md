@@ -1,7 +1,7 @@
 ---
 name: optimize-svg
 description: Use when adding or committing an SVG asset (logos, icons) to keep it small — triggers "add this logo", "optimize svg", "svg is too big". Runs svgo and keeps the result only if it actually shrank.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

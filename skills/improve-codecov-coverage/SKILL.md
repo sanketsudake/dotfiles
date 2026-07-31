@@ -1,7 +1,7 @@
 ---
 name: improve-codecov-coverage
 description: Use when raising test coverage on a Go project that reports to Codecov (triggers "improve code coverage", "cover package X", "find coverage gaps"). Fetches Codecov totals, ranks low-covered packages, writes targeted tests, and verifies the delta. Generic to any Go + Codecov project.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

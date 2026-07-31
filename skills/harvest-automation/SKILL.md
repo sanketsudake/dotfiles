@@ -2,7 +2,7 @@
 name: harvest-automation
 description: Use when the user wants to turn past Claude Code work into reusable automation — invoked as /harvest-automation, optionally with a window like "7d". Triggers include end-of-session review, "what should we automate", "mine my recent sessions", recurring manual workflows, repeated corrections, repeated permission prompts, or preferences worth capturing as a skill, CLAUDE.md entry, or memory.
 disable-model-invocation: true
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

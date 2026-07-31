@@ -1,7 +1,7 @@
 ---
 name: source-code-for-gh-advisory
 description: Use when the user wants to obtain, inspect, or reproduce the vulnerable source code referenced by a GitHub Security Advisory (GHSA-xxxx / CVE) — including security research, PoC reproduction, patch diffing, or auditing the affected file/function.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

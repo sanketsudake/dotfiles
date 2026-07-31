@@ -23,7 +23,7 @@ It is the local copy of those guidelines — audit against it even when offline.
 3. **Description rules** — max 1,024 chars, third person, states both **what the skill does and when to use it**, with concrete trigger phrases a user would actually type (error messages, symptoms, synonyms, tool names).
    Flag first-person phrasing, vague blurbs ("Helps with X"), and descriptions only a human browsing the repo would match.
    Don't let the description script the workflow step-by-step — agents may follow it instead of reading the body.
-4. **License** — `license:` present (this repo stamps `MIT` on authored skills).
+4. **License** — `license:` present (this repo stamps `Apache-2.0`, matching the repo LICENSE on authored skills).
 5. **Metadata** — `metadata:` map present with at least `author` and `version`.
    (`category` deliberately lives in the `.source.json` sidecar / `skills/vendored.json`, not frontmatter — flag duplication as drift risk.)
 6. **Optional fields sane** — `compatibility` ≤500 chars if present; `allowed-tools` space-delimited; `disable-model-invocation` boolean.

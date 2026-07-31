@@ -1,7 +1,7 @@
 ---
 name: remediate-codeql-alerts
 description: Use when fixing or triaging GitHub code-scanning / CodeQL alerts (triggers "fix codeql issues", "check code-scanning alerts", "dismiss false-positive alert"). Lists alerts, finds the taint source, fixes real ones, dismisses won't-fix, and verifies on the PR merge ref. Generic to any repo with CodeQL enabled.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

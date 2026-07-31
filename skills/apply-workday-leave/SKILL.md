@@ -2,7 +2,7 @@
 name: apply-workday-leave
 description: Use when the user wants to apply leave / absence in Workday (sick leave, casual leave, planned leave, comp off, etc.) for one or more days, invoked as /apply-workday-leave. Review-first — it shows the absence plan (dates, type, hours) and waits for confirmation before submitting, then reconciles the timesheet so the leave day carries no project hours. Drives the user's real Chrome via the chrome-cdp CLI (logs in through login-microsoft-sso).
 disable-model-invocation: true
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

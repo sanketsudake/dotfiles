@@ -6,7 +6,7 @@ description: >
   personal knowledge base, or says "onboard". Guides through an interactive
   wizard to configure vault name, location, domain, agent support, and tooling.
 allowed-tools: Bash Read Write Glob Grep
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

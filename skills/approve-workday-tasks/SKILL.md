@@ -2,7 +2,7 @@
 name: approve-workday-tasks
 description: Use when the user wants to review and approve their pending Workday "My Tasks" approvals via the browser — invoked as /approve-workday-tasks. Lists pending items and approves only the ones the user explicitly selects. Drives the user's real Chrome via the chrome-cdp CLI (logs in through login-microsoft-sso).
 disable-model-invocation: true
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

@@ -1,7 +1,7 @@
 ---
 name: analyze-go-pprof
 description: Pull the heap/goroutine pprof profiles a CI job captured, separate a real leak from baseline cost, and quantify a fix's before/after delta. Use for "where is the memory/compute going", "is this a leak", "verify the perf fix", "compare profiles from the latest CI run", or when a Go service's CI run uploads pprof artifacts. Generic to any Go project whose CI captures /debug/pprof dumps.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

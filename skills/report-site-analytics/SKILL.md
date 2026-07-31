@@ -1,7 +1,7 @@
 ---
 name: report-site-analytics
 description: Use to pull a GA4 + Google Search Console report (top pages, queries, CTR, near-miss positions) into a dated markdown/JSON summary for an SEO/reachability pass. Triggers "analytics report", "what's my search traffic", "GSC report". Generic to any site with GA4 + Search Console configured.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

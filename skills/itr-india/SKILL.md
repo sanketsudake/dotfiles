@@ -13,7 +13,7 @@ description: >-
   portal schedule-by-schedule, fixing validation defects, and guiding payment and
   e-verification. India personal income tax only — not US/UK/other-country tax,
   GST, TDS-return (24Q/26Q), or company returns.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

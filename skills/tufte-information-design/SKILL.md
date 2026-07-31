@@ -1,7 +1,7 @@
 ---
 name: tufte-information-design
 description: Apply Edward Tufte's information-design principles to ANY information display — slides/decks, documents, blog posts, dashboards, HTML artifacts, tables, diagrams, emails — when creating one with clarity as a goal or reviewing one. Use on triggers like "apply Tufte", "make this clearer", "less cluttered", "too busy", "chartjunk", "improve information density", "review this slide/report/dashboard/diagram/table for clarity", "is this chart misleading". A principles + review lens, not a builder — chart construction mechanics (marks, palettes, axes) belong to a dedicated dataviz skill when one is available; deck/doc file mechanics to pptx/docx; visual styling direction to a frontend-design skill when one is available.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

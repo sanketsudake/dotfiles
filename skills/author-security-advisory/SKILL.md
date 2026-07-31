@@ -1,7 +1,7 @@
 ---
 name: author-security-advisory
 description: Use when triaging or preparing a GitHub repository security advisory as a maintainer (triggers "draft the advisory", "prepare GHSA content", "request CVE", "publish advisory"). Lists/triages advisories via the API and produces paste-ready GHSA form content; CVE-request and Publish are UI actions. Generic to any maintainer-owned repo.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"

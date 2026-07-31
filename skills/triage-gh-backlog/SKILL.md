@@ -1,7 +1,7 @@
 ---
 name: triage-gh-backlog
 description: Use when scrubbing or triaging a GitHub repo's open issue/PR backlog — e.g. "go through all open issues and PRs and see what can be closed", "scrub the outstanding issues", "close stale/duplicate items" — closing stale/duplicate/already-shipped/EOL items and categorizing the rest (type, area, priority) like a product manager. Use for one-off backlog cleanups or a recurring triage cadence. Backed by gitcrawl (local SQLite mirror, no API-quota burn). Portable across OSS repos via --repo + a per-repo config.
-license: MIT
+license: Apache-2.0
 metadata:
   author: sanketsudake
   version: "1.0"
