@@ -243,7 +243,7 @@ The mutation is idempotent — running it multiple times on the same PR+bot is s
 
 ## 5. Poll CI and Monitor New Threads
 
-After each fix push, re-run the unresolved-thread query; see the `watch-ci` skill for CI polling and `reference/poll-loop.md` for a combined example loop.
+After each fix push, re-run the unresolved-thread query; see the `watch-ci` skill for CI polling and `references/poll-loop.md` for a combined example loop.
 
 ### Final status check
 

@@ -16,7 +16,7 @@ Run after a production build, before publishing — or as a gate in an improveme
 Run the vendored script against the built output:
 
 ```bash
-python3 <skill-dir>/site-audit.py \
+python3 {baseDir}/scripts/site-audit.py \
   --public public \
   --site-suffix " | My Site" \
   --sections posts,talks \

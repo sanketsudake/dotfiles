@@ -30,7 +30,7 @@ Decline when the user asked for a plain summary, the scope has < ~4 user-turns o
 Default scope is the current session.
 Reflect on the in-context conversation first.
 
-- For a window (`Nd`), run `{baseDir}/find-sessions.sh --since N` to list recent session JSONLs across **all** project dirs in the active profile, newest first.
+- For a window (`Nd`), run `{baseDir}/scripts/find-sessions.sh --since N` to list recent session JSONLs across **all** project dirs in the active profile, newest first.
   Recurring automation often spans repos, so scan across projects, not just the current one.
   Read enough of each to extract signals; cite the session by id/path.
 
@@ -69,9 +69,9 @@ Stay composable — delegate, do not reimplement.
   Draft a proposal (name, "Use when…" description, trigger, the steps, any scripts), then hand off to `superpowers:writing-skills` to author and validate it under `skills/<name>/`; mark it local with a `{"repo": null}` `.source.json`.
   Never scaffold skill files by hand.
 - **CLAUDE.md** — a collaborator-visible project fact (build/test commands, invariants, code locations, "always use X helper").
-  Applied via `{baseDir}/apply-suggestions.sh`.
+  Applied via `{baseDir}/scripts/apply-suggestions.sh`.
 - **Memory** — a user-private preference (terse vs verbose, tool choices, workflow habits).
-  Applied via `{baseDir}/apply-suggestions.sh`.
+  Applied via `{baseDir}/scripts/apply-suggestions.sh`.
 - **Permission allowlist** — repeated approvals of the same tool/command.
   Reference the `fewer-permission-prompts` skill to generate the `.claude/settings.json` entries; do not re-implement its logic.
 
@@ -131,7 +131,7 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 - **`apply claude` / `apply memory` / `apply all`** — Write the payload (schema below) to `/tmp/harvest-automation-<sessionid-or-timestamp>.json`, then call:
 
 ```bash
-{baseDir}/apply-suggestions.sh <claude|memory|all> <payload.json>
+{baseDir}/scripts/apply-suggestions.sh <claude|memory|all> <payload.json>
 ```
 
 ```json
@@ -163,11 +163,11 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 ## Scripts
 
 ```bash
-{baseDir}/find-sessions.sh                 # current session JSONL (most recent for cwd)
-{baseDir}/find-sessions.sh --since 7       # recent session JSONLs (last 7 days), newest first
-{baseDir}/apply-suggestions.sh <scope> <payload.json>   # apply CLAUDE.md / memory edits
+{baseDir}/scripts/find-sessions.sh                 # current session JSONL (most recent for cwd)
+{baseDir}/scripts/find-sessions.sh --since 7       # recent session JSONLs (last 7 days), newest first
+{baseDir}/scripts/apply-suggestions.sh <scope> <payload.json>   # apply CLAUDE.md / memory edits
 ```
 
 ## Troubleshooting
 
-If context was compacted (system-reminders mention compaction, or the earliest turns are missing), run `{baseDir}/find-sessions.sh` to locate the session JSONL and Read the earliest portion to recover missed turns.
+If context was compacted (system-reminders mention compaction, or the earliest turns are missing), run `{baseDir}/scripts/find-sessions.sh` to locate the session JSONL and Read the earliest portion to recover missed turns.

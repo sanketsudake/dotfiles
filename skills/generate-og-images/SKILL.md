@@ -14,7 +14,7 @@ Run when adding a post/talk, after changing a page's title or tags, or to genera
 ## Workflow
 
 ```bash
-python3 <skill-dir>/gen-og-image.py \
+python3 {baseDir}/scripts/gen-og-image.py \
   --brand my.site --author "Full Name" \
   --subtitle "Topic A · Topic B" \
   --sections posts,talks \

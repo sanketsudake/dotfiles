@@ -37,7 +37,7 @@ A clean build prints the full page table untruncated and the page count rises as
 
 After editing **layouts or SCSS**, start `hugo server` and load the affected pages in a browser.
 A build-clean flag does not catch visual regressions.
-Use the `browser-tools` skill to automate browser interaction if needed.
+Use the `agent-browser` skill to automate browser interaction if needed.
 
 ## Common Mistakes
 

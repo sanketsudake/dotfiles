@@ -9,7 +9,7 @@ metadata:
 
 # Improve Codecov Coverage (Go)
 
-Work in an isolated git worktree — use the `using-git-worktrees` skill.
+Work in an isolated git worktree — use the `superpowers:using-git-worktrees` skill if available, else `git worktree add`.
 
 ---
 
@@ -28,7 +28,7 @@ curl -s "https://api.codecov.io/api/v2/github/<owner>/repos/<repo>/totals/?branc
 ```
 
 The `totals` endpoint returns ALL files combined across ALL CI upload flags, so it is the source of truth for gap analysis (a local unit-only `go test` reports lower).
-For the Python snippet to print top-level totals and the JSON response shape, see `reference/codecov-recipes.md`.
+For the Python snippet to print top-level totals and the JSON response shape, see `references/codecov-recipes.md`.
 
 ---
 
@@ -44,7 +44,7 @@ jq -r '
 ' /tmp/cov_main.json | sort -rn | head -30
 ```
 
-For ranking by package (biggest gap first) and the before/after-snapshot comparison, run the Python recipes in `reference/codecov-recipes.md`.
+For ranking by package (biggest gap first) and the before/after-snapshot comparison, run the Python recipes in `references/codecov-recipes.md`.
 
 ---
 
@@ -133,7 +133,7 @@ done
 
 ## Quick Reference
 
-A copy-paste cheat-sheet of the fetch/profile/validate commands lives in `reference/quick-reference.md`.
+A copy-paste cheat-sheet of the fetch/profile/validate commands lives in `references/quick-reference.md`.
 
 ---
 

@@ -45,7 +45,7 @@ Plus `scrub.sh protect --repo R [--execute]` — adds `keep-open` to the numbers
 `scrub.sh run --repo R [--full]` chains sync→extract→triage→report (never writes).
 Use `--full` on the first run (full backfill); omit it after (incremental, with closed-sweep).
 
-**Read the detailed stage contract in `resources/pipeline.md` before running.**
+**Read the detailed stage contract in `references/pipeline.md` before running.**
 
 For `review`-tier items: copy the ones you approve from `apply-plan.jsonl` into `approved.jsonl`, then `apply.py --from approved.jsonl --execute`.
 
@@ -67,10 +67,10 @@ bash scrub.sh apply --repo R --auto --execute
 ## How it decides
 
 The rule engine, taxonomy, and write playbook are documented in:
-- `resources/triage-rules.md` — every disposition, its heuristic, its tier
-- `resources/labels.md` — full label taxonomy + mapping + proposed extensions
-- `resources/write-actions.md` — gh write playbook, comment templates, safety gates
-- `resources/gitcrawl-reference.md` — the gitcrawl commands + SQLite schema this skill relies on
+- `references/triage-rules.md` — every disposition, its heuristic, its tier
+- `references/labels.md` — full label taxonomy + mapping + proposed extensions
+- `references/write-actions.md` — gh write playbook, comment templates, safety gates
+- `references/gitcrawl-reference.md` — the gitcrawl commands + SQLite schema this skill relies on
 
 ## Safety gates (apply stage) — non-negotiable
 

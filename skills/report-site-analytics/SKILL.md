@@ -16,7 +16,7 @@ Run at the start of a reachability/SEO cycle, to surface low-CTR-high-impression
 Requires Application Default Credentials with access to the GA4 property and GSC site, plus `GA4_PROPERTY_ID` / `GSC_SITE_URL` (or the flags):
 
 ```bash
-python3 <skill-dir>/analytics-report.py \
+python3 {baseDir}/scripts/analytics-report.py \
   --property <ga4-numeric-id> \
   --site https://my.site/ \
   --days 28 \
