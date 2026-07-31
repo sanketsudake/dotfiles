@@ -2,6 +2,10 @@
 name: record-engage-activity
 description: Use when the user wants to record an activity in Engage (the org's activity/points platform) — e.g. a billed work week, a phone interview, or an attended course/class (e.g. ImprovingU) — invoked as /record-engage-activity, with or without an Engage activity URL. Fills the Add Activity form (category, type, date, quantity, notes) and submits only after user confirmation; can derive a class's date/hours from Outlook. Also handles an Engage share link (an activity URL carrying a `?guid=…`), which arrives with the form already prefilled — then the job is to cross-verify the fields and submit, not to fill them. Drives the user's real Chrome via the chrome-cdp CLI (logs in through login-microsoft-sso).
 disable-model-invocation: true
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Record Engage Activity

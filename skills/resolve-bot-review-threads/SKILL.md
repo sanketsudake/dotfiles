@@ -1,6 +1,10 @@
 ---
 name: resolve-bot-review-threads
 description: Use when a PR has bot/Copilot review comments to clear — fix them, mark the threads resolved, and re-request the bot until the PR is at a good base (triggers "resolve copilot comments", "mark review threads resolved", "re-request copilot review"). Generic to any GitHub repo with bot reviewers.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Resolve Bot Review Threads

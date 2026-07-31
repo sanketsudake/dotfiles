@@ -1,6 +1,10 @@
 ---
 name: bump-ci-tool-versions
 description: Bump the pinned CLI tool versions that GitHub Actions workflows download at runtime (helm, kind, skaffold, cosign, golangci-lint, goreleaser, etc.) — the `*_VERSION:` env vars and the `# vX.Y.Z` comments next to SHA-pinned `uses:` actions. Use for "update workflow tool versions" (also invoked as `workflow-tool-versions`), "CI tool refresh", "bump skaffold/kind/cosign", or processing a Dependabot github-actions PR. Generic to any repo with GitHub Actions workflows.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Bump CI tool versions

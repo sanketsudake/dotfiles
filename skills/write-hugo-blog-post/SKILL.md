@@ -1,6 +1,10 @@
 ---
 name: write-hugo-blog-post
 description: Use when authoring or editing a blog post in a Hugo site (any theme) — triggers "write a blog post", "publish a tutorial", "add a post". Covers file layout (single file vs page bundle), front matter, the featured-image to card+OG flow, and the layout that actually renders a post.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Writing a Hugo Blog Post

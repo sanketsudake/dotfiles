@@ -7,6 +7,10 @@ description: >
   their reading library reflected in the wiki (triggers: readwise sync, reader
   sync, import highlights). Sync only — follow with /second-brain-ingest.
 allowed-tools: Bash Read Glob Grep
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Readwise → Second-Brain Sync

@@ -1,6 +1,10 @@
 ---
 name: add-llms-txt
 description: Use to add LLM-friendly outputs to a Hugo site — /llms.txt and /llms-full.txt indexes plus a per-page markdown twin at <url>/index.md — generated from content so they stay in sync. Triggers "add llms.txt", "make the site agent-friendly", "markdown twin".
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Add llms.txt + markdown twins to a Hugo site

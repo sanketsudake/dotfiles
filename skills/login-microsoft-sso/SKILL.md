@@ -2,6 +2,10 @@
 name: login-microsoft-sso
 description: Use to ensure an authenticated browser tab for an app behind your organization's Microsoft (Entra) SSO — e.g. Workday, Engage, Outlook — driven by the `chrome-cdp` CLI. It drives the user's real, already-logged-in Chrome, so it types no credentials; it navigates to the app and, if redirected to a sign-in page, clicks that app's SSO entry, which bounces back in via the live session. A building block for the automation skills — invoke it first (with the target app) so they operate on a logged-in tab. Invoked as /login-microsoft-sso.
 disable-model-invocation: true
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Login to an SSO app (Microsoft-federated)

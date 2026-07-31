@@ -9,6 +9,10 @@ description: >
   folder (Obsidian Web Clipper) into raw/ first, enriching metadata
   on the way.
 allowed-tools: Bash Read Write Edit Glob Grep
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Second Brain — Ingest

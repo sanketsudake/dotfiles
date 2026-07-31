@@ -8,6 +8,10 @@ description: >
   knowledge into publishable content. Produces a scored shortlist with
   outlines in output/ and maintains an ideas backlog in wiki/synthesis/.
 allowed-tools: Bash Read Write Edit Glob Grep
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Second Brain — Ideate

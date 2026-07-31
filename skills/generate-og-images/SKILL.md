@@ -1,6 +1,10 @@
 ---
 name: generate-og-images
 description: Use to generate branded 1200x630 social-share (OG/Twitter) card images for a site's pages, with title/tags/brand overlaid by Pillow over an AI, image, or gradient background. Triggers "make an OG image", "social card", "regenerate the share image". Generic to any Hugo-style content tree.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Generate social-share (OG) card images

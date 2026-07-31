@@ -1,6 +1,10 @@
 ---
 name: verify-hugo-build
 description: Use when verifying a Hugo site build before declaring it done or pushing (triggers "does it build", "verify the site", after editing layouts/SCSS/content). Builds the way the host runs it and explains why hugo --gc --quiet is not enough.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Verify a Hugo Build

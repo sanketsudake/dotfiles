@@ -1,6 +1,10 @@
 ---
 name: audit-static-site
 description: Use to crawl a built static-site output dir and flag SEO/UX issues (titles, meta descriptions, alt text, thin/orphan/duplicate pages) before publishing. Triggers "audit the site", "SEO check", "check the build for SEO". Generic to any static site whose output is plain HTML.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Audit a built static site

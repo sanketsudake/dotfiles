@@ -6,6 +6,10 @@ description: >
   connections between topics, says "what do I know about X", or wants
   to search their wiki.
 allowed-tools: Bash Read Write Edit Glob Grep
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Second Brain — Query

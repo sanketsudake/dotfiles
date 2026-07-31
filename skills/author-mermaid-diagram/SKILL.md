@@ -1,6 +1,10 @@
 ---
 name: author-mermaid-diagram
 description: Use when adding or fixing a mermaid diagram in a Hugo (or other static-site) page so it renders readably inline in a narrow content column (triggers "add a diagram", "mermaid", "diagram is too wide"). Covers the width rule, layout direction, the semantic color palette, and the browser viewBox check.
+license: MIT
+metadata:
+  author: sanketsudake
+  version: "1.0"
 ---
 
 # Authoring Mermaid Diagrams
