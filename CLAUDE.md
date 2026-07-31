@@ -47,7 +47,7 @@ They also differ in what gets committed, which turns on a resource's **provenanc
 
 - **Vendored** — fetched from an upstream repo (`repo != null`).
   We don't author it; this repo just tracks a pin.
-- **Authored** — born in this repo (`repo: null`, e.g. `harvest-automation`, `itr-india`); this repo is its only home.
+- **Authored** — born in this repo (`repo: null`, e.g. `harvest-automation`, `debug-ci`); this repo is its only home.
   `update` and `delete` treat it as having no upstream.
 
 **Vendored skills are not committed.**
@@ -164,7 +164,9 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
   Prefer extracting shared logic into a script the skill calls over duplicating it across skills, and keep `SKILL.md` focused enough that another skill (or the model) can lean on it without inheriting unrelated behavior.
   When a skill needs another skill, reference it by name as a soft dependency instead of copying its contents.
 - Treat vendored skill dirs and `pi/extensions/` as read-only upstream copies — for vendored skills the dir is gitignored and `make skills-materialize`/`skills-update` overwrites it wholesale from the pinned commit, so local edits there are lost with no trace.
-  If you genuinely need to diverge from a vendored skill, **reclassify it as authored**: restore the committed dir, rewrite its `.source.json` to `{"repo": null, ...}` with a `note` recording the fork point, drop it from `skills/vendored.json` and the `.gitignore` block (that's exactly what was done for `itr-india`) — then it's committed and safe to edit.
+  If you genuinely need to diverge from a vendored skill, **reclassify it as authored**: restore the committed dir, rewrite its `.source.json` to `{"repo": null, ...}` with a `note` recording the fork point, drop it from `skills/vendored.json` and the `.gitignore` block — then it's committed and safe to edit.
+  This is a temporary state, not a destination: `itr-india` was forked this way, the divergence was contributed back upstream, and once it merged the skill was re-vendored (`make skills-fetch … FORCE=1` + `git rm -r --cached`) so it tracks a pin again.
+  Prefer that round trip over holding a permanent fork.
 - The committed record for a vendored skill is its `skills/vendored.json` entry, not the on-disk `.source.json` (which is gitignored and regenerated on materialize); change a vendored skill's source by re-fetching/updating, which rewrites the manifest entry.
   For agents and authored skills, the `.source.json` sidecar is still the committed record but is likewise regenerated on fetch/update — don't hand-edit it expecting persistence.
   Authored resources (no upstream) keep a `{"repo": null}` sidecar so they survive `skills-update-all` / `agents-update-all` untouched.

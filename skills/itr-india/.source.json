@@ -1,5 +1,0 @@
-{
-  "repo": null,
-  "category": "personal-finance",
-  "note": "Forked from https://github.com/shivprime94/file-itr (skills/itr-india @ 2275b98) and locally diverged (repo-specific edits, e.g. agent-browser reference + added capital-gains guidance). Authored/committed here; NOT materialized from a pin. Do not re-vendor: re-fetching would clobber the local edits."
-}

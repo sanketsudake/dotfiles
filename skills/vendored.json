@@ -144,6 +144,15 @@
     "description": "Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick."
   },
   {
+    "name": "itr-india",
+    "repo": "https://github.com/shivprime94/file-itr",
+    "subpath": "skills/itr-india",
+    "ref": "main",
+    "commit": "d77e2fafdf4b2ef1953f44e52dde87a8643f5814",
+    "category": "personal-finance",
+    "description": "Assist any Indian individual with preparing and e-filing an Income Tax Return (ITR-1/2/3/4) on the e-filing portal (eportal.incometax.gov.in), under EITHER the old or new tax regime. Use WHENEVER the user mentions filing taxes in India, ITR, income tax return, 26AS, AIS, Form 16, old vs new regime, 115BAC, Form 10-IEA, 80C/80D/HRA/home-loan/NPS/80G deductions, 44ADA/44AD presumptive, self-assessment/advance tax/234B/234C, TDS reconciliation, capital gains on Indian shares/mutual funds/property, or crypto/VDA (115BBH/194S) — even if they don't name the form or regime. Covers gathering and reconciling income documents, comparing both regimes to pick the cheaper one, choosing the form, computing tax, filling the portal schedule-by-schedule, fixing validation defects, and guiding payment and e-verification. India personal income tax only — not US/UK/other-country tax, GST, TDS-return (24Q/26Q), or company returns."
+  },
+  {
     "name": "make-pr-easy-to-review",
     "repo": "https://github.com/cursor/plugins",
     "subpath": "cursor-team-kit/skills/make-pr-easy-to-review",
