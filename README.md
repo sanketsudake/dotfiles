@@ -40,6 +40,7 @@ On an existing machine, clone the repo and run `make install`.
 | `harness-install` | Clone harness-configs if missing, then run its `make install` |
 | `macos-apply` | Run `macos/defaults.sh` |
 | `doctor` | Run all health checks |
+| `drift` | Report divergence between recorded config and the live system, both directions, with the reconcile command per finding |
 
 ## The stow model
 

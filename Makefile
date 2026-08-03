@@ -17,7 +17,7 @@ MANIFESTS := $(CURDIR)/manifests
 	go-install npm-install pipx-install tools-install \
 	stow-link stow-unlink stow-adopt \
 	harness-clone harness-install \
-	macos-apply
+	macos-apply drift
 
 install: brew-install stow-link tools-install harness-install
 
@@ -91,3 +91,6 @@ macos-apply:
 
 doctor:
 	bash $(CURDIR)/scripts/doctor.sh
+
+drift:
+	bash $(CURDIR)/scripts/drift.sh
