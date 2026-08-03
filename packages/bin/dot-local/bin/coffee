@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# coffee — keep the Mac awake (a friendly caffeinate wrapper).
+#
+#   coffee                 stay awake until 'coffee stop' (display may sleep)
+#   coffee 45m | 2h | 90s  stay awake for a duration
+#   coffee watch <pid|name>  stay awake while a process runs, e.g. coffee watch claude
+#   coffee status          is a coffee session active?
+#   coffee stop            end the session
+#
+# Add -d before any form to also keep the display awake: coffee -d 2h
+# Note: closing the lid still sleeps the Mac unless on power with an external display.
+set -euo pipefail
+
+PIDFILE="${TMPDIR:-/tmp}/coffee-$USER.pid"
+FLAGS="-is"   # -i idle sleep, -s system sleep (AC power)
+
+usage() { grep '^#   ' "$0" | sed 's/^#   //'; }
+
+alive() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+
+start_bg() {
+  if alive; then
+    echo "coffee: already brewing (pid $(cat "$PIDFILE")) — 'coffee stop' first" >&2
+    exit 1
+  fi
+  caffeinate $FLAGS "$@" &
+  echo $! > "$PIDFILE"
+}
+
+if [ "${1:-}" = "-d" ]; then
+  FLAGS="-dis"
+  shift
+fi
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    ;;
+  status)
+    if alive; then
+      echo "coffee: awake (pid $(cat "$PIDFILE"), since $(ps -o lstart= -p "$(cat "$PIDFILE")" | sed 's/^ *//'))"
+    else
+      echo "coffee: not running — Mac sleeps normally"
+    fi
+    ;;
+  stop)
+    if alive; then
+      kill "$(cat "$PIDFILE")" && rm -f "$PIDFILE"
+      echo "coffee: stopped — Mac sleeps normally"
+    else
+      rm -f "$PIDFILE"
+      echo "coffee: nothing to stop"
+    fi
+    ;;
+  watch)
+    target="${2:-}"
+    [ -n "$target" ] || { echo "usage: coffee watch <pid|process-name>" >&2; exit 2; }
+    if [[ "$target" =~ ^[0-9]+$ ]]; then
+      pid="$target"
+    else
+      pid="$(pgrep -n "$target" || true)"
+      [ -n "$pid" ] || { echo "coffee: no process matching '$target'" >&2; exit 1; }
+    fi
+    start_bg -w "$pid"
+    echo "coffee: awake while pid $pid ($(ps -o comm= -p "$pid" | xargs basename)) runs"
+    ;;
+  "")
+    start_bg
+    echo "coffee: awake until 'coffee stop'"
+    ;;
+  *[0-9][smh]|*[0-9])
+    n="${1%[smh]}"
+    case "$1" in
+      *m) secs=$((n * 60)) ;;
+      *h) secs=$((n * 3600)) ;;
+      *)  secs=$n ;;
+    esac
+    start_bg -t "$secs"
+    echo "coffee: awake for $1"
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
