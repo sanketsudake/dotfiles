@@ -41,6 +41,7 @@ On an existing machine, clone the repo and run `make install`.
 | `macos-apply` | Run `macos/defaults.sh` |
 | `doctor` | Run all health checks |
 | `drift` | Report divergence between recorded config and the live system, both directions, with the reconcile command per finding |
+| `raycast-export` | Open Raycast's encrypted settings export; save the file privately (never committed — `*.rayconfig` is gitignored) |
 
 ## The stow model
 
