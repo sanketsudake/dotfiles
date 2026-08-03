@@ -10,13 +10,16 @@ HARNESS_DIR ?= $(abspath $(CURDIR)/../harness-configs)
 HARNESS_REPO := git@github.com:sanketsudake/harness-configs.git
 HARNESS_REPO_HTTPS := https://github.com/sanketsudake/harness-configs.git
 
+MANIFESTS := $(CURDIR)/manifests
+
 .PHONY: install uninstall doctor \
-	brew-install brew-check brew-dump \
+	brew-install brew-check brew-dump cask-adopt \
+	go-install npm-install pipx-install tools-install \
 	stow-link stow-unlink stow-adopt \
 	harness-clone harness-install \
 	macos-apply
 
-install: brew-install stow-link harness-install
+install: brew-install stow-link tools-install harness-install
 
 uninstall: stow-unlink
 
@@ -31,6 +34,32 @@ brew-check:
 brew-dump:
 	brew bundle dump --file=$(CURDIR)/Brewfile.dump --describe --force
 	@echo "wrote Brewfile.dump — diff against Brewfile to re-curate"
+
+# Take over apps that were installed outside brew (pkg-based casks prompt for sudo).
+cask-adopt:
+	brew install --cask --adopt 1password claude devin-desktop google-chrome \
+		openvpn-connect tailscale-app wispr-flow
+
+tools-install: go-install npm-install pipx-install
+
+# Installs each module from manifests/go-tools.txt; lines without @version get @latest.
+go-install:
+	@command -v go >/dev/null || { echo "go not found — run: make brew-install"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/go-tools.txt | while read -r mod; do \
+		case "$$mod" in *@*) ;; *) mod="$$mod@latest" ;; esac; \
+		echo "go install $$mod"; \
+		go install "$$mod"; \
+	done
+
+npm-install:
+	@command -v npm >/dev/null || { echo "npm not found — run: nvm install --lts"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g
+
+pipx-install:
+	@command -v pipx >/dev/null || { echo "pipx not found — run: make brew-install"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/pipx-tools.txt | while read -r pkg; do \
+		pipx install "$$pkg"; \
+	done
 
 stow-link:
 	$(STOW) $(STOW_FLAGS) --restow $(PACKAGES)
