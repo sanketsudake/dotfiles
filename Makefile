@@ -3,7 +3,7 @@ SHELL := /bin/bash
 STOW := stow
 # Flags are a security invariant, not a style choice — see "The stow model" in README.md.
 STOW_FLAGS := --dir=$(CURDIR)/packages --target=$(HOME) --dotfiles --no-folding --verbose=1
-PACKAGES := zsh git atuin btop gh
+PACKAGES := zsh git atuin btop gh bin
 
 BREWFILE := $(CURDIR)/Brewfile
 HARNESS_DIR ?= $(abspath $(CURDIR)/../harness-configs)
