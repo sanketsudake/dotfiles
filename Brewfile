@@ -30,6 +30,7 @@ brew "jq"
 brew "gh"
 brew "nvm"         # provides node/npx for harness-configs skill tooling
 brew "python@3.13"
+brew "mas"         # Mac App Store CLI (for the mas entries below)
 
 # --- shell & everyday tools --------------------------------------------------
 brew "atuin"
@@ -88,6 +89,15 @@ brew "herdr"
 brew "openclaw/tap/gitcrawl"
 
 # --- casks -------------------------------------------------------------------
+# Previously direct-download apps, adopted into brew management (make cask-adopt).
+cask "1password"
+cask "claude"
+cask "devin-desktop"
+cask "google-chrome"
+cask "openvpn-connect"
+cask "tailscale-app"
+cask "wispr-flow"
+
 cask "1password-cli"
 cask "claude-code@latest"
 cask "copilot-cli"
@@ -105,6 +115,11 @@ cask "zoom"
 cask "sanketsudake/tap/cc-proxy", trusted: true
 cask "sanketsudake/tap/chrome-cdp", trusted: true
 cask "sanketsudake/tap/portless", trusted: true
+
+# --- App Store apps (need App Store sign-in on a new Mac) --------------------
+mas "1Password for Safari", id: 1569813296
+mas "Numbers", id: 361304891
+mas "Okta Verify", id: 490179405
 
 # --- vscode extensions -------------------------------------------------------
 vscode "adpyke.vscode-sql-formatter"
