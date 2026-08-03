@@ -39,6 +39,20 @@ brew "pandoc"
 brew "poppler"
 brew "qpdf"        # pdfunlock()
 brew "git-lfs"
+brew "zsh-autosuggestions"     # ghost-text next-command suggestion from history
+brew "zsh-syntax-highlighting" # invalid commands go red before you hit enter
+
+# --- modern CLI --------------------------------------------------------------
+brew "fzf"         # fuzzy pickers + Ctrl-T/Alt-C (Ctrl-R stays with atuin)
+brew "zoxide"      # frecency-ranked cd (z <dir>)
+brew "eza"         # ls with git status column (ll alias)
+brew "bat"         # syntax-highlighted cat with git gutter
+brew "fd"          # gitignore-aware find
+brew "git-delta"   # readable side-by-side git diffs (wired in gitconfig)
+brew "yq"          # jq for YAML/TOML/XML
+brew "jless"       # interactive JSON pager
+brew "dust"        # visual du
+brew "lazygit"     # git TUI (same author as lazydocker)
 
 # --- languages & build -------------------------------------------------------
 brew "go"
@@ -72,6 +86,13 @@ brew "skopeo"
 brew "stern"
 brew "k6"
 brew "mkcert"
+brew "kubectx"     # kubectx + kubens; fuzzy pickers with fzf installed
+brew "kubecolor"   # colorized kubectl output (aliased to kubectl)
+brew "dive"        # layer-by-layer container image explorer
+brew "trivy"       # CVE/misconfig scanner for images, IaC, clusters
+brew "dyff"        # YAML-aware structural diff (helm/k8s manifests)
+brew "viddy"       # modern watch with diff highlighting + time travel
+brew "kubeconform" # fast k8s manifest schema validation
 brew "jesseduffield/lazydocker/lazydocker"
 brew "loft-sh/tap/vcluster"
 brew "minio/stable/mc"
@@ -108,6 +129,7 @@ cask "insomnia"
 cask "itsycal"
 cask "obsidian"
 cask "postman"
+cask "raycast"     # launcher + clipboard history + window snapping + extensions
 cask "slack"
 cask "visual-studio-code"
 cask "zoom"
