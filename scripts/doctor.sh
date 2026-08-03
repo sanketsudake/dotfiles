@@ -36,7 +36,20 @@ echo "== brew bundle =="
 if brew bundle check --file="$REPO_DIR/Brewfile" >/dev/null 2>&1; then
   ok "Brewfile satisfied"
 else
-  bad "Brewfile unsatisfied — run: make brew-install"
+  # mas relies on the Spotlight index, which can lag or go stale; if the only
+  # unmet entries are App Store apps that exist on disk, that's a warning.
+  unmet="$(brew bundle check --verbose --file="$REPO_DIR/Brewfile" 2>&1 | grep '^→' || true)"
+  non_mas="$(printf '%s\n' "$unmet" | grep -v '^→ App ' || true)"
+  missing_apps=""
+  while IFS= read -r line; do
+    app="${line#→ App }"; app="${app% needs to be installed or updated.}"
+    [ -d "/Applications/$app.app" ] || missing_apps="$missing_apps $app"
+  done < <(printf '%s\n' "$unmet" | grep '^→ App ' || true)
+  if [ -z "$non_mas" ] && [ -z "$missing_apps" ]; then
+    warn "Brewfile mas entries unmet only per Spotlight index; all apps present on disk"
+  else
+    bad "Brewfile unsatisfied — run: make brew-install"$'\n'"$unmet"
+  fi
 fi
 
 echo "== symlinks =="
