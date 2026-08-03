@@ -6,7 +6,7 @@ Pairs with the sibling [harness-configs](https://github.com/sanketsudake/harness
 ## New Mac quick start
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/master/bootstrap.sh -o /tmp/bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/main/bootstrap.sh -o /tmp/bootstrap.sh
 bash /tmp/bootstrap.sh
 ```
 

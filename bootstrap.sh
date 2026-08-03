@@ -4,7 +4,7 @@
 #
 # Preferred invocation (casks may prompt for sudo, which clashes with curl|bash
 # sharing stdin with the script):
-#   curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/master/bootstrap.sh -o /tmp/bootstrap.sh
+#   curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/main/bootstrap.sh -o /tmp/bootstrap.sh
 #   bash /tmp/bootstrap.sh
 set -euo pipefail
 
