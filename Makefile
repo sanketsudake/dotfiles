@@ -10,6 +10,7 @@ PACKAGES := zsh git atuin btop gh
 BREWFILE := $(CURDIR)/Brewfile
 HARNESS_DIR ?= $(abspath $(CURDIR)/../harness-configs)
 HARNESS_REPO := git@github.com:sanketsudake/harness-configs.git
+HARNESS_REPO_HTTPS := https://github.com/sanketsudake/harness-configs.git
 
 .PHONY: install uninstall doctor \
 	brew-install brew-check brew-dump \
@@ -48,8 +49,12 @@ stow-adopt:
 	@echo ""
 	@echo "!! REVIEW 'git diff' BEFORE COMMITTING — adopt replaces repo files with the live ones !!"
 
+# SSH first; fall back to https for machines without GitHub keys yet. The
+# fallback bypasses the global gitconfig because dot-gitconfig rewrites
+# https://github.com/ to SSH, which would defeat it.
 harness-clone:
-	@test -d $(HARNESS_DIR) || git clone $(HARNESS_REPO) $(HARNESS_DIR)
+	@test -d $(HARNESS_DIR) || git clone $(HARNESS_REPO) $(HARNESS_DIR) 2>/dev/null \
+		|| GIT_CONFIG_GLOBAL=/dev/null git clone $(HARNESS_REPO_HTTPS) $(HARNESS_DIR)
 
 harness-install: harness-clone
 	$(MAKE) -C $(HARNESS_DIR) install
