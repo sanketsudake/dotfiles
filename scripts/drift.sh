@@ -121,6 +121,7 @@ while IFS= read -r line; do
   rest="${rest# }"
   value="${rest#-* }"
   value="${value%\"}"; value="${value#\"}"
+  value="${value//\$HOME/$HOME}"
   case "$value" in
     true) value=1 ;;
     false) value=0 ;;
