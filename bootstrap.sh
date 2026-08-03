@@ -89,7 +89,6 @@ Bootstrap complete. Manual steps that need your credentials:
   1. gh auth login
   2. atuin login   (history sync)
   3. git lfs install
-  4. Work remotes only: add the gh-qwiet host alias to ~/.ssh/config
-     (the gitconfig rewrites ShiftLeftSecurity remotes through it).
+  4. Restore any machine-private ~/.ssh/config entries (host aliases, keys).
   5. Open a new terminal so zsh picks up the managed config.
 EOF
