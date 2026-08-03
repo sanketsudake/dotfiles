@@ -19,16 +19,19 @@ On an existing machine, clone the repo and run `make install`.
 | Path | Purpose |
 |---|---|
 | `packages/` | Stow packages, one directory per tool; only files here are ever stowed or committed |
-| `Brewfile` | Curated brew formulae, casks, and VS Code extensions |
+| `Brewfile` | Curated brew formulae, casks, App Store apps (mas), and VS Code extensions |
+| `manifests/` | Non-brew tools: `go-tools.txt`, `npm-globals.txt`, `pipx-tools.txt` |
 | `bootstrap.sh` | New-Mac entry point |
-| `macos/defaults.sh` | macOS `defaults` capture (phase 2, currently a no-op) |
+| `macos/defaults.sh` | Deliberately-changed macOS settings, applied via `make macos-apply` |
 | `scripts/doctor.sh` | Health checks behind `make doctor` |
 
 ## Make targets
 
 | Target | Does |
 |---|---|
-| `install` | `brew-install` + `stow-link` + `harness-install` |
+| `install` | `brew-install` + `stow-link` + `tools-install` + `harness-install` |
+| `tools-install` | `go-install` + `npm-install` + `pipx-install` from `manifests/` |
+| `cask-adopt` | Take over apps installed outside brew (pkg casks prompt for sudo) |
 | `uninstall` | Remove the stow symlinks |
 | `brew-install` / `brew-check` | Apply / verify the Brewfile |
 | `brew-dump` | Regenerate gitignored `Brewfile.dump` to diff against the curated Brewfile |
