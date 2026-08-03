@@ -17,7 +17,7 @@ MANIFESTS := $(CURDIR)/manifests
 	go-install npm-install pipx-install tools-install \
 	stow-link stow-unlink stow-adopt \
 	harness-clone harness-install \
-	macos-apply drift
+	macos-apply drift raycast-export
 
 install: brew-install stow-link tools-install harness-install
 
@@ -94,3 +94,11 @@ doctor:
 
 drift:
 	bash $(CURDIR)/scripts/drift.sh
+
+# Raycast keeps settings in an encrypted local DB (extension configs can hold
+# API tokens), so its own encrypted export is the backup mechanism — never this
+# repo (*.rayconfig is gitignored). Opens the export dialog; save the file to a
+# private location (iCloud Drive / 1Password). Restore on a new Mac via
+# Raycast Settings -> Advanced -> Import.
+raycast-export:
+	open "raycast://extensions/raycast/raycast/export-settings-data"
