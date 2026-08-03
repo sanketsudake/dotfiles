@@ -16,6 +16,10 @@ pdfunlock() {
         echo "usage: pdfunlock input.pdf [output.pdf]" >&2
         return 2
     fi
+    if ! command -v qpdf >/dev/null; then
+        echo "pdfunlock: needs qpdf (brew install qpdf)" >&2
+        return 127
+    fi
     local in="$1"
     local out="${2:-${1%.pdf}-unlocked.pdf}"
     local pw
@@ -31,10 +35,14 @@ pdfunlock() {
 
 # Copy an image file to the macOS clipboard as PNG data (pasteable into Docs, Slack, etc.)
 imgcopy() {
-  if [ ! -f "$1" ]; then
-    echo "imgcopy: no such file: $1" >&2
-    return 1
-  fi
-  osascript -e "set the clipboard to (read (POSIX file \"$(realpath "$1")\") as «class PNGf»)" \
-    && echo "copied: $1"
+    if ! command -v osascript >/dev/null; then
+        echo "imgcopy: needs osascript (macOS only)" >&2
+        return 127
+    fi
+    if [[ ! -f "$1" ]]; then
+        echo "imgcopy: no such file: $1" >&2
+        return 1
+    fi
+    osascript -e "set the clipboard to (read (POSIX file \"$(realpath "$1")\") as «class PNGf»)" \
+        && echo "copied: $1"
 }

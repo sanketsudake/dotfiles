@@ -1,9 +1,7 @@
 SHELL := /bin/bash
 
 STOW := stow
-# --no-folding is a security invariant: ~/.config/<tool> must stay a real
-# directory so tools that write credentials beside their config (gh's
-# hosts.yml) never write into this repo. --dotfiles needs stow >= 2.4.0.
+# Flags are a security invariant, not a style choice — see "The stow model" in README.md.
 STOW_FLAGS := --dir=$(CURDIR)/packages --target=$(HOME) --dotfiles --no-folding --verbose=1
 PACKAGES := zsh git atuin btop gh
 
