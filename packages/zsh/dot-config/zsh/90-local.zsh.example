@@ -1,0 +1,7 @@
+# Machine-local overrides — copy to 90-local.zsh (gitignored) on this machine only.
+# Put anything here that must not be committed: secrets, work-specific exports,
+# host-specific paths.
+#
+# cp ~/.config/zsh/90-local.zsh.example ~/.config/zsh/90-local.zsh
+#
+# export MY_TOKEN=...

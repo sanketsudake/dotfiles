@@ -1,0 +1,5 @@
+# Thin loader — all interactive config lives in ~/.config/zsh/*.zsh (managed in dotfiles).
+# Modules load in NN- prefix order; drop a new file in to extend.
+for f in "$HOME"/.config/zsh/*.zsh(N); do
+  source "$f"
+done
