@@ -5,7 +5,6 @@
 # by go install / nvm, not brew).
 
 # --- taps -------------------------------------------------------------------
-tap "atlassian/acli"
 tap "jesseduffield/lazydocker", trusted: true
 tap "loft-sh/tap", trusted: true
 tap "minio/stable", trusted: true
