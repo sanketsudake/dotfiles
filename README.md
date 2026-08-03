@@ -6,11 +6,13 @@ Pairs with the sibling [harness-configs](https://github.com/sanketsudake/harness
 ## New Mac quick start
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/master/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/master/bootstrap.sh -o /tmp/bootstrap.sh
+bash /tmp/bootstrap.sh
 ```
 
-The script is idempotent: it installs Xcode CLT and Homebrew if missing, clones this repo to `~/personal/dotfiles`, runs `brew bundle`, stows the packages, clones and installs harness-configs as a sibling, and finishes with `make doctor`.
-Afterwards run the printed manual steps (`gh auth login`, `atuin login`, `git lfs install`) and open a new terminal.
+Download-then-run (rather than `curl | bash`) matters: casks can prompt for sudo, and a piped bash shares stdin with the script.
+The script is idempotent: it installs Xcode CLT and Homebrew if missing, clones this repo to `~/personal/dotfiles`, runs `brew bundle`, moves any pre-existing real files at managed paths to a timestamped `~/.dotfiles-backup-*` dir, stows the packages, clones and installs harness-configs as a sibling, and finishes with `make doctor`.
+Afterwards run the printed manual steps (`gh auth login`, `atuin login`, `git lfs install`, and for work remotes the `gh-qwiet` SSH host alias in `~/.ssh/config`) and open a new terminal.
 
 On an existing machine, clone the repo and run `make install`.
 
@@ -58,6 +60,7 @@ Machine-local, uncommitted overrides go in `~/.config/zsh/90-local.zsh` (gitigno
 `packages/git/dot-gitconfig` selects identity by remote URL via `includeIf "hasconfig:remote.*.url:..."` blocks.
 Personal repos get `~/.config/git/config-personal` (gmail); ShiftLeftSecurity/Harness remotes get `~/.config/git/config-qwiet`.
 The work email in `config-qwiet` is an identity, not a credential, and is committed intentionally.
+ShiftLeftSecurity remotes are additionally rewritten through a `gh-qwiet` SSH host alias, which must exist in `~/.ssh/config` (kept out of this repo; see the bootstrap manual steps).
 
 ## harness-configs integration
 
@@ -75,8 +78,9 @@ The Brewfile carries its prerequisites (`stow`, `jq`, `gh`, `nvm` for node/npx, 
 ## Secrets policy
 
 Nothing outside `packages/` is ever stowed, and no package references a credential-bearing file.
-`.gitignore` blocks `hosts.yml`, `.env*`, keys, and token-like names as a second layer.
-`make doctor` fails if any tracked file matches a secret pattern or if a `~/.config` dir has become a symlink.
+`.gitignore` blocks `hosts.yml`, `.env*`, keys, and token-like names as a second layer (note it cannot protect already-tracked paths).
+`make doctor` fails if any tracked filename matches a secret pattern, if tracked file content looks credential-like (token/key/password assignments, private-key blocks), or if a `~/.config` dir has become a symlink.
+After `make stow-adopt`, always review `git diff` before committing — adopt imports live machine files into tracked paths, which is exactly how a stray exported token could enter the repo.
 Review `git diff --cached` before every commit regardless.
 
 ## macOS defaults (phase 2)

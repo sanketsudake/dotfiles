@@ -1,9 +1,11 @@
 # Decode a JWT's header and payload (needs jq); the signature is printed, not verified.
 jwtd() {
-    if [[ -x $(command -v jq) ]]; then
-         jq -R 'split(".") | .[0],.[1] | @base64d | fromjson' <<< "${1}"
-         echo "Signature: $(echo "${1}" | awk -F'.' '{print $3}')"
+    if ! command -v jq >/dev/null; then
+        echo "jwtd: needs jq (brew install jq)" >&2
+        return 127
     fi
+    jq -R 'split(".") | .[0],.[1] | @base64d | fromjson' <<< "${1}"
+    echo "Signature: $(echo "${1}" | awk -F'.' '{print $3}')"
 }
 
 # Strip the password from a PDF -> passwordless copy (needs qpdf).
