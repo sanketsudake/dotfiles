@@ -171,3 +171,9 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
   For agents and authored skills, the `.source.json` sidecar is still the committed record but is likewise regenerated on fetch/update — don't hand-edit it expecting persistence.
   Authored resources (no upstream) keep a `{"repo": null}` sidecar so they survive `skills-update-all` / `agents-update-all` untouched.
 - When adding a new profile, update `CLAUDE_CONFIG_DIRS` (Makefile line 9) — it drives both the CLAUDE.md and skills symlink loops.
+
+## Skill authoring addenda
+
+- Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
+- Before committing any skill change, run the pre-flight gate:
+  `make skills-doctor && make skills-catalog CHECK=1 && make suites-catalog CHECK=1`.
