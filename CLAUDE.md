@@ -12,8 +12,7 @@ macOS dotfiles provisioned with GNU stow; the Makefile is the interface (no app 
 
 ## Conventions
 
-- Stow flags are fixed: `--dotfiles --no-folding` (see Makefile).
-  `--no-folding` is a security invariant: `~/.config/<tool>` must stay a real directory so tools that write credentials beside their config (e.g. `gh`'s `hosts.yml`) never write into this repo.
+- Stow flags are fixed at `--dotfiles --no-folding` and must not be changed; both are security invariants, explained in README.md § "The stow model".
 - File names use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`); requires stow ≥ 2.4.0.
 - Makefile targets follow `<resource>-<action>` naming (`brew-install`, `stow-link`, `harness-install`), matching the sibling `harness-configs` repo.
 - Never add packages for credential-bearing dirs: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`.
@@ -21,6 +20,4 @@ macOS dotfiles provisioned with GNU stow; the Makefile is the interface (no app 
 
 ## Adding a new tool config
 
-1. `mkdir -p packages/<tool>/dot-config/<tool>` and copy the non-secret config file(s) in, using `dot-` names for anything dotted.
-2. Add `<tool>` to `PACKAGES` in the Makefile.
-3. `make stow-adopt`, then review `git diff` before committing.
+Follow the numbered recipe in README.md § "Adding a new tool config"; it is the canonical version.
