@@ -95,6 +95,14 @@ else
   bad "credential-looking content in tracked files:"$'\n'"$content_leaks"
 fi
 
+echo "== broken symlinks =="
+broken="$(find "$HOME" -maxdepth 3 -type l ! -exec test -e {} \; -print 2>/dev/null || true)"
+if [ -z "$broken" ]; then
+  ok "no broken symlinks in ~ (depth 3)"
+else
+  warn "broken symlinks (stale stow links or removed targets):"$'\n'"$(printf '%s\n' "$broken" | sed 's/^/    /')"
+fi
+
 echo "== harness-configs =="
 if [ -d "$HARNESS_DIR/.git" ]; then
   ok "repo present at $HARNESS_DIR"
