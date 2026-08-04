@@ -1,7 +1,8 @@
 Run the full review battery on the current changes and consolidate the findings.
 
-Scope: the working diff plus this branch's commits vs the default branch, unless `$ARGUMENTS` names a different base or a PR number.
+Scope: the working diff plus this branch's commits vs the default branch, unless `$ARGUMENTS` names a different base.
 If the scoped diff is empty, say so and stop.
+To review an external PR end-to-end, use `/review-pr-worktree` instead — it isolates the PR in a worktree, runs this battery, and posts the findings.
 
 Pre-filter the diff before reviewing:
 
