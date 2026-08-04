@@ -2,6 +2,7 @@
 name: bulk-mechanic
 description: Cheap executor for mechanical, judgment-free work — repetitive multi-file edits, renames, version/string bumps, applying an already-decided pattern across a known file list. Never invoke for anything requiring a design decision; the parent must supply the exact pattern/transform and the explicit file list (or a precise glob/grep to derive it). Runs on haiku to keep bulk work cheap.
 model: haiku
+effort: low
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
