@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make skills-doctor)",
+      "Bash(make agents-doctor)",
+      "Bash(make skills-catalog CHECK=1)",
+      "Bash(make suites-catalog CHECK=1)",
+      "Bash(make skills-list)",
+      "Bash(make agents-list)",
+      "Bash(chrome-cdp list *)",
+      "Bash(chrome-cdp doctor)",
+      "Bash(chrome-cdp snap *)",
+      "Bash(chrome-cdp find *)",
+      "Bash(chrome-cdp grid *)",
+      "Bash(chrome-cdp wait *)"
+    ]
+  }
+}

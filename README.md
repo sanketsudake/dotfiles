@@ -64,7 +64,6 @@ Most are authored here; the rest are vendored from [pi-skills](https://github.co
 | `bulk-mechanic` | Haiku executor for mechanical, judgment-free batches. |
 | `pr-shepherd` | Drives the push → CI → bot-review loop to green. |
 | `skill-auditor` | Audits a skill directory against this repo's conventions. |
-| `thermo-nuclear-code-quality-review` | Strict maintainability audit (vendored from cursor-team-kit). |
 
 **Rules**
 

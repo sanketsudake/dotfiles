@@ -21,6 +21,11 @@ Route work to the cheapest model that can do it reliably; escalate only when the
 - Pass `model`/`effort` per `agent()` call: haiku+low for mechanical stages, sonnet for judgment stages, inherit only for the few calls that need the session model.
 - Inline task constants directly in the workflow script rather than threading them through `args`.
 
+## Enforcement
+
+- The routing table's pins are not just prose: every named agent carries `model:` (and `effort:` where it matters) in its `claude/agents/*.md` frontmatter, and a `PreToolUse` hook (`scripts/agent-routing-hook.sh`, wired per-profile in `settings.json`) logs every subagent spawn to `$CLAUDE_CONFIG_DIR/agent-routing.log` and rewrites any explicit model override that conflicts with a pin.
+- Audit drift with the log; keep the hook's pin map in sync with the agent frontmatter when adding or re-tiering agents.
+
 ## Rules of thumb
 
 - If the parent already made every decision and the subagent just applies them, it is haiku work.
