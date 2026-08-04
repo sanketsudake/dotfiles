@@ -14,5 +14,6 @@ Run these review passes in order, each via its skill/command (do not reimplement
 Then consolidate:
 
 - Deduplicate findings across the six passes — same file, line, and root issue is one finding; keep the most severe framing and note every pass that flagged it.
-- Present one list ranked by severity, each entry with `file:line` and a one-sentence issue statement.
+- Categorize each deduplicated finding with a kebab-case category (e.g. `correctness`, `security`, `performance`, `simplification`, `maintainability`, `test-coverage`, `style`); pick the category of the root issue, not of the pass that flagged it.
+- Present one list grouped by category and ranked by severity within each group, each entry with `file:line` and a one-sentence issue statement.
 - Do not apply fixes beyond what the individual passes already applied by design (e.g. `/simplify` applies its cleanups); for everything else, wait for the user to pick which findings to fix.
