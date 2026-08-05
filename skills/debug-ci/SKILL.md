@@ -1,6 +1,12 @@
 ---
 name: debug-ci
-description: Triage and root-cause a failing GitHub Actions CI run on a PR efficiently. Use when CI is red on an open PR, a check needs triaging, the user asks "why is X failing in CI" / "a test failed, can you check", or after a push to confirm a failure is real (also reached by the older name `debug-github-ci`). Optimised for separating real regressions from pre-existing noise and getting the failing line with the cheapest log fetch first. Pairs with watch-ci for the push→monitor loop.
+description: >-
+  Triages and root-causes a failing GitHub Actions CI run on a PR by
+  separating real regressions from pre-existing noise and escalating log
+  fetches cheapest-first. Use when CI is red on an open PR, a check needs
+  triage, the user asks "why is X failing in CI" or "a test failed, can you
+  check", or after a push to confirm a failure is real (also reached as
+  `debug-github-ci`). Generic to any GitHub Actions CI setup.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -9,21 +15,21 @@ metadata:
 
 # Debug CI failures
 
-A playbook for turning a red CI run into a root cause without burning hours.
-Two ideas do most of the work: **separate noise from regression before reading any log**, and **escalate log fetches cheapest-first**.
+This playbook turns a red CI run into a root cause without wasted hours.
+Two ideas do most of the work: separate noise from regression before reading any log, and escalate log fetches cheapest-first.
 
-This skill is project-agnostic.
-For repo-specific failure patterns (known-flaky checks, build-pipeline quirks, label/permission gotchas), read the project's `CLAUDE.md` and anything under its `.claude/resources/` before pattern-matching — those carry the symptoms this repo hits repeatedly.
+Before pattern-matching, read the project's `CLAUDE.md` and its `.claude/resources/` for repo-specific failure patterns (known-flaky checks, build-pipeline quirks, label/permission gotchas).
+These list symptoms the repo hits repeatedly.
 
 ## When to invoke
 
-Trigger phrases: "CI failed on PR #X", "investigate the failed checks", "why are the tests red", "the pipeline is broken on my branch", "did CI pass after the push".
-
-Skip if the user already knows the root cause and wants a specific fix applied — that's an edit + commit, no triage.
+Skip this playbook if the user already knows the root cause and wants a specific fix applied.
+That is an edit and commit, not triage.
 
 ## Phase 0 — Separate noise from regression (do this first)
 
-1. List the PR's checks; don't read logs yet, just see who's red (`bucket` is one of `pass | fail | pending | skipping`):
+1. List the PR's checks.
+   Do not read logs yet; just see who is red (`bucket` is one of `pass | fail | pending | skipping`):
 
    ```bash
    gh pr checks <PR> --json name,bucket,state,link \
@@ -31,7 +37,8 @@ Skip if the user already knows the root cause and wants a specific fix applied �
    ```
 
 2. Cross-check against the default branch.
-   If the same check is also failing there, it is **pre-existing noise** and this playbook does not apply to it:
+   If the same check also fails there, it is **pre-existing noise**.
+   This playbook does not apply to it:
 
    ```bash
    gh run list --branch <default-branch> --workflow=<ci>.yaml --limit 5 \
@@ -41,14 +48,15 @@ Skip if the user already knows the root cause and wants a specific fix applied �
    ```
 
 3. Cross out the repo's known stickers.
-   The project's `CLAUDE.md`/resources usually list checks that are red on the default branch by policy (license/compliance scanners, tests needing a local Docker daemon, etc.) — don't chase those.
+   The project's `CLAUDE.md`/resources usually list checks that are red on the default branch by policy (license/compliance scanners, tests needing a local Docker daemon, etc.).
+   Skip those.
 
-4. Default branch green + PR red on a check ⇒ real regression.
-   Continue.
+4. If the default branch is green and the PR check is red, it is a real regression.
+   Continue to Phase 1.
 
 ## Phase 1 — Get the failing line (cheapest first)
 
-Escalate only if the previous step didn't surface the failing line.
+Escalate only if the previous step did not surface the failing line.
 
 | Step | Command | Notes |
 |---|---|---|
@@ -57,16 +65,18 @@ Escalate only if the previous step didn't surface the failing line.
 | 3 | `gh api repos/<owner>/<repo>/commits/<sha>/status` | External/run-level checks (coverage, license). |
 | 4 | `gh run download <runId> -n <artifact-name>` | Test diagnostics, pod logs, profiles — the big artifact for integration-test failures. List first: `gh api repos/<owner>/<repo>/actions/runs/<runId>/artifacts --jq '.artifacts[] | {name, size_in_bytes}'`. |
 
-Filter aggressively on first pass:
+Filter aggressively on the first pass:
 ```bash
 grep -E '(FAIL|--- FAIL|fatal:|panic|error:|Error:|denied|connection refused|i/o timeout|context deadline exceeded)'
 ```
 
-Don't pull the full run archive (`gh run view <runId> --log`) unless steps 1–3 didn't surface it — it's tens of MB.
+Do not pull the full run archive (`gh run view <runId> --log`) unless steps 1–3 did not surface the line.
+It can be tens of MB.
 
 ## Phase 2 — Pattern-match the symptom
 
-Match the error string against the project's documented failure patterns (its `CLAUDE.md` / `.claude/resources/`) before reading the whole log — most repos recycle the same handful of failure modes (network/connectivity, filesystem/permissions, build pipeline, lint/dependency).
+Match the error string against the project's documented failure patterns (its `CLAUDE.md` / `.claude/resources/`) before reading the whole log.
+Most repos recycle the same handful of failure modes (network/connectivity, filesystem/permissions, build pipeline, lint/dependency).
 Generic language-agnostic ones worth knowing:
 
 - `dial tcp <ip>:<port>: i/o timeout` between in-cluster pods → a NetworkPolicy drop or a selector mismatch, OR a service not yet ready.
@@ -78,15 +88,19 @@ Generic language-agnostic ones worth knowing:
 ## Phase 3 — Verify the hypothesis before pushing
 
 1. **Confirm which binary/image actually ran.**
-   Not every image is rebuilt per-PR — some are pre-built and pulled from a registry.
-   If logs show old behaviour while your source has the fix, compare the `caller`/version field in logs against your local source line numbers; you may be looking at a pre-built image, not your PR's build.
-2. **Read the source at the cited line before blaming a flake.**
-   After two failed timing-based guesses, stop guessing and read the code path that produces the symptom.
+   Not every image rebuilds per PR; some are pre-built and pulled from a registry.
+   If logs show old behaviour but your source has the fix, compare the log's `caller`/version field against your source line numbers.
+   You may be looking at a pre-built image, not your PR's build.
+2. **Read the source at the cited line before you blame a flake.**
+   After two failed timing-based guesses, stop guessing.
+   Read the code path that produces the symptom.
 
 ## Phase 4 — Push and re-check
 
-After pushing the fix, hand off to the **watch-ci** skill to monitor checks to terminal state instead of busy-polling.
-If a check flips back to red after a fix, **don't push another fix immediately** — restart Phase 1 with the new logs.
+After you push the fix, hand off to the **watch-ci** skill.
+It monitors checks to terminal state instead of busy-polling.
+If a check turns red again after a fix, do not push another fix immediately.
+Restart Phase 1 with the new logs.
 The new failure is often a different root cause exposed by the previous fix; reusing the old hypothesis wastes a CI cycle.
 
 ## Canonical outline

@@ -1,6 +1,15 @@
 ---
 name: harvest-automation
-description: Use when the user wants to turn past Claude Code work into reusable automation — invoked as /harvest-automation, optionally with a window like "7d". Triggers include end-of-session review, "what should we automate", "mine my recent sessions", recurring manual workflows, repeated corrections, repeated permission prompts, or preferences worth capturing as a skill, CLAUDE.md entry, or memory.
+description: >-
+  Mines past Claude Code sessions for recurring patterns and turns them into
+  durable automation: skills, CLAUDE.md entries, memory, and permission
+  allowlists.
+  Use when invoked as /harvest-automation, optionally with a window like
+  "7d", or when the user asks for an end-of-session review, "what should we
+  automate", "mine my recent sessions", or reports recurring manual
+  workflows, repeated corrections, repeated permission prompts, or
+  preferences worth capturing as a skill, CLAUDE.md entry, or memory.
+  Runs only on explicit invocation, not automatically.
 disable-model-invocation: true
 license: Apache-2.0
 metadata:
@@ -10,85 +19,82 @@ metadata:
 
 # Harvest Automation
 
-Mine past Claude Code work for **recurring** patterns and turn them into durable, reusable automation: skills, CLAUDE.md entries, memory, and permission allowlists.
-
-> Local skill, maintained in this repo (`.source.json` has `"repo": null`).
-> Replaces the old `retrospect` and `workflow-from-chats` skills.
+> Local skill (`.source.json` has `"repo": null`); replaces the old `retrospect` and `workflow-from-chats` skills.
 
 ## Core principle
 
-Capture a pattern only if it **recurs** (≥ 2 occurrences across the scope) or the user explicitly asks to keep it; one-offs are noise.
-Every claim needs evidence: session id, turn number, a verbatim quote (≤ 15 words), or a tool-call signature.
+Capture a pattern only if it recurs 2+ times, or the user asks to keep it — one-offs are noise.
+Support each claim with evidence: a session id, a turn number, a verbatim quote (≤15 words), or a tool-call signature.
 
 ## When to use
 
-Runs only when invoked explicitly: `/harvest-automation` analyzes the **current session**; `/harvest-automation 7d` (or "last week") analyzes a **window** of recent sessions.
-Decline when the user asked for a plain summary, the scope has < ~4 user-turns of real interaction, or there were no tool calls.
+Run only on explicit invocation.
+`/harvest-automation` analyzes the current session; `/harvest-automation 7d` (or "last week") analyzes a window of recent sessions.
+Decline if the user wants a plain summary, the scope has under 4 real user turns, or there were no tool calls.
 
 ## Scope and gathering
 
-Default scope is the current session.
+Default scope: the current session.
 Reflect on the in-context conversation first.
 
-- For a window (`Nd`), run `{baseDir}/scripts/find-sessions.sh --since N` to list recent session JSONLs across **all** project dirs in the active profile, newest first.
-  Recurring automation often spans repos, so scan across projects, not just the current one.
-  Read enough of each to extract signals; cite the session by id/path.
+- For a window (`Nd`), run `{baseDir}/scripts/find-sessions.sh --since N` — it lists recent session JSONLs across all project directories in the active profile, newest first.
+  Recurring automation often spans repos: scan across projects, not only the current one.
+  Read enough of each session for signals; cite each by id or path.
 
 ## Distill — recurrence-first signal detection
 
 Cluster evidence into candidate patterns.
-For each, record: trigger, evidence, **recurrence count**, confidence, and the artifact it should become.
+For each, record: trigger, evidence, recurrence count, confidence, and target artifact.
 
 | Recurring pattern | Becomes |
 |---|---|
-| A multi-step tool sequence done manually ≥ 2× (e.g. fetch→categorize→render) | **Skill** |
-| The same correction / nudge (`no`, `don't`, `instead`, `that's not…`) | CLAUDE.md (project fact) or memory (preference) |
-| A stated preference repeated (`I prefer`, `always`, `never`) | memory |
-| The same tool + command approved repeatedly | permission allowlist |
-| Re-explaining the same project context across turns/sessions | CLAUDE.md |
-| Repeated web lookups for the same library docs | memory note / use context7 |
+| A multi-step tool sequence done manually 2+ times (e.g. fetch→categorize→render) | Skill |
+| The same correction or nudge (`no`, `don't`, `instead`, `that's not…`) | CLAUDE.md (project fact) or memory (preference) |
+| A stated preference repeated (`I prefer`, `always`, `never`) | Memory |
+| The same tool and command approved repeatedly | Permission allowlist |
+| Re-explaining the same project context across turns or sessions | CLAUDE.md |
+| Repeated web lookups for the same library docs | Memory note or use context7 |
 
-Also flag wasted-effort smells as supporting evidence (not artifacts on their own): same file Read ≥ 2× with overlapping ranges, broad search followed by a narrow one on the same corpus, a subagent dispatched for a one-grep task, retries of a failing command without diagnosis between attempts.
+Also flag wasted-effort smells as supporting evidence, not artifacts on their own: a file read 2+ times with overlapping ranges, a broad search then a narrow one on the same corpus, a subagent dispatched for a one-grep task, or retries of a failing command with no diagnosis between attempts.
 
 ## Confidence
 
-- **Strong** — explicit user preference, a workflow-changing correction, or the same pattern across ≥ 2 sessions.
-- **Medium** — an accepted workflow or a repeated tool/validation choice the user relied on.
-- **Weak** — agent-chosen behavior with no user feedback, or a single ambiguous instance.
-- **Contradicted** — evidence points both ways; ask the user before writing anything.
+- Strong — an explicit user preference, a workflow-changing correction, or the same pattern across 2+ sessions.
+- Medium — an accepted workflow, or a repeated tool/validation choice the user relied on.
+- Weak — agent-chosen behavior with no user feedback, or one ambiguous instance.
+- Contradicted — evidence points both ways; ask the user first.
 
-Promote only Strong/Medium to artifacts.
-List Weak as "consider"; never auto-apply it.
+Promote only Strong and Medium items; list Weak items as "consider" and never auto-apply them.
 
 ## Materialize — artifact routing
 
 Route each promoted pattern to exactly one artifact.
-Stay composable — delegate, do not reimplement.
+Delegate to existing skills; do not reimplement their logic.
 
-- **Skill** — a recurring multi-step workflow with clear triggers.
-  Draft a proposal (name, "Use when…" description, trigger, the steps, any scripts), then hand off to `superpowers:writing-skills` to author and validate it under `skills/<name>/`; mark it local with a `{"repo": null}` `.source.json`.
+- Skill — a recurring multi-step workflow with clear triggers.
+  Draft a proposal (name, "Use when…" description, trigger, steps, scripts) and hand it to `superpowers:writing-skills` to author and validate under `skills/<name>/`.
+  Mark it local with a `{"repo": null}` `.source.json`.
   Never scaffold skill files by hand.
-- **CLAUDE.md** — a collaborator-visible project fact (build/test commands, invariants, code locations, "always use X helper").
-  Applied via `{baseDir}/scripts/apply-suggestions.sh`.
-- **Memory** — a user-private preference (terse vs verbose, tool choices, workflow habits).
-  Applied via `{baseDir}/scripts/apply-suggestions.sh`.
-- **Permission allowlist** — repeated approvals of the same tool/command.
-  Reference the `fewer-permission-prompts` skill to generate the `.claude/settings.json` entries; do not re-implement its logic.
+- CLAUDE.md — a collaborator-visible project fact (build/test commands, invariants, code locations, "always use X helper").
+- Memory — a user-private preference (terse vs verbose, tool choices, workflow habits).
+  Apply both via `{baseDir}/scripts/apply-suggestions.sh`.
+- Permission allowlist — repeated approvals of the same tool/command.
+  Reference `fewer-permission-prompts` to generate the `.claude/settings.json` entries; do not reimplement its logic.
 
 ### CLAUDE.md vs. memory
 
-`CLAUDE.md` is collaborator-visible; memory is user-private.
+CLAUDE.md is collaborator-visible; memory is user-private.
 
-- **CLAUDE.md-worthy** — project facts any contributor benefits from.
-  Before proposing, Read the project-root `CLAUDE.md` (via `git rev-parse --show-toplevel`) so proposals don't duplicate it.
-- **memory-worthy** — anything phrased as "I prefer" / "I always"; personal workflow habits.
-- **neither** — one-off events.
-  Require ≥ 2 occurrences OR explicit user feedback ("remember this") to promote; otherwise drop.
+- CLAUDE.md-worthy — a project fact any contributor benefits from.
+  Before proposing, read the project-root CLAUDE.md (find it with `git rev-parse --show-toplevel`) to avoid duplicates.
+- Memory-worthy — anything phrased "I prefer" or "I always"; a personal workflow habit.
+- Neither — a one-off event.
+  Require 2+ occurrences, or explicit feedback ("remember this"), to promote; otherwise drop.
 
 ## Report shape
 
-Emit exactly this structure, organized by artifact type.
-Keep it under ~400 lines; compress, don't truncate.
+Emit exactly this structure, by artifact type.
+Keep it under about 400 lines; compress, do not truncate.
 
 ```
 # Harvest Automation
@@ -126,9 +132,9 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 
 ## Apply on confirmation
 
-- **`apply skills`** — for each proposed skill, invoke `superpowers:writing-skills` with the drafted proposal.
+- `apply skills` — invoke `superpowers:writing-skills` per proposed skill, with the drafted proposal.
   Do not write skill files directly.
-- **`apply claude` / `apply memory` / `apply all`** — Write the payload (schema below) to `/tmp/harvest-automation-<sessionid-or-timestamp>.json`, then call:
+- `apply claude` / `apply memory` / `apply all` — write the payload (schema below) to `/tmp/harvest-automation-<sessionid-or-timestamp>.json`, then run:
 
 ```bash
 {baseDir}/scripts/apply-suggestions.sh <claude|memory|all> <payload.json>
@@ -148,17 +154,14 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 }
 ```
 
-(`apply all` runs CLAUDE.md + memory; skills are still applied separately via writing-skills.)
+(`apply all` runs CLAUDE.md and memory together; skills still apply separately, via writing-skills.)
 
 ## Anti-patterns
 
-- Do NOT dump the transcript.
-  The report is the analysis, not a log.
-- Do NOT edit CLAUDE.md or memory files directly — always go through `apply-suggestions.sh` so backups and index updates stay consistent.
-- Do NOT re-run tools that already ran in-session to re-verify.
-  Reuse prior results.
-- Do NOT use performative praise or emojis.
-  State a genuine strength in one line under `## Strengths` only if there is one; otherwise omit.
+- Do not dump the transcript — the report is the analysis, not a log.
+- Do not edit CLAUDE.md or memory files directly — always go through `apply-suggestions.sh` for consistent backups and index updates.
+- Do not re-run tools that already ran in-session; reuse prior results.
+- Do not use performative praise or emojis; state one genuine strength under `## Strengths` only if one exists, otherwise omit.
 
 ## Scripts
 
@@ -170,4 +173,4 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 
 ## Troubleshooting
 
-If context was compacted (system-reminders mention compaction, or the earliest turns are missing), run `{baseDir}/scripts/find-sessions.sh` to locate the session JSONL and Read the earliest portion to recover missed turns.
+If context was compacted (a system reminder mentions it, or the earliest turns are missing), run `{baseDir}/scripts/find-sessions.sh` and read the earliest portion to recover missed turns.

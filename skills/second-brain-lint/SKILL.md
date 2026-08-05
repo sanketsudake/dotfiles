@@ -1,9 +1,9 @@
 ---
 name: second-brain-lint
-description: >
-  Health-check the wiki for contradictions, orphan pages, stale claims,
-  and missing cross-references. Use when the user says "audit",
-  "health check", "lint", "find problems", or wants to improve wiki quality.
+description: >-
+  Health-checks the wiki for contradictions, orphan pages, stale claims, and
+  missing cross-references. Use when the user says "audit", "health check",
+  "lint", "find problems", or wants to improve wiki quality.
 allowed-tools: Bash Read Write Edit Glob Grep
 license: Apache-2.0
 metadata:
@@ -13,102 +13,107 @@ metadata:
 
 # Second Brain — Lint
 
-Health-check the wiki and report issues with actionable fixes.
+Health-check the wiki.
+Report issues with actionable fixes.
 
 ## Audit Steps
 
-Run all checks below, then present a consolidated report.
+Run all checks below.
+Present one consolidated report.
 
 ### 1. Broken wikilinks
 
-Scan all wiki pages for `[[wikilink]]` references.
-For each link, verify the target page exists.
-Report any broken links.
+Scan wiki pages for `[[wikilink]]` references.
+Verify each target page exists.
+Report broken links.
 
 ```bash
 # Find all wikilinks across wiki pages
 grep -roh '\[\[[^]]*\]\]' wiki/ | sort -u
 ```
 
-Cross-reference against actual files in `wiki/`.
+Cross-reference the results against files in `wiki/`.
 
 ### 2. Orphan pages
 
-Find pages with no inbound links — no other page references them via `[[wikilink]]`.
+Find pages with no inbound links.
 
 For each `.md` file in `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`:
-- Extract the page name (filename without extension)
-- Search all other wiki pages for `[[Page Name]]`
-- If no other page links to it, it's an orphan
+- Extract the page name (filename without extension).
+- Search other wiki pages for `[[Page Name]]`.
+- Flag the page as an orphan if no other page links to it.
 
 ### 3. Contradictions
 
-Look for conflicting claims between related pages.
+Find conflicting claims between related pages.
 Flag when:
-- Two source summaries make opposing claims about the same topic
-- An entity page contains information that conflicts with a source summary
-- Dates, figures, or factual claims differ between pages
+- Two source summaries make opposing claims about the same topic.
+- An entity page conflicts with a source summary.
+- Dates, figures, or facts differ between pages.
 
 Do not read all page pairs.
-If `qmd` is installed, for each entity/concept page run `qmd search "<page title>" --path wiki/` and cross-read only the top ~5 hits that are not already wikilinked from that page.
-Fallback without qmd: restrict pair-reads to pages sharing a frontmatter tag.
+If `qmd` is installed, for each entity/concept page run `qmd search "<page title>" --path wiki/`.
+Cross-read only the top 5 hits not already wikilinked from that page.
+Without `qmd`, restrict pair-reads to pages that share a frontmatter tag.
 
 ### 4. Stale claims
 
 Cross-reference source dates with wiki content.
 Flag when:
-- A concept page cites only old sources and newer sources exist on the same topic
-- Entity information hasn't been updated despite newer sources mentioning that entity
+- A concept page cites only old sources, and newer sources exist on the same topic.
+- Entity information is not updated despite newer sources mentioning that entity.
 
 ### 5. Missing pages
 
-Scan for `[[wikilinks]]` that point to pages that don't exist yet.
-These are topics the wiki mentions but hasn't given their own page.
-Assess whether they warrant a page.
+Scan for `[[wikilinks]]` that point to pages that do not exist yet.
+These are topics the wiki mentions without a page of their own.
+Assess whether each topic warrants a page.
 
 ### 6. Missing cross-references
 
-Find pages that discuss the same topics but don't link to each other.
+Find pages that discuss the same topics but do not link to each other.
 Look for:
-- Entity pages that mention concepts without linking them
-- Concept pages that mention entities without linking them
-- Source summaries that cover the same topic but don't reference each other
+- Entity pages that mention concepts without linking them.
+- Concept pages that mention entities without linking them.
+- Source summaries that cover the same topic but do not reference each other.
 
-Use the same qmd candidate search as check 3 to find related-but-unlinked pages without O(n²) reads.
+Use the qmd candidate search from check 3 to find related, unlinked pages without O(n²) reads.
 
 ### 7. Index consistency
 
 Verify `wiki/index.md` is complete and accurate:
-- Every page in `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/` has an index entry
-- No index entries point to deleted pages
-- Entries are under the correct category header
+- Every page in `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/` has an index entry.
+- No index entry points to a deleted page.
+- Entries sit under the correct category header.
 
 ### 8. Data gaps
 
-Based on the wiki's current coverage, suggest:
-- Topics mentioned frequently but lacking depth
-- Questions the wiki can't answer well
-- Areas where a web search could fill in missing information
+Based on current wiki coverage, suggest:
+- Topics mentioned often but lacking depth.
+- Questions the wiki cannot answer well.
+- Areas where a web search could fill missing information.
 
 ### 9. Un-deepened high-value pages
 
-List light-ingested source pages and rank them as deepen candidates:
+List light-ingested source pages.
+Rank them as deepen candidates.
 
 ```bash
 grep -l '^ingest: light' wiki/sources/*.md
 ```
 
 Rank by (a) highlight count in the page, (b) inbound wikilink count (`grep -rc '\[\[Page Title\]\]' wiki/`).
-Report the top 5 as "suggest `/second-brain-ingest deepen`".
+Report the top 5.
+Suggest `/second-brain-ingest deepen` for each.
 
 ### 10. Junk entities
 
-Find entity pages whose names fail the author-name heuristic — all digits, domain-like, letterless.
-Propose deletion plus the matching index and log cleanup.
+Find entity pages whose names fail the author-name heuristic: all digits, domain-like, or letterless.
+Propose deletion, plus the matching index and log cleanup.
 
 ## Report Format
 
-Present findings grouped by severity:
+Group findings by severity.
 
 ### Errors (must fix)
 - Broken wikilinks
@@ -126,9 +131,9 @@ Present findings grouped by severity:
 - Index entries that could be more descriptive
 
 For each finding, include:
-- **What:** description of the issue
-- **Where:** the specific file(s) and line(s)
-- **Fix:** what to do about it
+- **What:** the issue.
+- **Where:** the file(s) and line(s).
+- **Fix:** what to do about it.
 
 ## After the Report
 
@@ -136,7 +141,8 @@ Ask the user:
 > "Found N errors, N warnings, and N info items.
 > Want me to fix any of these?"
 
-If the user agrees, fix issues and report what changed.
+If the user agrees, fix the issues.
+Report what changed.
 
 ## Log the lint pass
 
@@ -150,10 +156,10 @@ Append to `wiki/log.md`:
 Two modes:
 
 - **Quick lint — automatic at the end of every batch ingest.**
-  Cheap mechanical checks only: broken wikilinks (1), index consistency (7), junk-entity scan (10), and a log↔raw detection round-trip (the unprocessed-file diff from `/second-brain-ingest` must be empty right after a batch).
+  Run cheap mechanical checks only: broken wikilinks (1), index consistency (7), junk-entity scan (10), and a log-to-raw detection round-trip (the unprocessed-file diff from `/second-brain-ingest` must be empty right after a batch).
   If `qmd` is installed, also run `qmd update` so new pages are searchable.
 - **Full lint — monthly, on demand, or before major synthesis.**
-  All checks including contradictions, stale claims, and deepen candidates.
+  Run all checks, including contradictions, stale claims, and deepen candidates.
 
 ## Related Skills
 

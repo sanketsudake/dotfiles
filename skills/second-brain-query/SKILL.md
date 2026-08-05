@@ -1,10 +1,10 @@
 ---
 name: second-brain-query
-description: >
-  Answer questions against the knowledge base wiki. Use when the user
-  asks a question about their collected knowledge, wants to explore
-  connections between topics, says "what do I know about X", or wants
-  to search their wiki.
+description: >-
+  Answers questions against the knowledge base wiki. Use when the user asks a
+  question about their collected knowledge, wants to explore connections
+  between topics, says "what do I know about X", or wants to search their
+  wiki.
 allowed-tools: Bash Read Write Edit Glob Grep
 license: Apache-2.0
 metadata:
@@ -25,15 +25,18 @@ Scan all category sections (Sources, Entities, Concepts, Synthesis) for entries 
 
 ### 2. Use qmd for large wikis
 
-If `qmd` is installed (check with `command -v qmd`), use it for search:
+Check if `qmd` is installed: `command -v qmd`.
+If installed, use it for search:
 
 ```bash
 qmd search "query terms" --path wiki/
 ```
 
-This is especially useful when the wiki has grown beyond ~100 pages where scanning the index becomes inefficient.
+Use `qmd` when the wiki has more than ~100 pages.
+At that size, scanning the index becomes slow.
 
-For exploratory or fuzzy questions, prefer hybrid semantic search when embeddings exist (check `qmd status`):
+For exploratory or fuzzy questions, prefer hybrid semantic search if embeddings exist.
+Check with `qmd status`:
 
 ```bash
 qmd query "natural language question" --path wiki/
@@ -43,11 +46,12 @@ qmd query "natural language question" --path wiki/
 
 Read the wiki pages identified by the index or search.
 Follow `[[wikilinks]]` to pull in related context from linked pages.
-Read enough pages to give a thorough answer, but don't read the entire wiki.
+Read enough pages for a thorough answer.
+Do not read the entire wiki.
 
 ### 4. Check raw sources if needed
 
-If the wiki pages don't fully answer the question, check relevant source summaries in `wiki/sources/` for additional detail.
+If the wiki pages don't fully answer the question, check the source summaries in `wiki/sources/` for more detail.
 Only go to files in `raw/` as a last resort.
 
 ## Synthesize the Answer
@@ -68,13 +72,14 @@ Example:
 > According to [[Source - Article Title]], the key finding was X.
 > This connects to the broader pattern described in [[Concept Name]], which [[Entity Name]] has also explored.
 
-When an answer leans on a page whose frontmatter says `ingest: light` (find them with `grep -l '^ingest: light' wiki/sources/*.md`), disclose it and offer an upgrade:
+Check if the page frontmatter says `ingest: light` (find these with `grep -l '^ingest: light' wiki/sources/*.md`).
+If so, disclose it and offer an upgrade:
 
 > "This comes from a light-ingested source; want me to deep-ingest it for entity/concept coverage?"
 
 ### Offer to save valuable answers
 
-If the answer produces something worth keeping — a comparison, analysis, new connection, or synthesis — offer to save it:
+If the answer is worth keeping — a comparison, analysis, new connection, or synthesis — offer to save it:
 
 > "This comparison might be useful to keep in your wiki.
 > Want me to save it as a synthesis page?"
@@ -89,7 +94,7 @@ If the user agrees:
 - **Search the wiki first.**
   Only go to raw sources if the wiki doesn't have the answer.
 - **Cite your sources.**
-  Every factual claim should link to the wiki page it came from.
+  Link every factual claim to the wiki page it came from.
 - **Valuable answers compound.**
   Encourage saving good analyses back into the wiki.
 - Use `[[wikilinks]]` for all internal references.

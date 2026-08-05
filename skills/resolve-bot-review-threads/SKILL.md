@@ -1,6 +1,11 @@
 ---
 name: resolve-bot-review-threads
-description: Use when a PR has bot/Copilot review comments to clear — fix them, mark the threads resolved, and re-request the bot until the PR is at a good base (triggers "resolve copilot comments", "mark review threads resolved", "re-request copilot review"). Generic to any GitHub repo with bot reviewers.
+description: >-
+  Clears bot/Copilot review threads on a PR — fixes the issues, marks threads
+  resolved via GraphQL, and re-requests the bot until the PR is clean. Use
+  when a PR has bot review comments to clear, or on triggers "resolve copilot
+  comments", "mark review threads resolved", "re-request copilot review".
+  Generic to any GitHub repo with bot reviewers.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -11,14 +16,15 @@ metadata:
 
 ## Overview
 
-Bot reviewers (e.g. Copilot) post review threads on PRs as GraphQL `reviewThread` nodes.
-Resolving them requires the GraphQL API — REST has no resolve endpoint, and REST's `requested_reviewers` rejects bot accounts.
-This skill covers the full loop: list → fix → resolve → re-request → poll.
+Bot reviewers (for example Copilot) post review threads on PRs as GraphQL `reviewThread` nodes.
+Use the GraphQL API to resolve them.
+REST has no resolve endpoint, and REST's `requested_reviewers` field rejects bot accounts.
+This skill covers the full loop: list, fix, resolve, re-request, poll.
 
 ## Ordering Rule
 
 Fix first, then resolve.
-Never resolve a thread before the code change has landed on the branch.
+Never resolve a thread before the code change lands on the branch.
 
 ```
 git push origin BRANCH
@@ -29,7 +35,8 @@ git push origin BRANCH
   → repeat until CI green + no unresolved bot threads
 ```
 
-After ~3 passes where each new review surfaces only re-flags of intentional design decisions (not new actionable changes), stop iterating and confirm with the user before continuing.
+After about 3 passes, if each new review only re-flags intentional design decisions (no new actionable changes), stop.
+Confirm with the user before you continue.
 
 ---
 
@@ -98,7 +105,7 @@ query($o:String!,$r:String!,$pr:Int!){
 ### Pagination
 
 The queries above use `first:100`.
-For very large PRs add cursor pagination:
+For large PRs, add cursor pagination:
 
 ```graphql
 reviewThreads(first:100, after: $cursor){
@@ -113,7 +120,7 @@ Loop until `pageInfo.hasNextPage == false`.
 
 | Field | Meaning |
 |---|---|
-| `id` | `PRRT_kwDO…` — the node ID required by the resolve mutation |
+| `id` | `PRRT_kwDO…` — the node ID the resolve mutation needs |
 | `isResolved` | boolean |
 | `isOutdated` | true when the diff line no longer exists in the current head |
 | `path` | file path |
@@ -161,7 +168,7 @@ resolve PRRT_kwDO...B
 
 ## 3. Optional Reply Before Resolving
 
-Not required — "just resolve" is the default.
+Not required — the default is to resolve without a reply.
 Reply only when the fix needs explanation, then resolve (section 2):
 
 ```bash
@@ -170,7 +177,8 @@ gh api graphql \
   -f t='PRRT_kwDO...' -f b='Fixed in <SHA> — explanation of what changed.'
 ```
 
-**Field name difference:** `addPullRequestReviewThreadReply` takes `pullRequestReviewThreadId` (the full name), while `resolveReviewThread` takes `threadId` (short form).
+**Field name difference:** `addPullRequestReviewThreadReply` uses `pullRequestReviewThreadId` (the full name).
+`resolveReviewThread` uses `threadId` (short form).
 They are different input objects — do not swap them.
 
 ---
@@ -179,7 +187,8 @@ They are different input objects — do not swap them.
 
 ### Get the PR node ID
 
-REST uses integer PR numbers; the `requestReviews` mutation needs the GraphQL `PR_kwDO…` node ID.
+REST uses integer PR numbers.
+The `requestReviews` mutation needs the GraphQL `PR_kwDO…` node ID.
 
 ```bash
 # Method A: REST (simplest)
@@ -236,14 +245,15 @@ gh api graphql \
   | sed 's/^/Bot review requested on #/'
 ```
 
-`union:true` adds to the existing reviewer set rather than replacing it.
-The mutation is idempotent — running it multiple times on the same PR+bot is safe.
+`union:true` adds to the existing reviewer set instead of replacing it.
+The mutation is idempotent: running it more than once on the same PR and bot is safe.
 
 ---
 
 ## 5. Poll CI and Monitor New Threads
 
-After each fix push, re-run the unresolved-thread query; see the `watch-ci` skill for CI polling and `references/poll-loop.md` for a combined example loop.
+After each fix push, re-run the unresolved-thread query.
+See the `watch-ci` skill for CI polling, and `references/poll-loop.md` for a combined example loop.
 
 ### Final status check
 
@@ -278,6 +288,7 @@ gh pr view PR_NUMBER --json mergeable,mergeStateStatus \
 
 ## Auth
 
-`gh auth` must have `repo` scope (the default for `gh auth login`).
-The `resolveReviewThread` and `requestReviews` mutations require write access to the PR repository.
-The node IDs involved (`PRRT_kwDO…`, `PR_kwDO…`, `BOT_kgDO…`) are GraphQL-only — they are not available or accepted by the REST API.
+`gh auth` needs `repo` scope (the default for `gh auth login`).
+The `resolveReviewThread` and `requestReviews` mutations need write access to the PR repository.
+The node IDs involved (`PRRT_kwDO…`, `PR_kwDO…`, `BOT_kgDO…`) are GraphQL-only.
+REST does not accept them.

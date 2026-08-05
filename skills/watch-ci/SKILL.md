@@ -1,6 +1,14 @@
 ---
 name: watch-ci
-description: After pushing to a PR, watch its CI checks to terminal state and surface each transition as a notification instead of busy-polling. Use when you've just pushed a fix and want to know the moment a check goes green or red, or whenever the user says "watch CI", "wait for the checks", "is CI green yet", "loop on CI". Pairs with debug-ci (hand back to it on a red check) and resolve-bot-review-threads (the fix→push→resolve→re-request→watch loop).
+description: >-
+  Watches a PR's CI checks to terminal state in the background and turns each
+  transition into a notification, instead of a foreground polling loop. Use
+  when you just pushed a fix and want to know the moment a check goes green
+  or red, or when the user says "watch CI", "wait for the checks", "is CI
+  green yet", or "loop on CI". Pairs with debug-ci (hand back to it on a red
+  check) and resolve-bot-review-threads (the
+  fix→push→resolve→re-request→watch loop). Generic to any GitHub PR with an
+  authenticated `gh` CLI.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -9,10 +17,12 @@ metadata:
 
 # Watch CI to terminal state
 
-After a push you want each check's terminal state to arrive as a notification, not to sit in a foreground `gh pr checks` loop burning context and turns.
-Arm a background monitor with the poll loop below.
+Arm a background monitor after a push.
+It reports each check's terminal state as a notification.
+Do not poll `gh pr checks` in the foreground — this wastes context and turns.
 
-This skill is project-agnostic; it only needs the PR number and an authenticated `gh`.
+This skill works with any project.
+It needs only the PR number and an authenticated `gh` CLI.
 
 ## The poll loop
 
@@ -31,10 +41,14 @@ while true; do
 done
 ```
 
-Run it under a background monitor (the harness's `Monitor` tool, or `run_in_background`) with a timeout that covers a full run (e.g. 40 min / `2400000` ms).
-Each newly-non-pending check emits one stdout line → one notification; output is bounded to ~1 line per transition plus a final `DONE`.
+Run the loop in a background monitor (the harness's `Monitor` tool, or `run_in_background`).
+Set a timeout that covers a full CI run — for example 40 minutes (`2400000` ms).
+Each check that leaves pending state emits one stdout line.
+Each line becomes one notification.
+Output stays small: about one line per transition, plus a final `DONE` line.
 
 ## Discipline while a monitor is armed
 
-Let the monitor run to completion before pushing new changes or re-querying CI state.
+Let the monitor run to completion.
+Do not push new changes or re-query CI state before it finishes.
 On a red check, hand the failure to the **debug-ci** skill.

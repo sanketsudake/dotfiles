@@ -45,11 +45,11 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 
 | Skill | Purpose |
 |-------|---------|
-| [`triage-gh-backlog`](../../skills/triage-gh-backlog/SKILL.md) | Use when scrubbing or triaging a GitHub repo's open issue/PR backlog — e.g. "go through all open issues and PRs and see what can be closed", "scrub the outst... |
-| [`remediate-codeql-alerts`](../../skills/remediate-codeql-alerts/SKILL.md) | Use when fixing or triaging GitHub code-scanning / CodeQL alerts (triggers "fix codeql issues", "check code-scanning alerts", "dismiss false-positive alert"). |
-| [`go-deps-security-sweep`](../../skills/go-deps-security-sweep/SKILL.md) | Run a grouped, bisectable Go dependency security sweep. |
-| [`source-code-for-gh-advisory`](../../skills/source-code-for-gh-advisory/SKILL.md) | Use when the user wants to obtain, inspect, or reproduce the vulnerable source code referenced by a GitHub Security Advisory (GHSA-xxxx / CVE) — including se... |
-| [`author-security-advisory`](../../skills/author-security-advisory/SKILL.md) | Use when triaging or preparing a GitHub repository security advisory as a maintainer (triggers "draft the advisory", "prepare GHSA content", "request CVE", "... |
+| [`triage-gh-backlog`](../../skills/triage-gh-backlog/SKILL.md) | Scrubs and triages a GitHub repo's open issue/PR backlog: closes stale/duplicate/already-shipped/EOL items and categorizes the rest by type, area, and priori... |
+| [`remediate-codeql-alerts`](../../skills/remediate-codeql-alerts/SKILL.md) | Triages and remediates GitHub code-scanning / CodeQL alerts: lists alerts, traces the taint source, fixes real findings, dismisses won't-fix alerts, and veri... |
+| [`go-deps-security-sweep`](../../skills/go-deps-security-sweep/SKILL.md) | Runs a grouped, bisectable Go dependency security sweep. |
+| [`source-code-for-gh-advisory`](../../skills/source-code-for-gh-advisory/SKILL.md) | Fetches the exact vulnerable source tree referenced by a GitHub Security Advisory (GHSA-xxxx / CVE), at the last tag before the fix. |
+| [`author-security-advisory`](../../skills/author-security-advisory/SKILL.md) | Triages GitHub security advisories and prepares paste-ready GHSA content for a maintainer. |
 
 ## Install
 

@@ -1,11 +1,12 @@
 ---
 name: readwise-second-brain-sync
-description: >
-  Sync Readwise highlights and Reader documents into the second-brain vault's
-  raw/ folder in Obsidian-Web-Clipper format. Use when the user says "sync
-  readwise", "pull my readwise highlights", "update raw/ from reader", or wants
-  their reading library reflected in the wiki (triggers: readwise sync, reader
-  sync, import highlights). Sync only — follow with /second-brain-ingest.
+description: >-
+  Syncs Readwise highlights and Reader documents into the second-brain
+  vault's raw/ folder in Obsidian-Web-Clipper format. Use when the user
+  says "sync readwise", "pull my readwise highlights", "update raw/ from
+  reader", or wants their reading library reflected in the wiki (triggers:
+  readwise sync, reader sync, import highlights). Sync only — follow with
+  /second-brain-ingest.
 allowed-tools: Bash Read Glob Grep
 license: Apache-2.0
 metadata:
@@ -15,15 +16,19 @@ metadata:
 
 # Readwise → Second-Brain Sync
 
-Deliver Readwise/Reader content into the vault's `raw/` folder so `/second-brain-ingest` can process it exactly like web-clipped articles.
-This skill only writes `raw/` files and its own state — it never ingests, and it never touches `wiki/`.
+This skill delivers Readwise and Reader content into the vault's `raw/` folder.
+`/second-brain-ingest` then processes these files like web-clipped articles.
+This skill only writes `raw/` files and its own state.
+It never ingests content and never touches `wiki/`.
 
-What syncs by default (high-signal scope):
+Default sync scope (high-signal only):
 
-- **Highlight digests** — one file per highlighted book/article (`<slug>-highlights-<bookid>.md`), regenerated whole whenever that source gains or changes highlights.
-- **Read Reader docs** — documents in the `archive` and `later` locations (`<slug>-<id8>.md`), with the Reader AI summary in `description:` and the full markdown content as the body.
+- **Highlight digests** — one file per highlighted book/article (`<slug>-highlights-<bookid>.md`).
+  The skill regenerates the whole file whenever that source gains or changes highlights.
+- **Reader docs** — documents in the `archive` and `later` locations (`<slug>-<id8>.md`).
+  The Reader AI summary goes in `description:`; the full markdown content is the body.
 
-What does not sync: the RSS `feed` location (never), and the unread inbox (`new`) unless `--include-inbox` is passed.
+Not synced: the RSS `feed` location (never), and the unread inbox (`new`) unless `--include-inbox` is passed.
 
 ## Prerequisites
 
@@ -36,7 +41,8 @@ What does not sync: the RSS `feed` location (never), and the unread inbox (`new`
 python3 {baseDir}/scripts/sync.py
 ```
 
-Incremental by default: two durable cursors (reader docs, highlights) mean only changes since the last run are fetched.
+Sync is incremental by default.
+Two durable cursors (reader docs, highlights) track progress, so each run fetches only changes since the last run.
 
 | Flag | Effect |
 |---|---|
@@ -50,10 +56,14 @@ Incremental by default: two durable cursors (reader docs, highlights) mean only 
 
 ## Interpret the Report
 
-- **NEW** — files never ingested; `/second-brain-ingest` will auto-detect them.
-- **UPDATED** — files previously ingested whose raw content changed (new highlights, edited article); ingest skips these unless named, so pass the listed filenames explicitly.
-- **UNCHANGED** — rendered content identical to last sync; nothing written.
-- **Pending re-ingest carried** — UPDATED files from earlier runs that still have no newer ingest entry in `wiki/log.md`; the entry clears itself once the file is re-ingested.
+- **NEW** — files not yet ingested.
+  `/second-brain-ingest` auto-detects them.
+- **UPDATED** — previously ingested files whose raw content changed (new highlights, an edited article).
+  Ingest skips these unless named, so pass the listed filenames explicitly.
+- **UNCHANGED** — rendered content matches the last sync.
+  Nothing is written.
+- **Pending re-ingest carried** — UPDATED files from earlier runs with no newer ingest entry in `wiki/log.md`.
+  The entry clears once the file is re-ingested.
 
 ## Hand Off
 
@@ -64,15 +74,20 @@ After a sync with NEW or UPDATED files, run `/second-brain-ingest`:
 
 ## State and Config
 
-State lives at `~/.local/state/readwise-second-brain-sync/state.json`: the two cursors, a per-document and per-book file registry (filenames are minted once and reused even if titles change), content hashes, and the pending re-ingest ledger.
-Delete the state file and run `--full` for a clean rebuild — existing raw files with unchanged content survive untouched thanks to hash gating.
+State lives at `~/.local/state/readwise-second-brain-sync/state.json`.
+It holds the two cursors, a per-document and per-book file registry (filenames are minted once and reused even if titles change), content hashes, and the pending re-ingest ledger.
+To rebuild state, delete the file and run `--full`.
+Hash gating leaves raw files with unchanged content untouched.
 
 ## Troubleshooting
 
-- **Auth expired** — any CLI call failing with an auth error: re-run `readwise login-with-token <token>` (token from https://readwise.io/access_token).
-- **One stream failed** — the other stream still completes; the failed stream's cursor is NOT advanced, so the next run re-fetches from the same point.
-  Exit code is non-zero in that case.
-- **A file reports UNCHANGED but looks stale** — hashes exclude only the volatile `created`/`updated` dates; run `--full --dry-run` to verify what would change.
+- **Auth expired** — a CLI call fails with an auth error.
+  Re-run `readwise login-with-token <token>` (token from https://readwise.io/access_token).
+- **One stream failed** — the other stream still completes.
+  The failed stream's cursor does not advance, so the next run re-fetches from the same point.
+  The exit code is non-zero in that case.
+- **A file reports UNCHANGED but looks stale** — hashes exclude only the volatile `created`/`updated` dates.
+  Run `--full --dry-run` to check what would change.
 
 ## Related Skills
 

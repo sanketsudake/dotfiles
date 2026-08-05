@@ -1,6 +1,13 @@
 ---
 name: write-hugo-blog-post
-description: Use when authoring or editing a blog post in a Hugo site (any theme) — triggers "write a blog post", "publish a tutorial", "add a post". Covers file layout (single file vs page bundle), front matter, the featured-image to card+OG flow, and the layout that actually renders a post.
+description: >-
+  Authors or edits a blog post in a Hugo site, any theme.
+  Use when the user says "write a blog post", "publish a tutorial", "add a
+  post", or asks to add content under content/blog/.
+  Covers file layout (single file vs page bundle), front matter, the
+  featured-image to card+OG flow, and finding the layout that actually
+  renders a post.
+  Hugo only — not other static-site generators.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -47,21 +54,26 @@ images = ["images/featured/my-post-featured.png"]
 2. Place it in `static/images/featured/`.
 3. Reference it in the `images` front-matter field (path relative to `static/`, leading slash optional).
 
-That single param drives **both** the blog-list card thumbnail **and** the OG/social preview image; omitting it falls back to a site-defined placeholder.
-Do not also embed the featured image at the top of the post body; the card already shows it.
+That single param drives **both** the blog-list card thumbnail **and** the OG/social preview image.
+Omit it and Hugo falls back to a site-defined placeholder.
+Do not also embed the featured image at the top of the post body — the card already shows it.
 
 ## Body Conventions
 
 - One sentence per line if the project uses that Markdown style (CommonMark renders single newlines as spaces; diffs become per-sentence).
 - Code fences with language hints; real, runnable commands with expected output.
 - Use your project's version shortcodes for version strings — a hardcoded version goes stale silently.
-- Internal links as absolute paths (`/docs/usage/…`); use `{{< relref >}}` only if your project/theme supports it for regular pages — some themes restrict it to section `_index.md` paths.
+- Internal links as absolute paths (`/docs/usage/…`).
+  Use `{{< relref >}}` only if your project/theme supports it for regular pages — some themes restrict it to section `_index.md` paths.
 - Images get descriptive alt text; lightbox (click-to-zoom) typically wires up automatically.
 
 ## Find the layout that actually renders a post
 
-Themes often ship more than one candidate layout for a single page; only one is actually used, and editing the wrong (dead) one changes nothing.
-Before customizing a post's layout, confirm which template Hugo selects (build with `--printPathWarnings`, or check the theme's lookup order) and edit that file.
+Themes often ship more than one candidate layout for a page.
+Only one layout is active; editing the wrong (dead) one changes nothing.
+Before you customize a post's layout, confirm which template Hugo selects.
+Build with `--printPathWarnings`, or check the theme's lookup order.
+Then edit that file.
 
 ## Verify
 
