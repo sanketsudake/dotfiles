@@ -1,6 +1,7 @@
 Please read my global conversation history and present it in an easy-to-scan format.
 
 Locate the history file by checking, in order:
+
 1. `$CLAUDE_CONFIG_DIR/history.jsonl` if `CLAUDE_CONFIG_DIR` is set
 2. `~/.claude/history.jsonl`
 3. `~/.claude-personal/history.jsonl`
@@ -9,6 +10,7 @@ Locate the history file by checking, in order:
 Use the first one that exists. If none are found, say so and stop.
 
 For each conversation, show:
+
 - Entry number
 - Date/time (human readable format: "Nov 10, 2025 15:48")
 - Project name (just the folder name, not full path)

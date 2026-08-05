@@ -1,14 +1,14 @@
+Always talk in ASD-STE100 Simplified Technical English.
+
 ## NEVER EVER DO
 
 These rules are ABSOLUTE:
 
 ### NEVER Publish Sensitive Data
+
 - NEVER publish passwords, API keys, tokens to git/npm/docker
 - Before ANY commit: verify no secrets included
-
-### NEVER Commit .env Files
-- NEVER commit `.env` to git
-- ALWAYS verify `.env` is in `.gitignore`
+- Never commit `.env` to git.
 
 ## Rules
 
@@ -21,6 +21,7 @@ Longer-form conventions live in `$CLAUDE_CONFIG_DIR/rules/` and apply in every s
 ## Markdown Style
 
 ### One sentence per line
+
 - Within paragraphs, put each sentence on its own line.
 - Why: CommonMark renders single newlines as spaces, so the rendered HTML is unchanged — but `git diff` becomes per-sentence and review is surgical.
 - Applies to all markdown: blog posts, docs, READMEs, PR descriptions.
@@ -28,3 +29,7 @@ Longer-form conventions live in `$CLAUDE_CONFIG_DIR/rules/` and apply in every s
 - A reusable formatter lives at `$CLAUDE_CONFIG_DIR/scripts/md-one-sentence-per-line.py` (symlinked from this repo's `claude/scripts/`).
 Run it on any markdown file (or batch) to enforce this.
 It preserves frontmatter, fenced code, Hugo shortcodes, tables, headings, blockquote prefixes, list markers, and HTML comments.
+
+# Interacting with browser
+
+Prefer /drive-chrome-cdp for interacting with my browser.  Use /agent-browser if detached browser is needed.
