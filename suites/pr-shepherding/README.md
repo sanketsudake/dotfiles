@@ -48,11 +48,11 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 
 | Skill | Purpose |
 |-------|---------|
-| [`make-pr-easy-to-review`](https://github.com/cursor/plugins/tree/91be0f994b5de7a75f4d6f2b3b00958126d9195e/cursor-team-kit/skills/make-pr-easy-to-review) | Prepare PRs for review by cleaning noisy history, improving PR descriptions, and adding reviewer guidance without changing code behavior. |
-| [`deslop`](https://github.com/cursor/plugins/tree/91be0f994b5de7a75f4d6f2b3b00958126d9195e/cursor-team-kit/skills/deslop) | Remove AI-generated code slop and clean up code style |
-| [`resolve-bot-review-threads`](../../skills/resolve-bot-review-threads/SKILL.md) | Use when a PR has bot/Copilot review comments to clear — fix them, mark the threads resolved, and re-request the bot until the PR is at a good base (triggers... |
-| [`watch-ci`](../../skills/watch-ci/SKILL.md) | After pushing to a PR, watch its CI checks to terminal state and surface each transition as a notification instead of busy-polling. |
-| [`debug-ci`](../../skills/debug-ci/SKILL.md) | Triage and root-cause a failing GitHub Actions CI run on a PR efficiently. |
+| [`make-pr-easy-to-review`](https://github.com/cursor/plugins/tree/8185ad9fbb903efc7d1cf152a9be9777e516cfbc/cursor-team-kit/skills/make-pr-easy-to-review) | Prepare PRs for review by cleaning noisy history, improving PR descriptions, and adding reviewer guidance without changing code behavior. |
+| [`deslop`](https://github.com/cursor/plugins/tree/8185ad9fbb903efc7d1cf152a9be9777e516cfbc/cursor-team-kit/skills/deslop) | Remove AI-generated code slop and clean up code style |
+| [`resolve-bot-review-threads`](../../skills/resolve-bot-review-threads/SKILL.md) | Clears bot/Copilot review threads on a PR — fixes the issues, marks threads resolved via GraphQL, and re-requests the bot until the PR is clean. |
+| [`watch-ci`](../../skills/watch-ci/SKILL.md) | Watches a PR's CI checks to terminal state in the background and turns each transition into a notification, instead of a foreground polling loop. |
+| [`debug-ci`](../../skills/debug-ci/SKILL.md) | Triages and root-causes a failing GitHub Actions CI run on a PR by separating real regressions from pre-existing noise and escalating log fetches cheapest-fi... |
 
 ## Install
 

@@ -1,6 +1,13 @@
 ---
 name: analyze-prometheus-tsdb
-description: Run a Prometheus TSDB snapshot that a CI job uploaded inside a local Prometheus container and query it — for before/after performance comparisons across legs and leak-vs-constant-offset questions a point-in-time pprof can't answer. Use when a CI run uploads a prometheus data backup and you need time-series (latency, goroutines, RSS, CPU) over the whole run, or to compare metrics before-vs-after across CI legs. Generic to any project whose CI backs up its Prometheus data dir.
+description: >-
+  Runs a Prometheus TSDB snapshot that a CI job uploaded inside a local
+  Prometheus container and queries it, for before/after performance comparisons
+  across legs and leak-vs-constant-offset questions a point-in-time pprof
+  cannot answer. Use when a CI run uploads a Prometheus data backup and you
+  need time-series data (latency, goroutines, RSS, CPU) over the whole run, or
+  to compare metrics before-vs-after across CI legs. Generic to any project
+  whose CI backs up its Prometheus data dir.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -9,7 +16,8 @@ metadata:
 
 # Analyze a Prometheus TSDB dump from CI
 
-Check the project's `CLAUDE.md`/resources for the artifact name and metric names; the mechanics below are universal.
+Check the project's `CLAUDE.md`/resources for the artifact name and metric names.
+The mechanics below apply to any project.
 
 ## Spin it up locally
 
@@ -22,37 +30,58 @@ docker run -d --name prom -p 9091:9090 -v /tmp/prom/prometheus:/prometheus \
 sleep 5; curl -s localhost:9091/-/ready   # "Prometheus Server is Ready."
 ```
 
-The dump contains WAL + chunks; Prometheus replays it on start.
-Download multiple legs into separate containers (`-p 9092:9090`, …) to compare.
+The dump contains WAL and chunks.
+Prometheus replays them on start.
+To compare legs, download each leg into a separate container (`-p 9092:9090`, and so on).
 Clean up with `docker rm -f <name>`.
 
 ## Querying — the traps
 
 - **URL-encode PromQL.**
   `curl "...?query={pod=~'x'}"` mangles `=~`.
-  Always `curl -sG ... --data-urlencode "query=..."`.
+  Always use `curl -sG ... --data-urlencode "query=..."`.
 - **Bound the `query_range` window.**
-  `start=0&end=<far-future>` with a small step exceeds the ~11k-points-per-series limit and errors or returns nothing.
-  Find the real window first, then query inside it with `step=30`: ```bash curl -sG localhost:9091/api/v1/query_range \ --data-urlencode "query=up{pod=~'<svc>.*'}" \ --data-urlencode "start=$(date -v-8H +%s)" --data-urlencode "end=$(date +%s)" \ --data-urlencode "step=60" # min/max timestamps in the result = the run window ```
-- **Instant queries evaluate at "now"** with a 5-minute lookback — against a dump whose data ended hours ago they return empty or a stale last sample.
+  `start=0&end=<far-future>` with a small step exceeds the ~11k-points-per-series limit.
+  It errors, or returns nothing.
+  Find the real window first.
+  Then query inside it with `step=30`.
+
+  ```bash
+  curl -sG localhost:9091/api/v1/query_range \
+    --data-urlencode "query=up{pod=~'<svc>.*'}" \
+    --data-urlencode "start=$(date -v-8H +%s)" \
+    --data-urlencode "end=$(date +%s)" \
+    --data-urlencode "step=60"
+  # min/max timestamps in the result = the run window
+  ```
+
+- **Instant queries evaluate at "now"**, with a 5-minute lookback.
+  Against a dump whose data ended hours ago, they return empty or a stale last sample.
   Use `query_range` with explicit start/end, or pass `time=<ts>` inside the data window.
-- **`increase(...[<window>s])` at the window's end** gives run totals (e.g. total CPU seconds).
+- **`increase(...[<window>s])` at the window's end** gives run totals, for example total CPU seconds.
 
 ## Per-pod, not `sum()` — the rollout-overlap artifact
 
-`sum(...)` **double-counts during rollouts** — old and new pods coexist, so a leg that restarts a service several times appears to "use" 2× the memory/goroutines.
-Query **per-pod** (no `sum()`), then take avg/max across all samples of all pod generations.
-`count by ()` of the matched series tells you how many pod generations the leg churned through.
+`sum(...)` **double-counts during rollouts.**
+Old and new pods coexist, so a leg that restarts a service several times appears to use 2x the memory or goroutines.
+Query **per-pod** (no `sum()`).
+Take avg/max across all samples of all pod generations.
+`count by ()` of the matched series shows how many pod generations the leg churned through.
 
 ## Leak check from the time series
 
-A constant offset and a leak look identical in a snapshot; the trend separates them:
-- Split the run window into thirds; a healthy series has last-third avg ≤ first-third avg (load ramps down at suite end).
-- The end-of-run baseline should land on the pprof goroutine snapshot from the same leg — that agreement cross-checks that both artifacts describe the same steady state.
-- Rise-under-load → return-to-flat-baseline = per-request goroutines, fine.
-  Monotonic climb, or a baseline that ratchets up after each phase = leak; switch to the pprof goroutine fingerprint (see `analyze-go-pprof`) to name the frame.
+A constant offset and a leak look identical in a snapshot.
+The trend separates them:
+- Split the run window into thirds.
+  A healthy series has last-third avg ≤ first-third avg (load ramps down at suite end).
+- The end-of-run baseline should match the pprof goroutine snapshot from the same leg.
+  That agreement confirms both artifacts describe the same steady state.
+- Rise under load, then return to a flat baseline: this is normal per-request goroutine behavior.
+  A monotonic climb, or a baseline that ratchets up after each phase, is a leak.
+  Switch to the pprof goroutine fingerprint (see `analyze-go-pprof`) to name the frame.
 
-For cross-leg comparisons, normalize CPU by wall-clock (s/min) when legs differ in duration, and remember legs may run different test subsets — flag that next to any cross-leg number.
+For cross-leg comparisons, normalize CPU by wall-clock (s/min) when legs differ in duration.
+Legs may also run different test subsets — flag that next to any cross-leg number.
 
 ## Useful query shapes
 

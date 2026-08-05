@@ -1,6 +1,12 @@
 ---
 name: remediate-codeql-alerts
-description: Use when fixing or triaging GitHub code-scanning / CodeQL alerts (triggers "fix codeql issues", "check code-scanning alerts", "dismiss false-positive alert"). Lists alerts, finds the taint source, fixes real ones, dismisses won't-fix, and verifies on the PR merge ref. Generic to any repo with CodeQL enabled.
+description: >-
+  Triages and remediates GitHub code-scanning / CodeQL alerts: lists alerts,
+  traces the taint source, fixes real findings, dismisses won't-fix alerts,
+  and verifies the fix on the PR merge ref. Use when fixing or triaging
+  these alerts, or on triggers "fix codeql issues", "check code-scanning
+  alerts", "dismiss false-positive alert". Generic to any repo with CodeQL
+  enabled.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -9,11 +15,14 @@ metadata:
 
 # Remediate GitHub Code-Scanning / CodeQL Alerts
 
-Work in an isolated git worktree — use the `superpowers:using-git-worktrees` skill if available, else `git worktree add`.
+Work in an isolated git worktree.
+Use the `superpowers:using-git-worktrees` skill if available, else `git worktree add`.
 
 ## 0. Auth Prerequisite
 
-Requires the `security_events` scope (`gh auth refresh -s security_events`); without it the code-scanning API returns HTTP 403 (`public_repo` suffices for public-repo reads).
+The `security_events` scope is required (`gh auth refresh -s security_events`).
+Without it, the code-scanning API returns HTTP 403.
+`public_repo` is enough for public-repo reads.
 
 ---
 
@@ -52,7 +61,8 @@ gh api repos/{owner}/{repo}/code-scanning/alerts \
       }'
 ```
 
-`--paginate` is mandatory for repos with >30 alerts — the default page size is 30.
+Always use `--paginate`.
+Repos with more than 30 alerts need it — the default page size is 30.
 
 ### Key alert fields
 
@@ -83,16 +93,16 @@ gh api repos/{owner}/{repo}/code-scanning/alerts/{number} \
       }'
 ```
 
-To get the full `most_recent_instance` including `.message.markdown` (which names the taint source):
+To get the full `most_recent_instance`, including `.message.markdown` (names the taint source):
 
 ```bash
 gh api repos/{owner}/{repo}/code-scanning/alerts/{number} \
   --jq '.most_recent_instance' | python3 -m json.tool | head -80
 ```
 
-The `.message.markdown` field often contains the source location as a link: `"This path depends on a [user-provided value](path/to/file.go#L221C26-L221C32)."` That link is the **source**.
-The `.location` in the alert is the **sink**.
-Fix the code where the source is controlled or add a CodeQL-recognized barrier at the sink.
+The `.message.markdown` field often links to the source: `"This path depends on a [user-provided value](path/to/file.go#L221C26-L221C32)."` That link is the **source**.
+The alert `.location` is the **sink**.
+Fix the code where the source is controlled, or add a CodeQL-recognized barrier at the sink.
 
 ### Batch-inspect multiple alerts
 
@@ -112,26 +122,25 @@ done
 
 ### Step 1 — group by tool first
 
-CodeQL (data-flow taint analysis) and OSSF Scorecard (policy/configuration checks) appear in the same feed but require completely different fix strategies.
-Always separate them before working.
+CodeQL (data-flow taint analysis) and OSSF Scorecard (policy/configuration checks) share the same feed but need different fix strategies.
+Separate them before you start work.
 
-### Step 2 — identify source, not just sink
+### Step 2 — identify the source, not just the sink
 
-The sink is where CodeQL flags the code.
-The source determines whether the risk is real.
-Read `.message.markdown` to find the source file:line before deciding how to fix.
+The source, not the sink, determines whether the risk is real.
+Read `.message.markdown` (Section 2) to find it before you choose a fix.
 
 ### Step 3 — decide real vs false positive
 
 **Fix in code (real finding):**
-- Sink is reachable from an untrusted HTTP/network/user-supplied source.
-- A custom sanitizer exists but CodeQL does not model it as a barrier.
-- Fix: replace the bare OS call at the sink with a CodeQL-recognized confinement primitive (e.g. `os.Root` for path-injection in Go, `filepath.Clean` + prefix check for simpler cases), or add a CodeQL custom query model.
+- The sink is reachable from an untrusted HTTP/network/user-supplied source.
+- A custom sanitizer exists, but CodeQL does not model it as a barrier.
+- Fix: replace the bare OS call at the sink with a CodeQL-recognized confinement primitive (e.g. `os.Root` for path-injection in Go, `filepath.Clean` plus a prefix check for simpler cases), or add a CodeQL custom query model.
 
 **Dismiss (false positive / won't-fix):**
-- Sink is intentionally user-supplied (e.g. an operator-configured command in a trusted channel).
+- The sink is intentionally user-supplied (e.g. an operator-configured command in a trusted channel).
 - Existing mitigations are in place (no shell invocation, metacharacter rejection).
-- Endpoint is an internal, trusted channel — not Internet-facing.
+- The endpoint is an internal, trusted channel, not Internet-facing.
 - No code change could clear the alert without removing the feature.
 
 ### Step 4 — fix in a git worktree
@@ -175,8 +184,9 @@ Expected: `{"state":"dismissed","reason":"won't fix","comment":"..."}`
 
 ### Long-comment workaround
 
-Comments longer than ~400-500 chars fail silently (state stays `open`; exit code may not surface the error).
-Keep dismiss comments under ~280 chars; for longer justifications, pass JSON via `--input`.
+Comments longer than ~400-500 chars fail silently: state stays `open`, and the exit code may not show the error.
+Keep dismiss comments under ~280 chars.
+For longer justifications, pass JSON via `--input`.
 See `references/dismiss-recipes.md`.
 
 ---
@@ -198,15 +208,16 @@ gh pr create \
   --body "..."
 ```
 
-PR body: include a table mapping each alert number → rule → severity → what the fix does.
-For dismissed false positives, document the reasoning in the PR body as an audit trail.
+In the PR body, table each alert's number, rule, severity, and fix.
+For dismissed false positives, record the reasoning there as an audit trail.
 
 ---
 
 ## 6. Verify Fixes Before Merge
 
 **Do not rely only on a green CodeQL CI check.**
-A green check means no *new* alerts were introduced; it does not confirm the specific alerts you targeted are gone.
+A green check means no *new* alerts were introduced.
+It does not confirm the specific alerts you targeted are gone.
 The definitive proof is querying alert instances on the PR merge ref and expecting the alert absent:
 
 ```bash
@@ -219,9 +230,11 @@ for n in 17 310 312 315 335 336; do
 done
 ```
 
-Expected for each fixed alert: `alert #N -> <no instance on this ref>` "no instance on this ref" means CodeQL analyzed the PR code and did not find the pattern.
+Expected for each fixed alert: `alert #N -> <no instance on this ref>`.
+"No instance on this ref" means CodeQL analyzed the PR code and did not find the pattern.
 
-Confirm CodeQL actually ran on the PR ref (otherwise "absent" is meaningless) — a control alert on unchanged code should still have an instance, and the analysis count should be ≥ 1:
+Confirm CodeQL actually ran on the PR ref — otherwise "absent" proves nothing.
+A control alert on unchanged code should still have an instance, and the analysis count should be ≥ 1:
 
 ```bash
 gh api "repos/{owner}/{repo}/code-scanning/alerts/{unchanged_alert_number}/instances?ref=$PRREF" \
@@ -234,10 +247,10 @@ gh api "repos/{owner}/{repo}/code-scanning/analyses?ref=$PRREF&tool_name=CodeQL"
 
 ## 7. Post-Merge State Transition
 
-After merging, CodeQL re-runs on the default branch.
-Once that analysis completes, alerts absent on the PR ref automatically transition `open` → `fixed` (with `fixed_at` timestamp) in the security tab.
-This flip is automatic — no manual action needed.
-The per-ref proof above is the definitive evidence before the post-merge run completes.
+CodeQL re-runs on the default branch after merge.
+Once that analysis completes, alerts absent on the PR ref transition `open` → `fixed` (with a `fixed_at` timestamp) in the security tab, automatically.
+No manual action is needed.
+The per-ref proof in Section 6 is the definitive evidence before the post-merge run completes.
 
 ---
 
@@ -247,8 +260,8 @@ The per-ref proof above is the definitive evidence before the post-merge run com
 |---|---|
 | Treating a green CodeQL CI check as proof the alert is fixed | Query `.../instances?ref=refs/pull/{n}/merge` for each alert to confirm it is absent. |
 | Fixing the sink without reading `.message.markdown` | The source (not the sink) determines the correct fix. Always read the markdown field first. |
-| Mixing CodeQL and OSSF Scorecard alerts in the same fix pass | They need completely different strategies. Group by `.tool.name` first. |
-| Long `dismissed_comment` (>~400 chars) sent as `-f` flag | State stays `open` silently. Use `--input` with a JSON file and keep comment under ~280 chars. |
+| Mixing CodeQL and OSSF Scorecard alerts in the same fix pass | They need different strategies. Group by `.tool.name` first. |
+| Long `dismissed_comment` (>~400 chars) sent as `-f` flag | State stays `open` silently. Use `--input` with a JSON file and keep the comment under ~280 chars. |
 | Forgetting `--paginate` | The API returns at most 30 alerts per page; partial results look complete. Always use `--paginate`. |
 | An alert stays `open` on the dashboard after merge | CodeQL has not yet re-analyzed the default branch. Wait for the post-merge CI run. |
 | Using `git add -A` in the worktree | Stage specific files explicitly. |

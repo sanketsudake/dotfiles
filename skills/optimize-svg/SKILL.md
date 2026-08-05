@@ -1,6 +1,9 @@
 ---
 name: optimize-svg
-description: Use when adding or committing an SVG asset (logos, icons) to keep it small — triggers "add this logo", "optimize svg", "svg is too big". Runs svgo and keeps the result only if it actually shrank.
+description: >-
+  Runs svgo on an SVG asset and keeps the result only if it actually shrank.
+  Use when adding or committing an SVG asset (logos, icons) — triggers "add
+  this logo", "optimize svg", "svg is too big".
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -15,15 +18,17 @@ metadata:
 npx svgo --multipass <file.svg>
 ```
 
-- If the file shrank: keep it.
-- If the file grew or stayed the same: `git checkout -- <file.svg>` (revert) — svgo sometimes inflates already-optimized files.
+- If the file shrank, keep it.
+- If the file grew or stayed the same, revert it: `git checkout -- <file.svg>`.
+  Svgo sometimes inflates already-optimized files.
 
 ## Size Guidance
 
-- Flag any SVG over **~10 KB** for review — it may be an illustration that can be replaced with a simpler mark.
+- Flag any SVG over **~10 KB** for review.
+  It may be an illustration that a simpler mark can replace.
 - Prefer the minimal official mark over a heavy illustration.
-A 0.7 KB icon is almost always better than a 52 KB marketing illustration for a site asset.
-- If a single SVG exceeds 10 KB after `svgo --multipass`, consider whether it should be split, rasterized (PNG/WebP), or replaced with a simpler version.
+  A 0.7 KB icon is usually better than a 52 KB marketing illustration for a site asset.
+- If an SVG stays over 10 KB after `svgo --multipass`, split it, rasterize it (PNG/WebP), or replace it with a simpler version.
 
 ## Common Mistakes
 

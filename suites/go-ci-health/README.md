@@ -54,13 +54,13 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 
 | Skill | Purpose |
 |-------|---------|
-| [`debug-ci`](../../skills/debug-ci/SKILL.md) | Triage and root-cause a failing GitHub Actions CI run on a PR efficiently. |
-| [`watch-ci`](../../skills/watch-ci/SKILL.md) | After pushing to a PR, watch its CI checks to terminal state and surface each transition as a notification instead of busy-polling. |
-| [`analyze-go-pprof`](../../skills/analyze-go-pprof/SKILL.md) | Pull the heap/goroutine pprof profiles a CI job captured, separate a real leak from baseline cost, and quantify a fix's before/after delta. |
-| [`analyze-prometheus-tsdb`](../../skills/analyze-prometheus-tsdb/SKILL.md) | Run a Prometheus TSDB snapshot that a CI job uploaded inside a local Prometheus container and query it — for before/after performance comparisons across legs... |
-| [`improve-codecov-coverage`](../../skills/improve-codecov-coverage/SKILL.md) | Use when raising test coverage on a Go project that reports to Codecov (triggers "improve code coverage", "cover package X", "find coverage gaps"). |
-| [`go-deps-security-sweep`](../../skills/go-deps-security-sweep/SKILL.md) | Run a grouped, bisectable Go dependency security sweep. |
-| [`bump-ci-tool-versions`](../../skills/bump-ci-tool-versions/SKILL.md) | Bump the pinned CLI tool versions that GitHub Actions workflows download at runtime (helm, kind, skaffold, cosign, golangci-lint, goreleaser, etc.) — the `*_... |
+| [`debug-ci`](../../skills/debug-ci/SKILL.md) | Triages and root-causes a failing GitHub Actions CI run on a PR by separating real regressions from pre-existing noise and escalating log fetches cheapest-fi... |
+| [`watch-ci`](../../skills/watch-ci/SKILL.md) | Watches a PR's CI checks to terminal state in the background and turns each transition into a notification, instead of a foreground polling loop. |
+| [`analyze-go-pprof`](../../skills/analyze-go-pprof/SKILL.md) | Pulls the heap/goroutine pprof profiles a CI job captured, separates a real leak from baseline cost, and quantifies a fix's before/after delta. |
+| [`analyze-prometheus-tsdb`](../../skills/analyze-prometheus-tsdb/SKILL.md) | Runs a Prometheus TSDB snapshot that a CI job uploaded inside a local Prometheus container and queries it, for before/after performance comparisons across le... |
+| [`improve-codecov-coverage`](../../skills/improve-codecov-coverage/SKILL.md) | Raises test coverage on a Go project that reports to Codecov: fetches totals, ranks low-covered packages, writes targeted tests, and verifies the delta. |
+| [`go-deps-security-sweep`](../../skills/go-deps-security-sweep/SKILL.md) | Runs a grouped, bisectable Go dependency security sweep. |
+| [`bump-ci-tool-versions`](../../skills/bump-ci-tool-versions/SKILL.md) | Bumps the pinned CLI tool versions that GitHub Actions workflows download at runtime (helm, kind, skaffold, cosign, golangci-lint, goreleaser, etc.) — the `*... |
 
 ## Install
 

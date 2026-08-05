@@ -1,10 +1,10 @@
 ---
 name: second-brain
-description: >
-  Set up a new Obsidian knowledge base with the LLM Wiki pattern. Use when
-  the user wants to create a second brain, initialize a vault, set up a
-  personal knowledge base, or says "onboard". Guides through an interactive
-  setup wizard.
+description: >-
+  Sets up a new Obsidian knowledge base using the LLM Wiki pattern, where the
+  LLM acts as librarian over raw sources. Use when the user wants to create a
+  second brain, initialize a vault, set up a personal knowledge base, or says
+  "onboard". Interactive setup wizard.
 allowed-tools: Bash Read Write Glob Grep
 license: Apache-2.0
 metadata:
@@ -15,13 +15,15 @@ metadata:
 # Second Brain — Onboarding Wizard
 
 Set up a new Obsidian knowledge base using the LLM Wiki pattern.
-The LLM acts as librarian — reading raw sources, compiling them into a structured interlinked wiki, and maintaining it over time.
+The LLM acts as librarian.
+It reads raw sources, compiles them into a structured interlinked wiki, and maintains the wiki over time.
 
 ## Wizard Flow
 
 Guide the user through these 5 steps.
-Ask ONE question at a time.
-Each step has a sensible default — the user can accept it or provide their own value.
+Ask one question at a time.
+Each step has a default value.
+The user can accept the default or give their own value.
 
 ### Step 1: Vault Name
 
@@ -31,7 +33,7 @@ Ask:
 > Default: `second-brain`
 
 Accept any user-provided name.
-This becomes the folder name and the title in the agent config.
+Use it as the folder name and the title in the agent config.
 
 ### Step 2: Vault Location
 
@@ -52,7 +54,7 @@ Ask:
 > Examples: "AI research", "competitive intelligence on fintech startups", "personal health and fitness"
 
 Accept free text.
-Use this to:
+Use it to:
 - Write a one-line domain description for the agent config
 - Generate 5-8 suggested domain-specific tags
 
@@ -85,12 +87,12 @@ Ask:
 > 1. **summarize** — summarize links, files, and media from the CLI
 > 2. **qmd** — local search engine for your wiki (helpful as it grows)
 > 3. **agent-browser** — browser automation for web research
->
+
 > "Install all, pick specific ones (e.g. '1 and 3'), or skip?"
 
 ## Post-Wizard: Scaffold the Vault
 
-After collecting all answers, execute these steps in order:
+After collecting all answers, run these steps in order:
 
 ### 1. Create directory structure
 
@@ -104,7 +106,7 @@ This creates all directories and the initial `wiki/index.md` and `wiki/log.md` f
 
 ### 2. Generate agent config file(s)
 
-For each selected agent, read the corresponding template from `{baseDir}/references/agent-configs/`:
+For each selected agent, read its template from `{baseDir}/references/agent-configs/`:
 
 | Agent | Template | Output File | Output Location |
 |---|---|---|---|
@@ -134,7 +136,7 @@ Agent configs: {{list of generated config files}}.
 
 ### 4. Install CLI tools (if selected)
 
-For each tool the user selected in Step 5, run the install command:
+For each tool selected in Step 5, run the install command:
 
 - summarize: `npm i -g @steipete/summarize`
 - qmd: `npm i -g @tobilu/qmd`
@@ -172,3 +174,4 @@ After setup is complete, the user's workflow is:
 2. **Ingest sources** with `/second-brain-ingest` — processes raw files into wiki pages
 3. **Ask questions** with `/second-brain-query` — searches and synthesizes from the wiki
 4. **Health-check** with `/second-brain-lint` — quick-lint runs after each batch ingest; full lint monthly
+

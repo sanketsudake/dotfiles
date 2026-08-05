@@ -1,6 +1,12 @@
 ---
 name: add-llms-txt
-description: Use to add LLM-friendly outputs to a Hugo site — /llms.txt and /llms-full.txt indexes plus a per-page markdown twin at <url>/index.md — generated from content so they stay in sync. Triggers "add llms.txt", "make the site agent-friendly", "markdown twin".
+description: >-
+  Adds LLM-friendly outputs to a Hugo site: /llms.txt and /llms-full.txt
+  indexes plus a per-page markdown twin at <url>/index.md, generated from
+  content so they stay in sync.
+  Use when the user says "add llms.txt", "make the site agent-friendly", or
+  wants a "markdown twin" for pages.
+  Hugo sites only.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -9,11 +15,10 @@ metadata:
 
 # Add llms.txt + markdown twins to a Hugo site
 
-Never hand-edit `public/` — these outputs are generated from content.
-
 ## Workflow
 
-1. Add the output formats + assignments to the site config (paste the verbatim block from this skill — copied from a working site):
+1. Add the output formats and assignments to the site config.
+   Paste the verbatim TOML block below (copied from a working site):
 
    ```toml
    [outputs]
@@ -56,22 +61,27 @@ Never hand-edit `public/` — these outputs are generated from content.
    - `assets/index.llmsfull.txt` → `layouts/index.llmsfull.txt`
    - `assets/single.markdown.md` → `layouts/_default/single.markdown.md`
 
-Adjust section names (`"posts"`, `"talks"`) to the target site's content sections.
-If the site has no canonical-URL field, the `canonicalURL` references are no-ops (`.Params.canonicalURL` returns empty string).
+Adjust section names (`"posts"`, `"talks"`) to match the target site's content sections.
+If the site has no canonical-URL field, the `canonicalURL` references are no-ops: `.Params.canonicalURL` returns an empty string.
 
 3. Customize `index.llms.txt` for the target site:
-   - Set `params.llmsIntro` in `hugo.toml`/`params.toml` to a one-sentence site description for LLM crawlers — e.g. `llmsIntro = "Technical writing on Kubernetes and platform engineering."`.
-     If unset, the template falls back to `"Content by <author.name>."`.
+   - Set `params.llmsIntro` in `hugo.toml` or `params.toml` to a one-sentence site description for LLM crawlers.
+     Example: `llmsIntro = "Technical writing on Kubernetes and platform engineering."` If unset, the template falls back to `"Content by <author.name>."`.
    - Set `params.author.bio` for the About line, or edit the About section directly.
 
-4. Advertise the twin: ensure the head partial emits `<link rel="alternate" type="text/markdown" href="index.md">`.
+4. Advertise the twin.
+   Ensure the head partial emits `<link rel="alternate" type="text/markdown" href="index.md">`.
    Congo does this automatically when `rel = "alternate"` is set on the output format.
+
+5. Verify: use the verify-hugo-build skill (or `hugo --gc --minify` + curl /llms.txt, /llms-full.txt, and a sample <url>/index.md) to confirm the new outputs render before declaring work done.
 
 ## Guardrails
 
-- These outputs are generated — regenerate by rebuilding; never edit `public/`.
+- Never edit `public/`.
+  These outputs are generated; rebuild the site to regenerate them.
 - Allow AI crawlers in `robots.txt` if you want them fetched (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.).
-- The `llms-full.txt` template only iterates `"posts"` — if the target site uses a different section name, update the range filter.
+- The `llms-full.txt` template only iterates `"posts"`.
+  Update the range filter if the target site uses a different section name.
 
 ## Output
 

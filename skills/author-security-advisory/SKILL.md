@@ -1,6 +1,13 @@
 ---
 name: author-security-advisory
-description: Use when triaging or preparing a GitHub repository security advisory as a maintainer (triggers "draft the advisory", "prepare GHSA content", "request CVE", "publish advisory"). Lists/triages advisories via the API and produces paste-ready GHSA form content; CVE-request and Publish are UI actions. Generic to any maintainer-owned repo.
+description: >-
+  Triages GitHub security advisories and prepares paste-ready GHSA content
+  for a maintainer.
+  Use when triaging or preparing a GitHub repository security advisory,
+  or on triggers "draft the advisory", "prepare GHSA content", "request
+  CVE", "publish advisory".
+  Generic to any maintainer-owned repo; Request CVE and Publish are GitHub
+  UI actions, not API calls.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -9,7 +16,8 @@ metadata:
 
 # Author a GitHub Security Advisory (Maintainer Side)
 
-**Request CVE and Publish are GitHub UI-only actions** — there is no REST or GraphQL endpoint for either.
+**Request CVE and Publish are GitHub UI-only actions.**
+No REST or GraphQL endpoint exists for either.
 Listing, reading, creating drafts, and updating metadata are all API-accessible.
 
 ## Auth Prerequisites
@@ -68,8 +76,9 @@ gh api "repos/{owner}/{repo}/security-advisories/{GHSA-ID}" | jq -r '
 
 ## 2. Create a Draft Advisory (API)
 
-Reporters typically file a triage advisory via GitHub's "Report a vulnerability" button; the maintainer then fills it in.
-Creation via API is supported for cases where the maintainer is initiating:
+Reporters usually file a triage advisory via GitHub's "Report a vulnerability" button.
+The maintainer then fills it in.
+Use the API to create a draft when the maintainer initiates it instead:
 
 ```bash
 gh api repos/{owner}/{repo}/security-advisories \
@@ -104,10 +113,12 @@ Valid `ecosystem` values: `"go"`, `"npm"`, `"pip"`, `"maven"`, `"nuget"`, `"ruby
 Valid `credits[].type` values: `"reporter"`, `"finder"`, `"analyst"`, `"coordinator"`, `"remediation_developer"`, `"remediation_reviewer"`, `"remediation_verifier"`, `"tool"`, `"sponsor"`, `"other"`.
 
 Notes:
-- `cve_id` is always `null` at creation — GitHub's CNA assigns it later.
-- `patched_versions` can be omitted while the fix PR is still open.
-- The `credits[]` field returned by the API may be `[null]`; always fill credits from the GHSA UI edit page — the API does not expose reporter handles externally.
-- Multiple affected packages go into the `vulnerabilities` array as separate objects.
+- `cve_id` is always `null` at creation.
+  GitHub's CNA assigns it later.
+- Omit `patched_versions` while the fix PR is still open.
+- The `credits[]` field returned by the API may be `[null]`.
+  Always fill credits from the GHSA UI edit page; the API does not expose reporter handles.
+- Put multiple affected packages as separate objects in the `vulnerabilities` array.
 
 ---
 
@@ -136,9 +147,10 @@ gh api "repos/{owner}/{repo}/security-advisories/$GHSA" \
 EOF
 ```
 
-Only supply the fields you want to change; omitted fields are unchanged.
-You cannot PATCH state to `published` via the API — that is a UI-only action.
-`patched_versions` and `vulnerable_version_range` must be updated together when a fix ships.
+Supply only the fields to change; omitted fields stay unchanged.
+You cannot PATCH state to `published` via the API.
+That is a UI-only action.
+Update `patched_versions` and `vulnerable_version_range` together when a fix ships.
 
 ---
 
@@ -150,16 +162,16 @@ You cannot PATCH state to `published` via the API — that is a UI-only action.
 | `>= 1.0.0, < 1.7.0` | Range (regression introduced in 1.0.0, fixed in 1.7.0) |
 | `< 1.7.0` | All versions before 1.7.0 |
 
-`patched_versions` is the **first** non-vulnerable version (e.g. `1.24.0`, not `>= 1.24.0`).
+`patched_versions` is the **first** non-vulnerable version — e.g. `1.24.0`, not `>= 1.24.0`.
 
 ---
 
 ## 5. Paste-Ready GHSA Form Content (the Main Output)
 
 This is the primary deliverable.
-Produce one file per advisory with a form-fields table, Description markdown, and Fix section, ready to copy-paste into the GitHub GHSA UI edit form.
+For each advisory, produce one file with a form-fields table, Description markdown, and Fix section, ready to paste into the GHSA UI edit form.
 
-See `references/ghsa-form-template.md` for the paste-ready form structure (form-fields table, Description markdown, Fix section).
+See `references/ghsa-form-template.md` for the template structure.
 
 CVSS scoring guidance:
 - Node/cluster escape: `S:C/C:H/I:H/A:H` → Critical (9.9)
@@ -170,7 +182,7 @@ CVSS scoring guidance:
 
 ## 6. Local `.security-fixes/` Working Catalog
 
-Use a local-only, never-committed `.security-fixes/` directory to track advisories in flight (master index of GHSA/state/CVE, cached advisory snapshots, and the paste-ready `.update.md` files).
+Track advisories in flight in a local-only, never-committed `.security-fixes/` directory: a master index of GHSA/state/CVE, cached advisory snapshots, and the paste-ready `.update.md` files.
 
 ---
 
@@ -183,7 +195,9 @@ triage → draft → published
 
 ### Step 1: Triage
 
-Reporter files via "Report a vulnerability" → advisory starts in `triage` state; confirm/reproduce, plan fix.
+The reporter files via "Report a vulnerability".
+The advisory starts in `triage` state.
+Confirm and reproduce the issue, then plan the fix.
 
 ```bash
 gh api repos/{owner}/{repo}/security-advisories/{GHSA-ID}
@@ -202,7 +216,7 @@ EOF
 ### Step 2: Fix the code
 
 Work in a branch.
-PR description and commit message should reference the GHSA URL.
+Reference the GHSA URL in the PR description and commit message.
 
 ### Step 3: Fill in advisory metadata
 
@@ -227,23 +241,24 @@ gh api "repos/{owner}/{repo}/security-advisories/{GHSA-ID}" \
 EOF
 ```
 
-Credits **must** be added from the right-hand Credits panel in the GitHub UI — the API does not expose reporter handles.
+Add credits from the right-hand Credits panel in the GitHub UI.
+The API does not expose reporter handles.
 
 ### Step 4: Request CVE — GitHub UI only
 
-**There is no API endpoint for this.**
+**No API endpoint exists for this.**
 
-In the GHSA edit page: right-hand sidebar → "Request CVE" button.
-The button only appears on draft or published advisories (not triage).
-The advisory must have `severity`, `cvss_vector_string`, `vulnerabilities[].package`, `vulnerable_version_range`, and `patched_versions` all set before the button appears.
+In the GHSA edit page, use the "Request CVE" button in the right-hand sidebar.
+The button appears only on draft or published advisories, not triage.
+It needs `severity`, `cvss_vector_string`, `vulnerabilities[].package`, `vulnerable_version_range`, and `patched_versions` all set first.
 
 ### Step 5: Publish — GitHub UI only
 
-**There is no API endpoint to set state=published.**
+**No API endpoint sets state=published.**
 
-In the GHSA edit page: "Publish advisory" button (separate from "Request CVE").
-Can be done before or after CVE is assigned.
-Common order: Request CVE first → then Publish (or simultaneous).
+In the GHSA edit page, use the "Publish advisory" button, separate from "Request CVE".
+Request CVE and Publish can happen in either order, or together.
+Typical order: Request CVE first, then Publish.
 
 Verify after publishing:
 
@@ -254,7 +269,7 @@ gh api repos/{owner}/{repo}/security-advisories/{GHSA-ID} -q '.state'
 
 ### Step 6: Wait for CVE assignment
 
-CVEs are assigned by GitHub's CNA asynchronously — hours to a few days after publishing.
+GitHub's CNA assigns CVEs asynchronously, hours to a few days after publishing.
 
 ```bash
 for id in GHSA-xxxx GHSA-yyyy; do
@@ -299,12 +314,13 @@ Detailed explanation of the fix.
 
 When publishing a batch:
 
-1. **Wave A** (oldest, fix already in a prior release): publish first, request CVEs — these resolve fastest.
-2. **Wave B** (recent round): publish after confirming fix is merged and release is tagged.
-3. Within a wave: any order.
+1. **Wave A** (oldest, fix already in a prior release): publish first and request CVEs.
+   These resolve fastest.
+2. **Wave B** (recent round): publish after confirming the fix is merged and the release is tagged.
+3. Within a wave, use any order.
    Do all "Request CVE" clicks in one sitting.
 
-The efficient UI loop: produce one advisory's complete form-fill block, maintainer fills the form, says "next", repeat for the next advisory.
+Efficient UI loop: produce one advisory's complete form-fill block, the maintainer fills the form and says "next", repeat.
 
 ---
 
@@ -312,8 +328,8 @@ The efficient UI loop: produce one advisory's complete form-fill block, maintain
 
 | Mistake | Fix |
 |---|---|
-| Calling an API to "Request CVE" or publish | No such endpoint for either. Click the button in the GitHub GHSA UI. |
-| Missing CVSS score when clicking "Request CVE" | The button does not appear until `cvss_vector_string`, `severity`, `vulnerabilities[].package`, `vulnerable_version_range`, and `patched_versions` are all set. |
-| Setting Credits via PATCH API | The API may return `[null]`. Credits must be filled from the right-hand panel in the GHSA UI. |
-| Committing `.security-fixes/` to the repo | Keep this directory local-only. It may contain pre-disclosure details. Add to `.gitignore`. |
-| Using `patched_versions: ">= 1.24.0"` | Use the exact first-fixed version: `"1.24.0"` (no operator). |
+| Calling an API to "Request CVE" or publish | No such endpoint exists. Click the button in the GitHub GHSA UI. |
+| Missing CVSS score when clicking "Request CVE" | The button appears only after `cvss_vector_string`, `severity`, `vulnerabilities[].package`, `vulnerable_version_range`, and `patched_versions` are all set. |
+| Setting Credits via PATCH API | The API may return `[null]`. Fill credits from the right-hand panel in the GHSA UI. |
+| Committing `.security-fixes/` to the repo | Keep this directory local-only. It may hold pre-disclosure details. Add it to `.gitignore`. |
+| Using `patched_versions: ">= 1.24.0"` | Use the exact first-fixed version, `"1.24.0"`, with no operator. |

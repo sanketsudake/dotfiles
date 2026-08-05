@@ -57,15 +57,15 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 
 | Skill | Purpose |
 |-------|---------|
-| [`write-hugo-blog-post`](../../skills/write-hugo-blog-post/SKILL.md) | Use when authoring or editing a blog post in a Hugo site (any theme) — triggers "write a blog post", "publish a tutorial", "add a post". |
-| [`author-mermaid-diagram`](../../skills/author-mermaid-diagram/SKILL.md) | Use when adding or fixing a mermaid diagram in a Hugo (or other static-site) page so it renders readably inline in a narrow content column (triggers "add a d... |
-| [`generate-og-images`](../../skills/generate-og-images/SKILL.md) | Use to generate branded 1200x630 social-share (OG/Twitter) card images for a site's pages, with title/tags/brand overlaid by Pillow over an AI, image, or gra... |
-| [`optimize-svg`](../../skills/optimize-svg/SKILL.md) | Use when adding or committing an SVG asset (logos, icons) to keep it small — triggers "add this logo", "optimize svg", "svg is too big". |
-| [`add-llms-txt`](../../skills/add-llms-txt/SKILL.md) | Use to add LLM-friendly outputs to a Hugo site — /llms.txt and /llms-full.txt indexes plus a per-page markdown twin at <url>/index.md — generated from conten... |
-| [`verify-hugo-build`](../../skills/verify-hugo-build/SKILL.md) | Use when verifying a Hugo site build before declaring it done or pushing (triggers "does it build", "verify the site", after editing layouts/SCSS/content). |
-| [`audit-static-site`](../../skills/audit-static-site/SKILL.md) | Use to crawl a built static-site output dir and flag SEO/UX issues (titles, meta descriptions, alt text, thin/orphan/duplicate pages) before publishing. |
-| [`report-site-analytics`](../../skills/report-site-analytics/SKILL.md) | Use to pull a GA4 + Google Search Console report (top pages, queries, CTR, near-miss positions) into a dated markdown/JSON summary for an SEO/reachability pass. |
-| [`bump-hugo-versions`](../../skills/bump-hugo-versions/SKILL.md) | Use when bumping Hugo, Go, or a theme loaded as a Hugo Module via go.mod, with versions pinned in a deploy config (netlify.toml or a GitHub Actions workflow). |
+| [`write-hugo-blog-post`](../../skills/write-hugo-blog-post/SKILL.md) | Authors or edits a blog post in a Hugo site, any theme. |
+| [`author-mermaid-diagram`](../../skills/author-mermaid-diagram/SKILL.md) | Fixes a mermaid diagram that renders too wide or unreadable in a narrow content column on a static-site page. |
+| [`generate-og-images`](../../skills/generate-og-images/SKILL.md) | Generates branded 1200x630 social-share (OG/Twitter) card images for a site's pages, overlaying title, tags, and brand via Pillow onto an AI, image, or gradi... |
+| [`optimize-svg`](../../skills/optimize-svg/SKILL.md) | Runs svgo on an SVG asset and keeps the result only if it actually shrank. |
+| [`add-llms-txt`](../../skills/add-llms-txt/SKILL.md) | Adds LLM-friendly outputs to a Hugo site: /llms.txt and /llms-full.txt indexes plus a per-page markdown twin at <url>/index.md, generated from content so the... |
+| [`verify-hugo-build`](../../skills/verify-hugo-build/SKILL.md) | Verifies a Hugo site builds the way the deploy host runs it, not just a local shortcut. |
+| [`audit-static-site`](../../skills/audit-static-site/SKILL.md) | Crawls a built static-site output directory and flags SEO/UX issues — titles, meta descriptions, alt text, thin/orphan/duplicate pages — before publishing. |
+| [`report-site-analytics`](../../skills/report-site-analytics/SKILL.md) | Pulls a GA4 + Google Search Console report (top pages, queries, CTR, near-miss positions) into a dated markdown/JSON summary for an SEO/reachability pass. |
+| [`bump-hugo-versions`](../../skills/bump-hugo-versions/SKILL.md) | Bumps pinned Hugo, Go, and Hugo Module theme versions across go.mod and a deploy config together, so the three stay in sync. |
 
 ## Install
 
