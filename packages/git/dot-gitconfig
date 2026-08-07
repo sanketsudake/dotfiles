@@ -13,15 +13,10 @@
 	conflictStyle = zdiff3
 [url "ssh://git@github.com/"]
 	insteadOf = https://github.com/
-[includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
- 	path = ~/.config/git/config-personal
-[includeIf "hasconfig:remote.*.url:git@github.com:ShiftLeftSecurity/**"]
- 	path = ~/.config/git/config-qwiet
-[includeIf "hasconfig:remote.*.url:https://git0.harness.io/**"]
- 	path = ~/.config/git/config-qwiet
-[includeIf "hasconfig:remote.*.url:gh-qwiet:ShiftLeftSecurity/**"]
- 	path = ~/.config/git/config-qwiet
-[includeIf "hasconfig:remote.*.url:git@github.com:fission/**"]
- 	path = ~/.config/git/config-personal
+# Identity: personal everywhere, work under ~/qwiet. Later include wins.
+[include]
+	path = ~/.config/git/config-personal
+[includeIf "gitdir:~/qwiet/"]
+	path = ~/.config/git/config-qwiet
 [url "gh-qwiet:ShiftLeftSecurity"]
  	insteadOf = git@github.com:ShiftLeftSecurity
