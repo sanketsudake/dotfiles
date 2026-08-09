@@ -20,15 +20,23 @@ Longer-form conventions live in `$CLAUDE_CONFIG_DIR/rules/` and apply in every s
 
 ## Markdown Style
 
-### One sentence per line
+### Semantic Line Breaks (SemBr)
 
-- Within paragraphs, put each sentence on its own line.
-- Why: CommonMark renders single newlines as spaces, so the rendered HTML is unchanged — but `git diff` becomes per-sentence and review is surgical.
+- Write all markdown with semantic line breaks per the spec at <https://sembr.org/>.
+- Always break after each sentence (`.`, `!`, `?`);
+prefer a break after independent clauses (`,`, `;`, `:`, `—`);
+break after dependent clauses only when it clarifies structure.
+- Why: CommonMark renders single newlines as spaces,
+so the rendered HTML is unchanged —
+but `git diff` becomes per-thought and review is surgical.
 - Applies to all markdown: blog posts, docs, READMEs, PR descriptions.
 - Don't rewrap an entire paragraph just to add or reword one sentence.
-- A reusable formatter lives at `$CLAUDE_CONFIG_DIR/scripts/md-one-sentence-per-line.py` (symlinked from this repo's `claude/scripts/`).
-Run it on any markdown file (or batch) to enforce this.
-It preserves frontmatter, fenced code, Hugo shortcodes, tables, headings, blockquote prefixes, list markers, and HTML comments.
+- To reflow existing markdown into SemBr — one file or a whole project — invoke the `sembr-reformat` skill.
+It preserves rendered output, code blocks, tables, and frontmatter.
+- For a deterministic bulk baseline (sentence-level breaks only),
+run `$CLAUDE_CONFIG_DIR/scripts/md-one-sentence-per-line.py` (symlinked from this repo's `claude/scripts/`).
+Its output is SemBr-compliant at the MUST tier;
+it preserves frontmatter, fenced code, Hugo shortcodes, tables, headings, blockquote prefixes, list markers, and HTML comments.
 
 # Interacting with browser
 

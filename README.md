@@ -73,7 +73,7 @@ Most are authored here; the rest are vendored from [pi-skills](https://github.co
 | `git-hygiene.md` | Staging, commit, and push discipline. |
 | `delegation.md` | When to hand work to the agents above instead of doing it inline. |
 
-Plus the shared `CLAUDE.md` (secrets hygiene, one-sentence-per-line markdown), the `/history` command, helper scripts, and pi guardrail extensions vendored from [pi-mono](https://github.com/badlogic/pi-mono).
+Plus the shared `CLAUDE.md` (secrets hygiene, semantic-line-break markdown per [sembr.org](https://sembr.org/)), the `/history` command, helper scripts, and pi guardrail extensions vendored from [pi-mono](https://github.com/badlogic/pi-mono).
 
 ## Adopt it
 
