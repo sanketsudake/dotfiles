@@ -33,10 +33,6 @@ but `git diff` becomes per-thought and review is surgical.
 - Don't rewrap an entire paragraph just to add or reword one sentence.
 - To reflow existing markdown into SemBr — one file or a whole project — invoke the `sembr-reformat` skill.
 It preserves rendered output, code blocks, tables, and frontmatter.
-- For a deterministic bulk baseline (sentence-level breaks only),
-run `$CLAUDE_CONFIG_DIR/scripts/md-one-sentence-per-line.py` (symlinked from this repo's `claude/scripts/`).
-Its output is SemBr-compliant at the MUST tier;
-it preserves frontmatter, fenced code, Hugo shortcodes, tables, headings, blockquote prefixes, list markers, and HTML comments.
 
 # Interacting with browser
 
