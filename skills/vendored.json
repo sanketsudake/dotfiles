@@ -216,6 +216,15 @@
     "description": "How to use the Readwise CLI — access highlights, documents, and your entire reading library from the command line"
   },
   {
+    "name": "sembr-reformat",
+    "repo": "https://github.com/sembr/skills",
+    "subpath": "skills/sembr-reformat",
+    "ref": "main",
+    "commit": "5f973aaa75b1165b03dd45dca4cd1dc0437deba3",
+    "category": "documents",
+    "description": "Reformat prose using Semantic Line Breaks (SemBr) from https://sembr.org while preserving rendered output and meaning. Use when asked to reflow plain text or compatible markup (Markdown, AsciiDoc, reStructuredText, LaTeX, Org, MediaWiki) into semantic one-thought-per-line formatting, or when improving prose diffs and editorial readability."
+  },
+  {
     "name": "setup-matt-pocock-skills",
     "repo": "https://github.com/mattpocock/skills",
     "subpath": "skills/engineering/setup-matt-pocock-skills",

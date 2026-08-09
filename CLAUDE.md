@@ -145,8 +145,8 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
   What's *committed* under it, though, is only the authored skill dirs plus the `skills/vendored.json` manifest; vendored skill dirs are gitignored and materialized into place (see the manifest model above), so the symlinked tree the tools read is authored-committed + vendored-materialized.
 - **`claude/commands/`, `claude/rules/`, `claude/scripts/`, and `claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `pi/extensions/subagent/agents/`).
-The shared `CLAUDE.md` references scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the path resolves correctly under either profile.
-`claude/scripts/` currently holds `md-one-sentence-per-line.py` (referenced by the shared `CLAUDE.md`) and `statusline-command.sh` (a `statusLine` hook script — it is not symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo).
+Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the path resolves correctly under either profile.
+`claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`) and `statusline-command.sh` (a `statusLine` hook script — it is not symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo).
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.
