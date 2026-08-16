@@ -17,7 +17,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Record Engage Activity
@@ -30,6 +30,10 @@ Submit only after the user confirms — it writes real data and points.
 > Date shifted by one day (timezone; see Phase 4) but stayed in-week.
 >
 > ✅ **Validated again (2026-07-29), via a `?guid=…` share link** — course attendance (Education/Coaching › ImprovingU Key Course Attendance, 2 points), through the [fast path](#fast-path--a-guid-share-link-skips-phases-34).
+>
+> ✅ **Validated again (2026-08-16)** — two `billed-week` entries in one session, right after `fill-workday-timesheet` saved the weeks; both confirmed by `POST …/CreateOrEdit` → 200 and the new top rows.
+> Both stored dates were one day earlier than entered (see Phase 4).
+> The fill is the recipe **`engage-fill-activity`** (Phase 4); it lives in the user's `$XDG_CONFIG_HOME/chrome-cdp/recipes/`, not this repo.
 > Confirmed by `POST .../CreateOrEdit` → 200 (Phase 5) and the new top row; date did **not** shift this time.
 >
 > Go slowly and `snap`-verify each step.
@@ -53,6 +57,12 @@ Read from `~/.config/harness-configs/record-engage-activity/config` (user/tenant
 
 Presets are conveniences; pick any category/type from the live controls instead.
 A `billed-week` pairs with `fill-workday-timesheet`.
+
+### Catch-up: which billed weeks are missing
+
+When the ask is "capture the eligible points" rather than one named week, read **Current Activities** first — `chrome-cdp text --article --json` on the activity page returns every row as `Category … Type … Date M/D/YYYY … Notes <text>` — and list the `40 Billable Hour Week` rows.
+The weeks Workday has saved (from `fill-workday-timesheet`) that have no row are the entries to propose, one per week, dated that week's Friday, notes `<Month> D-D work week`.
+Propose them together with the timesheet plan when both run in one session, so a single confirmation covers both.
 
 ### Education/Coaching (course attendance)
 
@@ -116,20 +126,27 @@ Otherwise determine each field, asking where not implied:
 
 ## Phase 4 — Fill the form
 
+The whole fill is the recipe **`engage-fill-activity`** — it fills, closes the date picker, and reads back the form and the submit button's `Add N points`; it does **not** submit:
+
+```sh
+chrome-cdp recipe run engage-fill-activity --target <tab id> \
+  --set category="Direct Revenue" --set type="40 Billable Hour Week" \
+  --set date=08/14/2026 --set quantity=1 --set notes="August 10-14 work week"
+```
+
 Category/Type are native `<select>`s with **no accessible name**.
-Address them by **visible label** via `--by label` (select's native-`<select>` sub-mode):
+Address them by **visible label** via `--by label` (select's native-`<select>` sub-mode) — the steps the recipe runs:
 
 1. **Activity Category**: `chrome-cdp select --by label "Activity Category" "<Category label>" --json`.
 2. Run `chrome-cdp wait --stable --json` (Type repopulates from the category — a settle, not a fixed sleep).
    Then **Activity Type**: `chrome-cdp select --by label "Activity Type" "<Type label>" --option-match exact --json` (`--option-match exact` avoids a substring collision, e.g. `40 Billable Hour Week` vs `OVER 40 Billable Hour Week`).
 3. **Date** (if not default), **Quantity**, **Notes**: set each with **`fill --by label`**, which *replaces* the existing value: `chrome-cdp fill --by label "Notes" "<value>" --json`, `chrome-cdp fill --by label "Date" "MM/DD/YYYY" --json`.
    (`--by name` also works for these three — see Phase 2 — but `--by label` holds either way.)
-   - **Possible date shift — verify, never pre-compensate.**
-     2026-07-16 stored the **previous day** (`07/10` → `7/9`, local-midnight-to-UTC).
-     2026-07-29 did **not** shift (`07/29` saved as `7/29`) — the shift is **not reliable**.
-     Entering **target + 1** to compensate can land the wrong day when it doesn't apply.
-     **Enter the date you want, then verify the saved row in Phase 5**; correct only if it moved.
-     A column of entries all one day off (e.g. Thursday rows for Mon–Fri weeks) is not proof of a shift — it may be what was entered.
+   - **Date shift — expect −1 day on typed dates; verify, never pre-compensate.**
+     Every date typed via `fill` has stored the **previous day**: `07/10` → `7/9` (2026-07-16), `08/07` → `8/6` and `08/14` → `8/13` (2026-08-16) — six of six billed-week rows now sit on Thursdays for Friday-entered weeks (local-midnight-to-UTC).
+     The one run that did **not** shift (2026-07-29) came through a `?guid=` share link, where the date arrived prefilled rather than typed.
+     Still enter the date you want and read the stored row back in Phase 5: for a billed week a −1 shift stays in-week and matches the user's history, so report it rather than edit; a date that left the week is what the row's **Edit** is for.
+     Tell the user the expected outcome up front (Friday entered → Thursday stored) so they can choose to enter Saturday instead.
    - A date-picker click sometimes gets ignored (only highlights); re-check and re-`fill` if unchanged.
      If a fill won't stick, check `chrome-cdp console --only-errors --json` / `chrome-cdp net --failed --json` for a thrown error vs. an ignored input.
 
