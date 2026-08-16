@@ -14,7 +14,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Login to an SSO app (Microsoft-federated)
@@ -31,6 +31,7 @@ The caller passes one app; the current set (add more in the local config):
 
 - `workday` — Workday (My Tasks, timesheet).
 - `engage` — Engage (activity/points platform).
+  A fresh tab on any of its `/app/…` URLs redirects to `/account/login`; after `ENGAGE_SSO_BUTTON` it returns to the URL you asked for, so no re-`nav` is needed — `wait --url "<app host>/app"` then `wait --idle`.
 - `outlook` — Outlook web (mail/calendar, Microsoft 365); no SSO button (`<APP>_SSO_BUTTON` unset) — auto-authenticates via the shared Microsoft session, so just navigate and verify.
 
 App URLs and SSO button labels are org/tenant-specific.

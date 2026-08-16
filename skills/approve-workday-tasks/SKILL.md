@@ -12,7 +12,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Approve Workday Tasks
@@ -21,11 +21,12 @@ Automates the Workday **My Tasks** approval flow with review first, using **`chr
 It lists pending items and approves only the ones the user selects.
 Never approve an item the user did not explicitly choose.
 
-> **Validated live end-to-end**: 3 real Time Entry approvals on 2026-07-16, 2 more on 2026-07-15.
+> **Validated live end-to-end**: 3 real Time Entry approvals on 2026-07-16, 2 more on 2026-07-15, and a 6-item sweep on 2026-08-16 (each verified from its detail pane, count 6 → 0).
 > Flow: authenticate → open My Tasks → identify the open item → Approve with `--wait-text "Success"` → return to inbox → repeat (Phase 4 covers the dead-end "Success" page).
 > Follow **`drive-chrome-cdp`** for the CLI: setup, `--json`/exit codes, `--by name` addressing, `find`, `snap`, `console`/`net`, passkey rule.
 > Soft dependency: `login-microsoft-sso` (logged-in tab).
-> The `find`-based name discovery below shipped with chrome-cdp 0.2.0 (2026-07-28); it uses the same validated click path but is not itself re-validated live.
+> The `find`-based name discovery below shipped with chrome-cdp 0.2.0 (2026-07-28) and was validated live on 2026-08-16.
+> The approve-and-return hop is the recipe **`workday-approve-and-return`** (Phase 4); it lives in the user's `$XDG_CONFIG_HOME/chrome-cdp/recipes/`, not this repo.
 
 ## Phase 1 — Authenticate
 
@@ -58,7 +59,10 @@ For each item the user selected, and only those:
    Run `chrome-cdp find "review" --role button --json` to get that name, then `chrome-cdp click --by name "Review" --match contains --role button --json` to enter the approval task.
 2. **Identify the open item before approving.**
    Do not trust the My Tasks preview label — previews can disagree with the detail page (e.g. "40 hours" shown, 44 on the detail).
-   Read the worker, period, and hours from the detail pane: `chrome-cdp grid --json` (the entries table), or `chrome-cdp snap --grep "<worker>|Total Hours|from 07" --json`.
+   Two reads name the open item unambiguously:
+   - `chrome-cdp find "Related Actions Time Entry" --role button --json` — the detail pane's related-actions button carries the item's full name (`Time Entry: <worker> - N hours from MM/DD/YYYY to MM/DD/YYYY for <project>`); the left-hand list's headings carry every item's name, so a `snap --grep "<worker>"` matches the list too and does not tell you which one is open.
+   - `chrome-cdp grid "Daily Totals" --json` — the per-day rows (`Mon, 8/10 | Regular Hours | 8`); sum the Hours column and check the dates fall in the named period.
+   Approve only if the name's worker/period/hours match a selected item **and** the grid's sum equals the hours in the name.
    If it does not match the selected item, do not approve.
    Re-open the correct item (`--nth` to disambiguate identical titles), or report the mismatch and stop.
 3. **Approve and confirm in one call.**
@@ -72,10 +76,18 @@ For each item the user selected, and only those:
 4. **Return to the inbox.**
    The "Success!
    Event approved" page is a dead end — no navigation, no auto-advance.
-   Run `chrome-cdp nav "<Workday home>" --json` (the `WORKDAY_HOME_URL` from `login-microsoft-sso`'s config), then `chrome-cdp wait --stable --json`, then `chrome-cdp click --by name "Go to My Tasks (N)" --role button --json`.
+   Run `chrome-cdp nav "<Workday home>" --json` (the `WORKDAY_HOME_URL` from `login-microsoft-sso`'s config), then `chrome-cdp wait --idle` and `wait --stable`, then `chrome-cdp click --by name "Go to My Tasks" --match contains --role button --json` (the count is part of the name, so match by prefix).
    The count N decrements by one per approval — an independent check the item cleared.
-   Repeat from step 1 until every selected item is done.
-   This return hop repeats identically each iteration: batch it over one held connection with `session`, and once a sweep runs clean, save it as a **`recipe`** (see `drive-chrome-cdp`, "Saved flows") instead of re-deriving names each time.
+   Reopening My Tasks auto-opens the first remaining item, so the next iteration starts at step 2, not step 1.
+   Steps 3–4 plus the next item's identity reads are the recipe **`workday-approve-and-return`**:
+
+   ```sh
+   chrome-cdp recipe run workday-approve-and-return --target <tab id> --set home="$WORKDAY_HOME_URL"
+   ```
+
+   Its last two envelopes (`find "Related Actions Time Entry"`, `grid "Daily Totals"`) are the identity of the item now open — check them against the selection before running it again.
+   The recipe holds no conditional on purpose: the match is the safety, and it stays in your hands.
+   Repeat until every selected item is done.
 
 > Naming note: `--by name` matches the exact accessible name reported by the a11y tree, not the visible label (they differ, as with "Review").
 > `find "<few words>"` is the one-call way to get that name (or a `ref`); use `--nth` to disambiguate duplicates.
@@ -85,6 +97,7 @@ Finish with a summary: approved, skipped, failed.
 ## Safety
 
 - Never approve an item the user did not explicitly select.
+- The approval page also offers a **Bulk Approve** link — never use it; it approves without the per-item detail check that this skill exists for.
 - If an Approve click seems to do nothing, don't re-click blind.
   Run `chrome-cdp console --only-errors --json` and `chrome-cdp net --failed --json` to see the error behind the failed action (reset with `--clear` before a single retry) — a re-click on a slow approval can double-fire.
 - For an audit trail, wrap a sweep in `record start` … `record stop -o approvals.gif` (or `session --record`), and review the capture before it leaves the machine — it shows the logged-in session.
