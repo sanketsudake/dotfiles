@@ -155,7 +155,7 @@ Saving and submitting are different acts: a saved week is editable; a submitted 
 3. Click it; the **Submit Time** dialog shows `Total for <range>` and `<range> : N Hours` — read N and confirm it matches the saved total.
 4. `chrome-cdp click --by name "Submit" --role button --wait-text "You have submitted" --json` — the heading "You have submitted" is the confirm; the week view re-renders behind it with the same hours.
 5. Repeat per week.
-   Steps 2–4 are the recipe **`workday-submit-week`** (`recipe run workday-submit-week --target <id>`); step 1 stays manual because it is the safety.
+   Steps 2–4 are the recipe **`workday-submit-week`** (`recipe run workday-submit-week --target <id>`; like `workday-enter-week` it lives in the user's `$XDG_CONFIG_HOME/chrome-cdp/recipes/`, not this repo); step 1 stays manual because it is the safety.
 
 ## Safety
 

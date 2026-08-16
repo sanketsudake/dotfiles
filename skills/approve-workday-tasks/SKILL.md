@@ -12,7 +12,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Approve Workday Tasks

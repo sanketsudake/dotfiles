@@ -30,11 +30,11 @@ Submit only after the user confirms — it writes real data and points.
 > Date shifted by one day (timezone; see Phase 4) but stayed in-week.
 >
 > ✅ **Validated again (2026-07-29), via a `?guid=…` share link** — course attendance (Education/Coaching › ImprovingU Key Course Attendance, 2 points), through the [fast path](#fast-path--a-guid-share-link-skips-phases-34).
+> Confirmed by `POST .../CreateOrEdit` → 200 (Phase 5) and the new top row; date did **not** shift this time.
 >
 > ✅ **Validated again (2026-08-16)** — two `billed-week` entries in one session, right after `fill-workday-timesheet` saved the weeks; both confirmed by `POST …/CreateOrEdit` → 200 and the new top rows.
 > Both stored dates were one day earlier than entered (see Phase 4).
 > The fill is the recipe **`engage-fill-activity`** (Phase 4); it lives in the user's `$XDG_CONFIG_HOME/chrome-cdp/recipes/`, not this repo.
-> Confirmed by `POST .../CreateOrEdit` → 200 (Phase 5) and the new top row; date did **not** shift this time.
 >
 > Go slowly and `snap`-verify each step.
 > Follow **`drive-chrome-cdp`** for the CLI (`--json`/exit codes, `--by name`, `find`, `snap`, `wait --request`, `console`/`net`, passkey rule).
