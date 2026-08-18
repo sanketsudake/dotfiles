@@ -90,7 +90,11 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
   Vendored skills' `category`/`description` come from `skills/vendored.json`; authored skills' come from their `.source.json` `category` + `SKILL.md` frontmatter `description` (first sentence, truncated) — so the catalog regenerates correctly even on a bare checkout where the vendored dirs aren't materialized.
   The main `README.md` just links to it.
   Run it after adding, removing, or recategorizing a skill; `CHECK=1` only verifies (exit 1 if stale).
-- `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is well-formed (required fields, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + sidecar with `category`, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current; for agents, markdown present with non-empty frontmatter `name`/`description` and a sidecar carrying a `category`.
+- `make context-budget [CHECK=1] [TOP=N]` — estimate the always-loaded context this repo injects into every Claude Code session (shared `claude/CLAUDE.md` + `rules/*.md`, every skill's name+description, every agent's and command's name+description; tokens ≈ chars/4, no API call), per segment and in total, plus the N heaviest skill descriptions.
+  `CHECK=1` exits 1 when the total exceeds `CONTEXT_BUDGET_TOKENS` (Makefile default 12000; `skills-doctor` enforces the same cap, so CI and the commit gate catch growth).
+  Raise the cap deliberately in the Makefile — the diff is the alert.
+  Plugin/marketplace skills live outside this repo and are not counted.
+- `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is well-formed (required fields, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + sidecar with `category`, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current and the always-loaded context is under `CONTEXT_BUDGET_TOKENS` (see `context-budget`); for agents, markdown present with non-empty frontmatter `name`/`description` and a sidecar carrying a `category`.
   Exit 1 on any issue.
 - `make suites-catalog [CHECK=1]` — regenerate (or verify) the generated blocks in `suites/*/README.md` and the Suites index in `README.md` (see "Skill suites").
 
