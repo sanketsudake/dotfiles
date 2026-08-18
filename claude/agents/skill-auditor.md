@@ -67,6 +67,13 @@ It is the local copy of those guidelines — audit against it even when offline.
 21. **Persistence** — a skill that writes external content into files another skill or a later session reloads as context (memory files, wiki pages, `CLAUDE.md`, rules, prompts, indexes) is a persistent injection surface.
     FLAG unless it quotes or summarizes that content as inert data on the way in and never carries a directive verbatim into an instruction-bearing file.
 
+### E. Evals
+
+22. **Golden tasks** — a reasoning-heavy authored skill (financial or legal logic, multi-step judgment, anything where a wrong answer is silent) carries `evals/evals.json` in the skill-creator shape:
+    `{"skill_name": "<name>", "evals": [{"id", "name", "prompt", "expected_output", "files": []}, ...]}` — one entry per real failure or user correction the skill has met.
+    SOFT-FLAG when absent on such a skill; not expected on mechanical skills.
+    When present, `make skills-doctor` validates the shape; you check that `expected_output` states a checkable outcome, not "a good answer".
+
 ## Output
 
 Per check: PASS, FAIL, or SOFT-FLAG with `path:line` evidence and a one-line fix.

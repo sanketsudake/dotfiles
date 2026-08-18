@@ -54,6 +54,7 @@ For each, record: trigger, evidence, recurrence count, confidence, and target ar
 | The same tool and command approved repeatedly | Permission allowlist |
 | Re-explaining the same project context across turns or sessions | CLAUDE.md |
 | Repeated web lookups for the same library docs | Memory note or use context7 |
+| A skill or agent gave a wrong or user-corrected answer, 2+ times or on explicit correction | Eval task in that skill's `evals/evals.json` |
 
 Also flag wasted-effort smells as supporting evidence, not artifacts on their own: a file read 2+ times with overlapping ranges, a broad search then a narrow one on the same corpus, a subagent dispatched for a one-grep task, or retries of a failing command with no diagnosis between attempts.
 
@@ -77,7 +78,13 @@ Delegate to existing skills; do not reimplement their logic.
   Never scaffold skill files by hand.
 - CLAUDE.md — a collaborator-visible project fact (build/test commands, invariants, code locations, "always use X helper").
 - Memory — a user-private preference (terse vs verbose, tool choices, workflow habits).
-  Apply both via `{baseDir}/scripts/apply-suggestions.sh`.
+  Consolidate before proposing: grep `MEMORY.md` and the entry bodies for the same topic, then choose the action —
+  `create` when nothing covers it, `update` when an entry covers it but is stale or incomplete (rewrite that file, keep its filename), `supersede` when a new entry replaces an old one under a better name (name the old file in `supersedes`).
+  A contradiction becomes an update or a supersede, never a second entry that recall will return alongside the first.
+  Apply both via `{baseDir}/scripts/apply-suggestions.sh`; every memory write stamps `metadata.modified` so recency is visible.
+- Eval task — a wrong or corrected answer from an authored skill.
+  Write it as a golden task (`name`, the `prompt` that exposed it, the `expected_output` that would have been right) into that skill's `evals/evals.json`, so the fix is checkable later instead of remembered.
+  Vendored skills are read-only; propose upstream instead.
 - Permission allowlist — repeated approvals of the same tool/command.
   Reference `fewer-permission-prompts` to generate the `.claude/settings.json` entries; do not reimplement its logic.
 
@@ -115,10 +122,18 @@ Target file: <absolute path, or "propose new at <path>">
 
 ## Proposed memory entries
 - name: <slug>
+  action: <create|update|supersede>   # update/supersede name the existing entry they consolidate
+  supersedes: <old-filename>          # supersede only
   type: <feedback|user|project|reference>
   description: <one-liner>
   body: |
     <content; Why: and How to apply: for feedback/project types>
+
+## Proposed eval tasks
+- skill: <authored skill name>
+  name: <kebab-case task name>
+  prompt: <the request that exposed the failure>
+  expected_output: <checkable outcome the skill should have produced>
 
 ## Proposed permission allowlist
 - <tool + command pattern> approved <N>× → see fewer-permission-prompts.
@@ -134,10 +149,10 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 
 - `apply skills` — invoke `superpowers:writing-skills` per proposed skill, with the drafted proposal.
   Do not write skill files directly.
-- `apply claude` / `apply memory` / `apply all` — write the payload (schema below) to `/tmp/harvest-automation-<sessionid-or-timestamp>.json`, then run:
+- `apply claude` / `apply memory` / `apply evals` / `apply all` — write the payload (schema below) to `/tmp/harvest-automation-<sessionid-or-timestamp>.json`, then run:
 
 ```bash
-{baseDir}/scripts/apply-suggestions.sh <claude|memory|all> <payload.json>
+{baseDir}/scripts/apply-suggestions.sh <claude|memory|evals|all> <payload.json>
 ```
 
 ```json
@@ -147,14 +162,28 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
     "dir": "/abs/memory",
     "entries": [
       { "filename": "feedback_terse.md",
+        "action": "create",
         "content": "---\nname: …\ndescription: …\nmetadata:\n  type: feedback\n---\n\n<body>\n",
-        "index_line": "- [Terse output](feedback_terse.md) — prefers short answers" }
+        "index_line": "- [Terse output](feedback_terse.md) — prefers short answers" },
+      { "filename": "prefer-upstream-sources.md",
+        "action": "supersede", "supersedes": "cursor-team-kit-source-repo.md",
+        "content": "---\n…\n---\n\n<merged body>\n",
+        "index_line": "- [Prefer upstream sources](prefer-upstream-sources.md) — fetch from the original repo, not forks" }
     ]
-  }
+  },
+  "evals": [
+    { "skill_dir": "/abs/skills/<name>",
+      "entries": [ { "name": "wrong-regime-pick", "prompt": "…", "expected_output": "…", "files": [] } ] }
+  ]
 }
 ```
 
-(`apply all` runs CLAUDE.md and memory together; skills still apply separately, via writing-skills.)
+`action` defaults to `create` (skipped if the file exists); `update` replaces an existing file in place; `supersede` writes the new file and retires the one in `supersedes`.
+Replaced and retired files are backed up as `<file>.bak.<ts>`, their `MEMORY.md` lines are swapped or dropped, and every written file gets `metadata.modified: <today>`.
+
+`evals` entries are appended to `<skill_dir>/evals/evals.json` (created in the skill-creator shape if absent) with the next free `id`; an entry whose `name` already exists is skipped.
+
+(`apply all` runs CLAUDE.md, memory, and evals together; skills still apply separately, via writing-skills.)
 
 ## Anti-patterns
 
@@ -168,7 +197,7 @@ Reply: `apply skills`, `apply claude`, `apply memory`, `apply all`, or `skip`.
 ```bash
 {baseDir}/scripts/find-sessions.sh                 # current session JSONL (most recent for cwd)
 {baseDir}/scripts/find-sessions.sh --since 7       # recent session JSONLs (last 7 days), newest first
-{baseDir}/scripts/apply-suggestions.sh <scope> <payload.json>   # apply CLAUDE.md / memory edits
+{baseDir}/scripts/apply-suggestions.sh <scope> <payload.json>   # apply CLAUDE.md / memory / eval-task edits
 ```
 
 ## Troubleshooting
