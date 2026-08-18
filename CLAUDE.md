@@ -146,7 +146,10 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
 - **`claude/commands/`, `claude/rules/`, `claude/scripts/`, and `claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `pi/extensions/subagent/agents/`).
 Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the path resolves correctly under either profile.
-`claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`) and `statusline-command.sh` (a `statusLine` hook script — it is not symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo).
+`claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`),
+`usage-log-hook.sh` + `usage-report.sh` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
+and `statusline-command.sh` (a `statusLine` hook script).
+None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.

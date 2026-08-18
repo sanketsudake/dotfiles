@@ -344,6 +344,14 @@ skills-catalog:
 suites-catalog:
 	@$(RESOURCE_MANAGER) --kind skill suites $(if $(CHECK),--check)
 
+# Aggregate the usage telemetry (claude/scripts/usage-log-hook.sh) of every
+# profile: subagent spend by agent type × model, per-day cache-hit ratio.
+# SINCE=N limits to the last N days (default 30).
+usage-report:
+	@for d in $(CLAUDE_CONFIG_DIRS); do \
+	  bash $(SCRIPTS_DIR)/usage-report.sh $(if $(SINCE),--since $(SINCE)) --log "$$d/usage.jsonl"; \
+	done
+
 # Validate every skill (SKILL.md present, name/description frontmatter,
 # sidecar + category) and that the README catalog is current.
 skills-doctor:
