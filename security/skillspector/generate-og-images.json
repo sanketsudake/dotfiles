@@ -1,0 +1,7 @@
+{
+  "_comment": "authored. Reviewed 2026-08-18.",
+  "version": 2,
+  "rules": [
+    {"id": "PE3", "path": "scripts/gen-og-image.py", "message": "*.env*", "reason": "Reads the skill's own gitignored .env for the image-provider API key, by design; no other credential file is read."}
+  ]
+}

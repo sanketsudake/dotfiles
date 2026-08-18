@@ -398,6 +398,30 @@ cmd_materialize() {
 
 # --- subcommands -----------------------------------------------------------
 
+# --- security scan gate (skills) ---------------------------------------------
+# Run scripts/skills-scan.sh (NVIDIA SkillSpector) on a staged skill dir before
+# it is installed by fetch/update. A failed scan aborts the install; set
+# SKILLS_SCAN=0 to skip explicitly (the skip is logged). When skillspector is
+# not installed the gate warns and lets the install through — install it with:
+#   uv tool install git+https://github.com/NVIDIA/skillspector.git
+scan_gate() {  # staged_dir name
+  [[ "$KIND" == "skill" ]] || return 0
+  if [[ "${SKILLS_SCAN:-1}" == "0" ]]; then
+    info "$2: security scan skipped (SKILLS_SCAN=0)"; return 0
+  fi
+  if ! command -v skillspector >/dev/null 2>&1; then
+    info "$2: WARNING — skillspector not installed, skill NOT security-scanned (uv tool install git+https://github.com/NVIDIA/skillspector.git)"
+    return 0
+  fi
+  local staged="$MKTMP_DIR/scan/$2"
+  mkdir -p "$(dirname "$staged")" && cp -R "$1" "$staged"
+  info "$2: security scan (skillspector, static)"
+  if ! "$REPO_ROOT/scripts/skills-scan.sh" --path "$staged" --quiet >&2; then
+    err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."
+    return 1
+  fi
+}
+
 cmd_fetch() {
   local url="" repo="" subpath="" ref="" name="" category="" force=0
   while [[ $# -gt 0 ]]; do
@@ -446,6 +470,7 @@ cmd_fetch() {
   [[ -n "$ref" ]] || ref="$(git -C "$tmp/repo" rev-parse --abbrev-ref HEAD)"
   validate_artifact "$tmp/repo/$subpath" "$subpath" \
     || die "$subpath in $repo is not a valid $KIND"
+  scan_gate "$tmp/repo/$subpath" "$name" || die "$name: refused by the security scan gate"
 
   copy_artifact "$tmp/repo/$subpath" "$dest"
   if [[ "$KIND" == "skill" ]]; then
@@ -564,6 +589,8 @@ update_one_skill() {
   fi
   validate_artifact "$tmp/repo/$subpath" "$subpath" \
     || { err "$name: $subpath is no longer a valid skill upstream, skipping"; return 1; }
+  scan_gate "$tmp/repo/$subpath" "$name" \
+    || { err "$name: upstream ${new_commit:0:7} refused by the security scan gate, keeping ${old_commit:0:7}"; return 1; }
 
   local dest description
   dest="$(artifact_path "$name")"

@@ -1,0 +1,7 @@
+{
+  "_comment": "shivprime94/file-itr itr-india (vendored, read-only). Reviewed 2026-08-18.",
+  "version": 2,
+  "rules": [
+    {"id": "P6", "path": "engine/tests/*", "reason": "`return Rule(...)` in a pytest fixture builds a tax-rule dataclass; the pattern 'return rule' is not a system-prompt leak."}
+  ]
+}

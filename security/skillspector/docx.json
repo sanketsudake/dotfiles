@@ -1,0 +1,8 @@
+{
+  "_comment": "anthropics/skills docx (vendored, read-only). Reviewed 2026-08-18 against SkillSpector 2.9.5.",
+  "version": 2,
+  "rules": [
+    {"id": "P2", "path": "scripts/office/schemas/*", "reason": "UTF-8 BOM at byte 0 of the ECMA/ISO OOXML .xsd schema files is flagged as an invisible-character injection; they are the standard published schemas."},
+    {"id": "E2", "path": "*soffice.py", "reason": "os.environ.copy() builds the environment to launch LibreOffice headless; nothing leaves the machine."}
+  ]
+}
