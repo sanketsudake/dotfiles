@@ -14,5 +14,20 @@
       "Bash(chrome-cdp grid *)",
       "Bash(chrome-cdp wait *)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/precommit-gate-hook.sh",
+            "timeout": 60,
+            "statusMessage": "Running skill pre-flight gate"
+          }
+        ]
+      }
+    ]
   }
 }

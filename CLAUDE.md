@@ -35,6 +35,7 @@ All targets follow a `<resource>-<action>` naming convention (e.g. `skills-link`
 
 `scripts/resource-manager.sh` (wrapped by the `skills-*` and `agents-*` make targets) fetches individual **skills** or **agents** from any git repo at any subpath and tracks where each came from, so they can be updated later.
 It is repo tooling and lives in top-level `scripts/`, not `claude/scripts/` — it is not symlinked into the profiles.
+`scripts/test-*.sh` are the repo's own regression tests (run by CI); `scripts/test-resource-manager.sh` round-trips a fetch → materialize → doctor → delete in a throwaway clone.
 Requires `git` and `jq`.
 
 The tool takes a leading `--kind skill|agent`; the make targets supply it.
@@ -181,3 +182,5 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
 - Before committing any skill change, run the pre-flight gate:
   `make skills-doctor && make skills-catalog CHECK=1 && make suites-catalog CHECK=1`.
+  The gate is enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while the gate is stale,
+  and `.github/workflows/checks.yml` runs the same checks (plus `agents-doctor`, `bash -n` on every script, and every `scripts/test-*.sh`) on push and PR.
