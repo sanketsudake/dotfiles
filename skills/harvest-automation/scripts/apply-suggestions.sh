@@ -93,6 +93,10 @@ apply_claude_md() {
 # frontmatter, adding a metadata block if the file has none. Body is untouched.
 stamp_modified() {  # content -> stdout
     local today; today=$(date +%F)
+    if [[ "$(head -n1 <<<"$1")" != "---" ]]; then
+        printf -- '---\nmetadata:\n  modified: %s\n---\n\n%s\n' "$today" "$1"
+        return
+    fi
     awk -v today="$today" '
         BEGIN { fm = 0; done = 0 }
         NR == 1 && $0 == "---" { fm = 1; print; next }
