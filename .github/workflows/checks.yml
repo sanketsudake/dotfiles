@@ -24,22 +24,26 @@ jobs:
         run: make skills-catalog CHECK=1
       - name: suites-catalog is current
         run: make suites-catalog CHECK=1
-      - name: shell syntax
+      - name: script syntax (bash -n, py_compile)
         run: |
           set -e
           for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$f"; done
+          python3 -m py_compile scripts/*.py claude/scripts/*.py
 
   script-tests:
     name: script tests (scripts/test-*.sh)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: run every scripts/test-*.sh
+      - name: run every scripts/test-*.{sh,py}
         run: |
           set -e
           shopt -s nullglob
           for t in scripts/test-*.sh; do
             echo "::group::$t"; bash "$t"; echo "::endgroup::"
+          done
+          for t in scripts/test-*.py; do
+            echo "::group::$t"; python3 "$t"; echo "::endgroup::"
           done
 
   skill-security-scan:

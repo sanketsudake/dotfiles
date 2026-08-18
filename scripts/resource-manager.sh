@@ -400,7 +400,7 @@ cmd_materialize() {
 # --- subcommands -----------------------------------------------------------
 
 # --- security scan gate (skills) ---------------------------------------------
-# Run scripts/skills-scan.sh (NVIDIA SkillSpector) on a staged skill dir before
+# Run scripts/skills-scan.py (NVIDIA SkillSpector) on a staged skill dir before
 # it is installed by fetch/update. A failed scan aborts the install; set
 # SKILLS_SCAN=0 to skip explicitly (the skip is logged). When skillspector is
 # not installed the gate warns and lets the install through — install it with:
@@ -417,7 +417,7 @@ scan_gate() {  # staged_dir name
   local staged="$MKTMP_DIR/scan/$2"
   mkdir -p "$(dirname "$staged")" && cp -R "$1" "$staged"
   info "$2: security scan (skillspector, static)"
-  if ! "$REPO_ROOT/scripts/skills-scan.sh" --path "$staged" --quiet >&2; then
+  if ! python3 "$REPO_ROOT/scripts/skills-scan.py" --path "$staged" --quiet >&2; then
     err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."
     return 1
   fi

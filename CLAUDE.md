@@ -35,7 +35,8 @@ All targets follow a `<resource>-<action>` naming convention (e.g. `skills-link`
 
 `scripts/resource-manager.sh` (wrapped by the `skills-*` and `agents-*` make targets) fetches individual **skills** or **agents** from any git repo at any subpath and tracks where each came from, so they can be updated later.
 It is repo tooling and lives in top-level `scripts/`, not `claude/scripts/` — it is not symlinked into the profiles.
-`scripts/test-*.sh` are the repo's own regression tests (run by CI); `scripts/test-resource-manager.sh` round-trips a fetch → materialize → doctor → delete in a throwaway clone.
+`scripts/test-*.sh` and `scripts/test-*.py` are the repo's own regression tests (run by CI); `scripts/test-resource-manager.sh` round-trips a fetch → materialize → doctor → delete in a throwaway clone, `scripts/test-safety-guard-hook.py` is the table-driven test of the safety gate.
+Hook scripts and repo tooling that parse JSON or do regex work are Python (stdlib only, 3.9+); shell stays for the thin wrappers around `make`/`git`.
 Requires `git` and `jq`.
 
 The tool takes a leading `--kind skill|agent`; the make targets supply it.
@@ -94,7 +95,7 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
   `CHECK=1` exits 1 when the total exceeds `CONTEXT_BUDGET_TOKENS` (Makefile default 12000; `skills-doctor` enforces the same cap, so CI and the commit gate catch growth).
   Raise the cap deliberately in the Makefile — the diff is the alert.
   Plugin/marketplace skills live outside this repo and are not counted.
-- `make skills-scan [NAME=…] [LLM=1] [SHOW=1] [REPORT=file] [FAIL_AT=50]` — security-scan skills with [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) via `scripts/skills-scan.sh` (prompt injection, exfiltration, privilege escalation, supply chain, excessive agency, dangerous code, …).
+- `make skills-scan [NAME=…] [LLM=1] [SHOW=1] [REPORT=file] [FAIL_AT=50]` — security-scan skills with [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) via `scripts/skills-scan.py` (prompt injection, exfiltration, privilege escalation, supply chain, excessive agency, dangerous code, …).
   Every skill by default (authored + materialized vendored), exported minus `__pycache__`/`.pyc`/`bin/` so only what would be installed is scanned; static analysis by default, `LLM=1` adds the semantic pass through the local `claude` CLI.
   Fails on any residual HIGH/CRITICAL finding or a risk score ≥ `FAIL_AT`.
   Accepted findings live in `security/skillspector/` — `_global.json` for every skill, `<name>.json` per skill — as SkillSpector baseline glob rules, each with a `reason`; `SHOW=1` lists what they suppress.
@@ -158,11 +159,11 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `pi/extensions/subagent/agents/`).
 Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the path resolves correctly under either profile.
 `claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`),
-`safety-guard-hook.sh` (a `PreToolUse` deny/ask gate on `Bash` and `Edit|Write` — the Claude-side twin of pi's `permission-gate.ts` + `protected-paths.ts`, referenced by `rules/git-hygiene.md`),
-`usage-log-hook.sh` + `usage-report.sh` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
+`safety-guard-hook.py` (a `PreToolUse` deny/ask gate on `Bash` and `Edit|Write` — the Claude-side twin of pi's `permission-gate.ts` + `protected-paths.ts`, referenced by `rules/git-hygiene.md`),
+`usage-log-hook.py` + `usage-report.py` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
 and `statusline-command.sh` (a `statusLine` hook script).
 None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
-`scripts/test-safety-guard-hook.sh` (repo tooling, top-level `scripts/`) is the table-driven test for the safety gate — run it after editing any pattern.
+`scripts/test-safety-guard-hook.py` (repo tooling, top-level `scripts/`) is the table-driven test for the safety gate — run it after editing any pattern.
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.
@@ -195,4 +196,4 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - Before committing any skill change, run the pre-flight gate:
   `make skills-doctor && make skills-catalog CHECK=1 && make suites-catalog CHECK=1`.
   The gate is enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while the gate is stale,
-  and `.github/workflows/checks.yml` runs the same checks (plus `agents-doctor`, `bash -n` on every script, and every `scripts/test-*.sh`) on push and PR.
+  and `.github/workflows/checks.yml` runs the same checks (plus `agents-doctor`, `bash -n` / `py_compile` on every script, every `scripts/test-*.{sh,py}`, and the SkillSpector scan) on push and PR.

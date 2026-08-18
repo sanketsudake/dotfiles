@@ -1,10 +1,10 @@
 {
-  "_comment": "SkillSpector baseline applied to EVERY skill (merged with security/skillspector/<name>.json by scripts/skills-scan.sh). Every rule needs a reason. Keep this list short — a global rule hides a whole finding class.",
+  "_comment": "SkillSpector baseline applied to EVERY skill (merged with security/skillspector/<name>.json by scripts/skills-scan.py). Every rule needs a reason. Keep this list short — a global rule hides a whole finding class.",
   "version": 2,
   "rules": [
     {
       "id": "LP1",
-      "reason": "Least-privilege declaration check: Claude Code's SKILL.md `allowed-tools` is a permission PRE-APPROVAL, not a restriction, so authored skills do not declare capability lists there; tool scope is enforced by the profile's settings.json permissions and claude/scripts/safety-guard-hook.sh."
+      "reason": "Least-privilege declaration check: Claude Code's SKILL.md `allowed-tools` is a permission PRE-APPROVAL, not a restriction, so authored skills do not declare capability lists there; tool scope is enforced by the profile's settings.json permissions and claude/scripts/safety-guard-hook.py."
     },
     {
       "id": "LP3",

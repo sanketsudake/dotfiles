@@ -355,15 +355,15 @@ suites-catalog:
 context-budget:
 	@CONTEXT_BUDGET_TOKENS=$(CONTEXT_BUDGET_TOKENS) $(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
 
-# Aggregate the usage telemetry (claude/scripts/usage-log-hook.sh) of every
+# Aggregate the usage telemetry (claude/scripts/usage-log-hook.py) of every
 # profile: subagent spend by agent type × model, per-day cache-hit ratio.
 # SINCE=N limits to the last N days (default 30).
 usage-report:
 	@for d in $(CLAUDE_CONFIG_DIRS); do \
-	  bash $(SCRIPTS_DIR)/usage-report.sh $(if $(SINCE),--since $(SINCE)) --log "$$d/usage.jsonl"; \
+	  python3 $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) --log "$$d/usage.jsonl"; \
 	done
 
-# Security-scan skills with NVIDIA SkillSpector (scripts/skills-scan.sh):
+# Security-scan skills with NVIDIA SkillSpector (scripts/skills-scan.py):
 # every skill by default, NAME=x for one, LLM=1 adds the semantic pass via the
 # local `claude` CLI, SHOW=1 lists baseline-suppressed findings, REPORT=file
 # writes the combined JSON. Fails on any residual HIGH/CRITICAL finding or a
@@ -371,7 +371,7 @@ usage-report:
 # skills-fetch / skills-update run the same scan on the staged skill before
 # installing it (SKILLS_SCAN=0 skips).
 skills-scan:
-	@$(CURDIR)/scripts/skills-scan.sh $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
+	@python3 $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
 
 # Validate every skill (SKILL.md present, name/description frontmatter,
 # sidecar + category), that the README catalog is current, and that the
