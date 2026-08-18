@@ -55,7 +55,7 @@ command -v jq >/dev/null || { echo "jq required" >&2; exit 2; }
 ts=$(date +%Y%m%d%H%M%S)
 
 apply_claude_md() {
-    local path append backup diff_lines
+    local path append diff_lines
     path=$(jq -r '.claude_md.path // empty' "$payload")
     append=$(jq -r '.claude_md.append // empty' "$payload")
     if [[ -z "$path" || -z "$append" ]]; then
@@ -74,9 +74,7 @@ apply_claude_md() {
 
     mkdir -p "$(dirname "$path")"
     if [[ -f "$path" ]]; then
-        backup="$path.bak.$ts"
-        cp "$path" "$backup"
-        echo "claude: backup -> $backup"
+        backup_file claude "$path"
         # Ensure a blank line before our append if the file doesn't already end with one.
         if [[ -n "$(tail -c1 "$path")" ]]; then
             printf '\n' >> "$path"
@@ -118,6 +116,19 @@ stamp_modified() {  # content -> stdout
     ' <<<"$1"
 }
 
+# Back up <file> as <file>.bak.<ts> and announce it under <scope>.
+backup_file() {  # scope file
+    cp "$2" "$2.bak.$ts"
+    echo "$1: backup -> $2.bak.$ts"
+}
+
+# Retire a memory file: move it to <file>.bak.<ts> and drop its MEMORY.md line.
+retire_memory() {  # index dir filename
+    mv "$2/$3" "$2/$3.bak.$ts"
+    index_drop "$1" "$3"
+    echo "memory: retired $3 (backup -> $2/$3.bak.$ts)"
+}
+
 # Drop the MEMORY.md line that links to <filename> (idempotent).
 index_drop() {  # index filename
     local tmp; tmp=$(mktemp)
@@ -132,7 +143,7 @@ index_add() {  # index line
 }
 
 apply_memory() {
-    local dir entries written skipped index filename content index_line action supersedes
+    local dir entries written skipped index filename content index_line action supersedes tmp_new
     dir=$(jq -r '.memory.dir // empty' "$payload")
     entries=$(jq -c '.memory.entries // [] | .[]' "$payload")
     if [[ -z "$dir" || -z "$entries" ]]; then
@@ -153,48 +164,36 @@ apply_memory() {
         action=$(jq -r '.action // "create"' <<<"$entry")
         supersedes=$(jq -r '.supersedes // empty' <<<"$entry")
 
+        # Preconditions per action; `retire` names the file to retire (if any).
+        local retire=""
         case "$action" in
             create)
                 if [[ -e "$dir/$filename" ]]; then
-                    echo "memory: skip existing $filename (use action=update to replace it)"
-                    ((skipped+=1))
-                    continue
-                fi
-                ;;
+                    echo "memory: skip existing $filename (use action=update to replace it)"; ((skipped+=1)); continue
+                fi ;;
             update)
                 if [[ ! -e "$dir/$filename" ]]; then
-                    echo "memory: skip update of missing $filename (use action=create)"
-                    ((skipped+=1))
-                    continue
+                    echo "memory: skip update of missing $filename (use action=create)"; ((skipped+=1)); continue
                 fi
-                cp "$dir/$filename" "$dir/$filename.bak.$ts"
-                echo "memory: backup -> $dir/$filename.bak.$ts"
-                index_drop "$index" "$filename"
-                ;;
+                retire="$filename" ;;
             supersede)
                 if [[ -z "$supersedes" || ! -e "$dir/$supersedes" ]]; then
-                    echo "memory: skip supersede of $filename — 'supersedes' missing or names a file that does not exist"
-                    ((skipped+=1))
-                    continue
+                    echo "memory: skip supersede of $filename — 'supersedes' missing or names a file that does not exist"; ((skipped+=1)); continue
                 fi
                 if [[ -e "$dir/$filename" && "$filename" != "$supersedes" ]]; then
-                    echo "memory: skip supersede — $filename already exists (use action=update)"
-                    ((skipped+=1))
-                    continue
+                    echo "memory: skip supersede — $filename already exists (use action=update)"; ((skipped+=1)); continue
                 fi
-                mv "$dir/$supersedes" "$dir/$supersedes.bak.$ts"
-                index_drop "$index" "$supersedes"
-                index_drop "$index" "$filename"
-                echo "memory: retired $supersedes (backup -> $dir/$supersedes.bak.$ts)"
-                ;;
+                retire="$supersedes" ;;
             *)
-                echo "memory: skip $filename — unknown action '$action'"
-                ((skipped+=1))
-                continue
-                ;;
+                echo "memory: skip $filename — unknown action '$action'"; ((skipped+=1)); continue ;;
         esac
 
-        stamp_modified "$content" > "$dir/$filename"
+        # Write the new content to a temp file first, then retire the old entry
+        # and move the new one in — a failed write never leaves the index empty.
+        tmp_new=$(mktemp "$dir/.$filename.XXXXXX")
+        stamp_modified "$content" > "$tmp_new"
+        [[ -n "$retire" ]] && retire_memory "$index" "$dir" "$retire"
+        mv "$tmp_new" "$dir/$filename"
         ((written+=1))
         [[ -n "$index_line" ]] && index_add "$index" "$index_line"
     done <<<"$entries"
@@ -220,7 +219,7 @@ apply_evals() {
         file="$skill_dir/evals/evals.json"
         mkdir -p "$skill_dir/evals"
         [[ -f "$file" ]] || jq -n --arg n "$skill_name" '{skill_name: $n, evals: []}' > "$file"
-        cp "$file" "$file.bak.$ts"
+        backup_file evals "$file" >/dev/null
         before=$(jq '.evals|length' "$file")
         tmp=$(mktemp)
         jq --argjson new "$(jq -c '.entries // []' <<<"$group")" '

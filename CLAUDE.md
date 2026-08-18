@@ -104,6 +104,7 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
 - `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is well-formed (required fields, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + sidecar with `category`, an authored skill's optional `evals/evals.json` (golden tasks in the skill-creator shape `{skill_name, evals: [{id, name, prompt, expected_output, files}]}`, grown by `harvest-automation`'s `apply evals`) is well-formed, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current and the always-loaded context is under `CONTEXT_BUDGET_TOKENS` (see `context-budget`); for agents, markdown present with non-empty frontmatter `name`/`description` and a sidecar carrying a `category`.
   Exit 1 on any issue.
 - `make suites-catalog [CHECK=1]` — regenerate (or verify) the generated blocks in `suites/*/README.md` and the Suites index in `README.md` (see "Skill suites").
+- `make preflight` / `make lint` / `make test` — the pre-flight gate (both doctors + lint), the syntax pass alone (`bash -n`, `py_compile`), and the repo's own regression tests (`scripts/test-*.{sh,py}`); the commit-gate hook and CI call these same targets.
 
 Note: the make variable is `SUBPATH`, not `PATH` — `PATH=` on a make command line would clobber the shell `PATH` inside recipes and break `git`/`jq`.
 
@@ -163,7 +164,6 @@ Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the pat
 `usage-log-hook.py` + `usage-report.py` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
 and `statusline-command.sh` (a `statusLine` hook script).
 None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
-`scripts/test-safety-guard-hook.py` (repo tooling, top-level `scripts/`) is the table-driven test for the safety gate — run it after editing any pattern.
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.
@@ -193,7 +193,5 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 
 - Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
 - Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `security/skillspector/<skill>.json`.
-- Before committing any skill change, run the pre-flight gate:
-  `make skills-doctor && make skills-catalog CHECK=1 && make suites-catalog CHECK=1`.
-  The gate is enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while the gate is stale,
-  and `.github/workflows/checks.yml` runs the same checks (plus `agents-doctor`, `bash -n` / `py_compile` on every script, every `scripts/test-*.{sh,py}`, and the SkillSpector scan) on push and PR.
+- Before committing any change, run the pre-flight gate: `make preflight` (both doctors — which cover the catalog, suites, and the context budget — plus `bash -n`/`py_compile` over every script) and `make test` (every `scripts/test-*.{sh,py}`).
+  The gate is defined once in the Makefile and enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while `make preflight` fails, and `.github/workflows/checks.yml` runs `make preflight`, `make test`, and the SkillSpector scan on push and PR.

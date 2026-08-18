@@ -2,8 +2,8 @@
 """Aggregate $CLAUDE_CONFIG_DIR/usage.jsonl (written by usage-log-hook.py).
 
   1. subagent spend by agent_type x model — is the routing table saving anything?
-  2. per-day main-session turns with cache-hit ratio — a dip after a CLAUDE.md /
-     rules / skills change is the cache-prefix invalidation ch12 warns about.
+  2. per-day main-session turns with cache-hit ratio — a dip right after a
+     CLAUDE.md / rules / skills change is the cache prefix being invalidated.
 
 Usage: usage-report.py [--since DAYS] [--log FILE]...
   default: last 30 days, the current profile's log. `make usage-report` runs it
@@ -34,6 +34,14 @@ def pct(x: float) -> str:
 
 def context_tokens(rec: dict) -> int:
     return rec.get("cache_read", 0) + rec.get("input", 0) + rec.get("cache_create", 0)
+
+
+def agg(records: list) -> "tuple[int, int, float]":
+    """(output tokens, context tokens, cache-hit ratio) over a group of records."""
+    out = sum(r.get("output", 0) for r in records)
+    ctx = sum(context_tokens(r) for r in records)
+    hit = sum(r.get("cache_read", 0) for r in records) / ctx if ctx else 0
+    return out, ctx, hit
 
 
 def load(log: Path, cutoff: str) -> list:
@@ -69,9 +77,7 @@ def report(log: Path, cutoff: str) -> None:
     print(f"   {'runs':>4}  {'out-tok':>8}  {'ctx-tok':>8}  {'cache':>5}  {'avg-s':>5}  agent_type / model")
     rows = []
     for (agent_type, model), rs in groups.items():
-        out = sum(r.get("output", 0) for r in rs)
-        ctx = sum(context_tokens(r) for r in rs)
-        hit = sum(r.get("cache_read", 0) for r in rs) / ctx if ctx else 0
+        out, ctx, hit = agg(rs)
         avg = sum(r.get("duration_s", 0) for r in rs) / len(rs)
         rows.append((out, len(rs), ctx, hit, avg, f"{agent_type} / {model}"))
     for out, n, ctx, hit, avg, key in sorted(rows, reverse=True):
@@ -87,9 +93,7 @@ def report(log: Path, cutoff: str) -> None:
     for day in sorted(days):
         rs = days[day]
         n = sum(r.get("turns", 0) for r in rs)
-        out = sum(r.get("output", 0) for r in rs)
-        ctx = sum(context_tokens(r) for r in rs)
-        hit = sum(r.get("cache_read", 0) for r in rs) / ctx if ctx else 0
+        out, ctx, hit = agg(rs)
         print(f"   {day:<10}  {n:>5}  {fmt(out):>8}  {fmt(ctx):>8}  {pct(hit):>5}")
     print()
 

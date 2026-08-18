@@ -50,9 +50,9 @@ SHELL := /bin/bash
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
 	skills-fetch skills-materialize skills-list skills-update skills-update-all skills-category skills-delete \
-	skills-catalog suites-catalog skills-doctor \
+	skills-catalog suites-catalog skills-doctor context-budget skills-scan usage-report \
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
-	agents-doctor
+	agents-doctor preflight lint test
 
 install: skills-materialize skills-link claude-md-link commands-link rules-link scripts-link agents-link
 	mkdir -p $(PI_TARGET)
@@ -353,15 +353,13 @@ suites-catalog:
 # CHECK=1 exits 1 when the total exceeds CONTEXT_BUDGET_TOKENS (also enforced
 # by skills-doctor). TOP=N lists the N heaviest skill descriptions.
 context-budget:
-	@CONTEXT_BUDGET_TOKENS=$(CONTEXT_BUDGET_TOKENS) $(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
+	@$(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
 
 # Aggregate the usage telemetry (claude/scripts/usage-log-hook.py) of every
 # profile: subagent spend by agent type × model, per-day cache-hit ratio.
 # SINCE=N limits to the last N days (default 30).
 usage-report:
-	@for d in $(CLAUDE_CONFIG_DIRS); do \
-	  python3 $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) --log "$$d/usage.jsonl"; \
-	done
+	@python3 $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) $(foreach d,$(CLAUDE_CONFIG_DIRS),--log "$(d)/usage.jsonl")
 
 # Security-scan skills with NVIDIA SkillSpector (scripts/skills-scan.py):
 # every skill by default, NAME=x for one, LLM=1 adds the semantic pass via the
@@ -407,3 +405,18 @@ agents-delete:
 
 agents-doctor:
 	@$(RESOURCE_MANAGER) --kind agent doctor
+
+# The pre-flight gate, defined once: both doctors (skills-doctor already covers
+# catalog, suites, and the context budget) plus a syntax pass over every script.
+# The project commit-gate hook (scripts/precommit-gate-hook.sh) and CI run this
+# same target; a new check goes here and nowhere else.
+preflight: skills-doctor agents-doctor lint
+
+lint:
+	@for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
+	@python3 -m py_compile scripts/*.py claude/scripts/*.py
+
+# The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
+test:
+	@set -e; for t in scripts/test-*.sh; do echo "== $$t"; bash "$$t"; done; \
+	for t in scripts/test-*.py; do echo "== $$t"; python3 "$$t"; done

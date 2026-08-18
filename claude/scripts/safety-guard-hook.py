@@ -35,6 +35,8 @@ W = r"(?<![A-Za-z0-9_-])"
 # Anything up to the next ; & | — keeps a match inside one shell command.
 SEG = r"(?:[^;&|]*\s)?"
 END = r"(?=[\s;&|]|$)"
+# rm's recursive flag in any of its spellings (-r, -R, -rf, -fr, --recursive).
+RECURSIVE = r"(?:-[A-Za-z]*[rR][A-Za-z]*|--recursive)"
 
 
 def rx(pattern: str) -> re.Pattern:
@@ -46,14 +48,14 @@ BASH_DENY = [
     ("privilege escalation", rx(rf"{W} sudo {END}")),
     ("world-writable chmod/chown", rx(rf"{W} (?:chmod|chown) \s+ {SEG} [0-7]?777 {END}")),
     ("rm -rf on / ~ $HOME .git", rx(
-        rf"{W} rm \s+ {SEG} (?:-[A-Za-z]*[rR][A-Za-z]*|--recursive) \s+ {SEG}"
+        rf"{W} rm \s+ {SEG} {RECURSIVE} \s+ {SEG}"
         rf"(?:/|~|\$HOME|\$\{{HOME\}}|\.git) /? \*? \s* (?:[;&|]|$)")),
     ("git add -A / --all / .", rx(rf"{W} git \s+ {SEG} add \s+ {SEG} (?:-A|--all|\.) {END}")),
 ]
 
 # --- Bash: ask the user --------------------------------------------------------
 BASH_ASK = [
-    ("recursive rm", rx(rf"{W} rm \s+ {SEG} (?:-[A-Za-z]*[rR][A-Za-z]*|--recursive) {END}")),
+    ("recursive rm", rx(rf"{W} rm \s+ {SEG} {RECURSIVE} {END}")),
     ("force-push", rx(rf"{W} git \s+ {SEG} push \s+ {SEG} (?:-f|--force|--force-with-lease) {END}")),
     ("discard work (reset --hard / clean -f)", rx(
         rf"{W} git \s+ {SEG} (?: reset \s+ {SEG} --hard | clean \s+ {SEG} -[A-Za-z]*[fF] )")),

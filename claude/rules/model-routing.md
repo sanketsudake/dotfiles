@@ -30,8 +30,7 @@ Route work to the cheapest model that can do it reliably; escalate only when the
 
 - The routing table's pins are not just prose: every named agent carries `model:` (and `effort:` where it matters) in its `claude/agents/*.md` frontmatter, and a `PreToolUse` hook (`scripts/agent-routing-hook.sh`, wired per-profile in `settings.json`) logs every subagent spawn to `$CLAUDE_CONFIG_DIR/agent-routing.log` and rewrites any explicit model override that conflicts with a pin.
 - Audit drift with the log; keep the hook's pin map in sync with the agent frontmatter when adding or re-tiering agents.
-- Spend is measured, not assumed: `scripts/usage-log-hook.py` (wired on `SubagentStop`, `Stop`, `SessionEnd`) writes one JSON line per subagent run / main turn / session to `$CLAUDE_CONFIG_DIR/usage.jsonl` — agent type, model, tokens, cache-hit ratio, duration.
-  `make usage-report` (or `scripts/usage-report.py`) aggregates it by agent type × model and by day; a cache-hit dip after a `CLAUDE.md`/rules/skills change is the cache-prefix invalidation to look for.
+- Spend is measured, not assumed: `scripts/usage-log-hook.py` logs every subagent run, turn, and session (agent type, model, tokens, cache-hit ratio) to `$CLAUDE_CONFIG_DIR/usage.jsonl`; `make usage-report` aggregates it by agent type × model and by day.
 
 ## Rules of thumb
 

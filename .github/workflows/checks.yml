@@ -11,40 +11,19 @@ permissions:
   contents: read
 
 jobs:
-  structure:
-    name: doctor + catalog checks
+  preflight:
+    name: preflight (doctors, catalog, budget, lint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: skills-doctor
-        run: make skills-doctor
-      - name: agents-doctor
-        run: make agents-doctor
-      - name: skills-catalog is current
-        run: make skills-catalog CHECK=1
-      - name: suites-catalog is current
-        run: make suites-catalog CHECK=1
-      - name: script syntax (bash -n, py_compile)
-        run: |
-          set -e
-          for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$f"; done
-          python3 -m py_compile scripts/*.py claude/scripts/*.py
+      - run: make preflight
 
   script-tests:
-    name: script tests (scripts/test-*.sh)
+    name: script tests (make test)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: run every scripts/test-*.{sh,py}
-        run: |
-          set -e
-          shopt -s nullglob
-          for t in scripts/test-*.sh; do
-            echo "::group::$t"; bash "$t"; echo "::endgroup::"
-          done
-          for t in scripts/test-*.py; do
-            echo "::group::$t"; python3 "$t"; echo "::endgroup::"
-          done
+      - run: make test
 
   skill-security-scan:
     name: SkillSpector scan (static)

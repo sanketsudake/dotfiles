@@ -410,17 +410,14 @@ scan_gate() {  # staged_dir name
   if [[ "${SKILLS_SCAN:-1}" == "0" ]]; then
     info "$2: security scan skipped (SKILLS_SCAN=0)"; return 0
   fi
-  if ! command -v skillspector >/dev/null 2>&1; then
-    info "$2: WARNING — skillspector not installed, skill NOT security-scanned (uv tool install git+https://github.com/NVIDIA/skillspector.git)"
-    return 0
-  fi
-  local staged="$MKTMP_DIR/scan/$2"
-  mkdir -p "$(dirname "$staged")" && cp -R "$1" "$staged"
   info "$2: security scan (skillspector, static)"
-  if ! python3 "$REPO_ROOT/scripts/skills-scan.py" --path "$staged" --quiet >&2; then
-    err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."
-    return 1
-  fi
+  # skills-scan.py exports its own copy of the dir; exit 3 = scanner not installed.
+  python3 "$REPO_ROOT/scripts/skills-scan.py" --path "$1" --name "$2" --quiet >&2
+  case $? in
+    0) return 0 ;;
+    3) info "$2: WARNING — skillspector not installed, skill NOT security-scanned"; return 0 ;;
+    *) err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."; return 1 ;;
+  esac
 }
 
 cmd_fetch() {
@@ -1008,31 +1005,22 @@ cmd_budget() {
     esac
   done
   local claude_dir="$REPO_ROOT/claude"
-  local inst=0 skills=0 agents=0 cmds=0 n_inst=0 n_skills=0 n_agents=0 n_cmds=0
-  local f name desc t rows=""
+  # Each segment is "N items, T estimated tokens"; sum_segment reads whole
+  # files, sum_descs reads "name: description" strings from stdin, one per line.
+  sum_segment() { local t=0 n=0 f; for f in "$@"; do [[ -f "$f" ]] || continue; t=$((t + $(est_tokens "$(cat "$f")"))); n=$((n + 1)); done; echo "$t $n"; }
+  sum_descs()   { local t=0 n=0 line; while IFS= read -r line; do [[ -n "$line" ]] || continue; t=$((t + $(est_tokens "$line"))); n=$((n + 1)); done; echo "$t $n"; }
+  desc_of()     { local d; d="$(frontmatter_field "$1" description)"; [[ -n "$d" ]] || d="$(grep -m1 -v '^[[:space:]]*$' "$1" || true)"; printf '%s: %s\n' "$(basename "$1" .md)" "$d"; }
 
-  for f in "$claude_dir/CLAUDE.md" "$claude_dir"/rules/*.md; do
-    [[ -f "$f" ]] || continue
-    t="$(est_tokens "$(cat "$f")")"; inst=$((inst + t)); n_inst=$((n_inst + 1))
-  done
+  local inst n_inst skills n_skills agents n_agents cmds n_cmds name f rows=""
+  read -r inst n_inst < <(sum_segment "$claude_dir/CLAUDE.md" "$claude_dir"/rules/*.md)
+  # Skills: one weight per skill (kept for the "heaviest" list), summed below.
   while IFS= read -r name; do
-    [[ -n "$name" ]] || continue
-    skill_exists "$name" || continue
-    desc="$(skill_description "$name")"
-    t="$(est_tokens "$name: $desc")"; skills=$((skills + t)); n_skills=$((n_skills + 1))
-    rows+="$t"$'\t'"$name"$'\n'
+    [[ -n "$name" ]] && skill_exists "$name" || continue
+    rows+="$(est_tokens "$name: $(skill_description "$name")")"$'\t'"$name"$'\n'
   done < <(all_skill_names)
-  for f in "$claude_dir"/agents/*.md; do
-    [[ -f "$f" ]] || continue
-    desc="$(frontmatter_field "$f" description)"
-    t="$(est_tokens "$(basename "$f" .md): $desc")"; agents=$((agents + t)); n_agents=$((n_agents + 1))
-  done
-  for f in "$claude_dir"/commands/*.md; do
-    [[ -f "$f" ]] || continue
-    desc="$(frontmatter_field "$f" description)"
-    [[ -n "$desc" ]] || desc="$(grep -m1 -v '^[[:space:]]*$' "$f" || true)"
-    t="$(est_tokens "$(basename "$f" .md): $desc")"; cmds=$((cmds + t)); n_cmds=$((n_cmds + 1))
-  done
+  read -r skills n_skills < <(printf '%s' "$rows" | awk -F'\t' '{ t += $1; n++ } END { print t+0, n+0 }')
+  read -r agents n_agents < <(for f in "$claude_dir"/agents/*.md; do [[ -f "$f" ]] && desc_of "$f"; done | sum_descs)
+  read -r cmds n_cmds < <(for f in "$claude_dir"/commands/*.md; do [[ -f "$f" ]] && desc_of "$f"; done | sum_descs)
   local total=$((inst + skills + agents + cmds))
 
   printf 'context budget (tokens ≈ chars/4; always-loaded segments from this repo)\n'

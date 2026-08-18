@@ -47,9 +47,11 @@ def summarize(transcript: Path, start_line: int = 1) -> dict:
     """Sum assistant usage over transcript lines [start_line, EOF].
 
     Streaming rewrites the same requestId with growing usage, so the last record
-    per requestId wins.
+    per requestId wins. The result also carries `lines`, the total line count of
+    the file, so callers can advance a per-session offset without a second read.
     """
     latest: dict = {}  # request id -> {model, ts, usage}
+    lineno = 0
     with transcript.open(encoding="utf-8", errors="replace") as fh:
         for lineno, line in enumerate(fh, start=1):
             if lineno < start_line or not line.strip():
@@ -81,13 +83,14 @@ def summarize(transcript: Path, start_line: int = 1) -> dict:
     context = totals["input"] + totals["cache_read"] + totals["cache_create"]
     totals["cache_hit"] = round(totals["cache_read"] / context, 3) if context else 0
     totals["duration_s"] = int((parse_ts(max(stamps)) - parse_ts(min(stamps))).total_seconds()) if stamps else 0
+    totals["lines"] = lineno
     return totals
 
 
 def emit(kind: str, session_id: str, transcript: Path, summary: dict, extra: dict) -> None:
     record = {"ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "kind": kind, "session_id": session_id}
     record.update(extra)
-    record.update(summary)
+    record.update({k: v for k, v in summary.items() if k != "lines"})
     record["transcript"] = str(transcript)
     with LOG_FILE.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record) + "\n")
@@ -110,10 +113,8 @@ def handle(payload: dict) -> None:
     elif event == "Stop":
         offset_file = STATE_DIR / session_id
         start = int(offset_file.read_text().strip() or 1) if offset_file.is_file() else 1
-        with transcript.open(encoding="utf-8", errors="replace") as fh:
-            total_lines = sum(1 for _ in fh)
         summary = summarize(transcript, start)
-        offset_file.write_text(str(total_lines + 1))
+        offset_file.write_text(str(summary["lines"] + 1))
         if summary["turns"]:
             emit("turn", session_id, transcript, summary, {})
 

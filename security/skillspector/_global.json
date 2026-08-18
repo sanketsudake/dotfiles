@@ -1,5 +1,5 @@
 {
-  "_comment": "SkillSpector baseline applied to EVERY skill (merged with security/skillspector/<name>.json by scripts/skills-scan.py). Every rule needs a reason. Keep this list short — a global rule hides a whole finding class.",
+  "_comment": "SkillSpector baseline applied to EVERY skill (merged with security/skillspector/<name>.json by scripts/skills-scan.py). Every rule needs a reason. Keep this list short \u2014 an unscoped global rule hides a whole finding class; path-scoped rules for the Anthropic office skills live here because the three files were byte-identical.",
   "version": 2,
   "rules": [
     {
@@ -9,6 +9,16 @@
     {
       "id": "LP3",
       "reason": "Same as LP1: absence of an `allowed-tools`/permissions block is deliberate in this repo; declaring it would widen auto-approved tools, not narrow them."
+    },
+    {
+      "id": "P2",
+      "path": "scripts/office/schemas/*",
+      "reason": "anthropics/skills docx/pptx/xlsx: the UTF-8 BOM at byte 0 of the published ECMA/ISO OOXML .xsd schema files is flagged as an invisible-character injection. Path-scoped, so it is a no-op for every other skill."
+    },
+    {
+      "id": "E2",
+      "path": "*soffice.py",
+      "reason": "anthropics/skills docx/pptx/xlsx: os.environ.copy() builds the environment to launch LibreOffice headless; nothing leaves the machine. Path-scoped."
     }
   ]
 }
