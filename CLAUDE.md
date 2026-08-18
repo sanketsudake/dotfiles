@@ -152,9 +152,10 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `pi/extensions/subagent/agents/`).
 Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the path resolves correctly under either profile.
 `claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`),
-`safety-guard-hook.sh` (a `PreToolUse` deny/ask gate on `Bash` and `Edit|Write` — the Claude-side twin of pi's `permission-gate.ts` + `protected-paths.ts`, referenced by `rules/git-hygiene.md`; each script's header carries its `settings.json` wiring snippet),
+`safety-guard-hook.sh` (a `PreToolUse` deny/ask gate on `Bash` and `Edit|Write` — the Claude-side twin of pi's `permission-gate.ts` + `protected-paths.ts`, referenced by `rules/git-hygiene.md`),
+`usage-log-hook.sh` + `usage-report.sh` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
 and `statusline-command.sh` (a `statusLine` hook script).
-None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo.
+None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
 `scripts/test-safety-guard-hook.sh` (repo tooling, top-level `scripts/`) is the table-driven test for the safety gate — run it after editing any pattern.
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**

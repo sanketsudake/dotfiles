@@ -355,6 +355,14 @@ suites-catalog:
 context-budget:
 	@CONTEXT_BUDGET_TOKENS=$(CONTEXT_BUDGET_TOKENS) $(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
 
+# Aggregate the usage telemetry (claude/scripts/usage-log-hook.sh) of every
+# profile: subagent spend by agent type × model, per-day cache-hit ratio.
+# SINCE=N limits to the last N days (default 30).
+usage-report:
+	@for d in $(CLAUDE_CONFIG_DIRS); do \
+	  bash $(SCRIPTS_DIR)/usage-report.sh $(if $(SINCE),--since $(SINCE)) --log "$$d/usage.jsonl"; \
+	done
+
 # Validate every skill (SKILL.md present, name/description frontmatter,
 # sidecar + category), that the README catalog is current, and that the
 # always-loaded context stays under CONTEXT_BUDGET_TOKENS.
