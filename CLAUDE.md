@@ -94,6 +94,12 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
   `CHECK=1` exits 1 when the total exceeds `CONTEXT_BUDGET_TOKENS` (Makefile default 12000; `skills-doctor` enforces the same cap, so CI and the commit gate catch growth).
   Raise the cap deliberately in the Makefile — the diff is the alert.
   Plugin/marketplace skills live outside this repo and are not counted.
+- `make skills-scan [NAME=…] [LLM=1] [SHOW=1] [REPORT=file] [FAIL_AT=50]` — security-scan skills with [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) via `scripts/skills-scan.sh` (prompt injection, exfiltration, privilege escalation, supply chain, excessive agency, dangerous code, …).
+  Every skill by default (authored + materialized vendored), exported minus `__pycache__`/`.pyc`/`bin/` so only what would be installed is scanned; static analysis by default, `LLM=1` adds the semantic pass through the local `claude` CLI.
+  Fails on any residual HIGH/CRITICAL finding or a risk score ≥ `FAIL_AT`.
+  Accepted findings live in `security/skillspector/` — `_global.json` for every skill, `<name>.json` per skill — as SkillSpector baseline glob rules, each with a `reason`; `SHOW=1` lists what they suppress.
+  `skills-fetch` and `skills-update` run the same scan on the staged skill **before** installing it and refuse on failure (`SKILLS_SCAN=0` installs unscanned, logged); when `skillspector` is not installed the gate warns and lets the install through.
+  Install: `uv tool install git+https://github.com/NVIDIA/skillspector.git`.
 - `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is well-formed (required fields, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + sidecar with `category`, an authored skill's optional `evals/evals.json` (golden tasks in the skill-creator shape `{skill_name, evals: [{id, name, prompt, expected_output, files}]}`, grown by `harvest-automation`'s `apply evals`) is well-formed, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current and the always-loaded context is under `CONTEXT_BUDGET_TOKENS` (see `context-budget`); for agents, markdown present with non-empty frontmatter `name`/`description` and a sidecar carrying a `category`.
   Exit 1 on any issue.
 - `make suites-catalog [CHECK=1]` — regenerate (or verify) the generated blocks in `suites/*/README.md` and the Suites index in `README.md` (see "Skill suites").
@@ -185,6 +191,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 ## Skill authoring addenda
 
 - Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
+- Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `security/skillspector/<skill>.json`.
 - Before committing any skill change, run the pre-flight gate:
   `make skills-doctor && make skills-catalog CHECK=1 && make suites-catalog CHECK=1`.
   The gate is enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while the gate is stale,

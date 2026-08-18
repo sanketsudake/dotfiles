@@ -50,7 +50,7 @@ Do not dump raw data.
 - **Stale source**: Ask *"[[Page]] hasn't been touched since <date> — still relevant, or archive-worthy?"*
 
 Keep the whole review under one minute to scan.
-Engagement with each item is optional; do not lecture the user.
+Engagement with each item is optional; keep each prompt to one short question.
 
 ## Capture What the Review Produces
 

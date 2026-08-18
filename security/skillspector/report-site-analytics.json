@@ -1,0 +1,7 @@
+{
+  "_comment": "authored. Reviewed 2026-08-18.",
+  "version": 2,
+  "rules": [
+    {"id": "PE3", "path": "scripts/analytics-report.py", "message": "*.env*", "reason": "load_local_env() reads the skill's own gitignored .env / .env.analytics for GA4/GSC credentials, by design; it does not touch other credential stores."}
+  ]
+}
