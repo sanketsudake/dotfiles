@@ -41,3 +41,16 @@ jobs:
           for t in scripts/test-*.sh; do
             echo "::group::$t"; bash "$t"; echo "::endgroup::"
           done
+
+  skill-security-scan:
+    name: SkillSpector scan (static)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: install skillspector
+        run: uv tool install git+https://github.com/NVIDIA/skillspector.git
+      - name: materialize vendored skills
+        run: make skills-materialize
+      - name: scan every skill against the reviewed baselines
+        run: make skills-scan QUIET=1

@@ -12,7 +12,11 @@
       "Bash(chrome-cdp snap *)",
       "Bash(chrome-cdp find *)",
       "Bash(chrome-cdp grid *)",
-      "Bash(chrome-cdp wait *)"
+      "Bash(chrome-cdp wait *)",
+      "Bash(make skills-scan *)",
+      "Bash(make skills-scan)",
+      "Bash(make context-budget *)",
+      "Bash(make context-budget)"
     ]
   },
   "hooks": {

@@ -74,6 +74,12 @@ It is the local copy of those guidelines — audit against it even when offline.
     SOFT-FLAG when absent on such a skill; not expected on mechanical skills.
     When present, `make skills-doctor` validates the shape; you check that `expected_output` states a checkable outcome, not "a good answer".
 
+### F. Security scan
+
+23. **SkillSpector** — run `make skills-scan NAME=<skill>` (NVIDIA SkillSpector via `scripts/skills-scan.sh`; static pass) and report its verdict.
+    FAIL on any residual HIGH/CRITICAL finding or a score ≥ 50; a false positive is accepted only by a rule with a `reason` in `security/skillspector/<skill>.json`, and you say which finding it covers.
+    If `skillspector` is not installed, say so (SOFT-FLAG) rather than skipping silently.
+
 ## Output
 
 Per check: PASS, FAIL, or SOFT-FLAG with `path:line` evidence and a one-line fix.
