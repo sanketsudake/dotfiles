@@ -1,0 +1,43 @@
+# First-ring regression gate: the deterministic checks the repo already defines,
+# run on every push/PR instead of being a remembered pre-flight step.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    name: doctor + catalog checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: skills-doctor
+        run: make skills-doctor
+      - name: agents-doctor
+        run: make agents-doctor
+      - name: skills-catalog is current
+        run: make skills-catalog CHECK=1
+      - name: suites-catalog is current
+        run: make suites-catalog CHECK=1
+      - name: shell syntax
+        run: |
+          set -e
+          for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$f"; done
+
+  script-tests:
+    name: script tests (scripts/test-*.sh)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run every scripts/test-*.sh
+        run: |
+          set -e
+          shopt -s nullglob
+          for t in scripts/test-*.sh; do
+            echo "::group::$t"; bash "$t"; echo "::endgroup::"
+          done
