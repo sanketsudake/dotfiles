@@ -178,8 +178,7 @@ apply_memory() {
                     ((skipped+=1))
                     continue
                 fi
-                cp "$dir/$supersedes" "$dir/$supersedes.bak.$ts"
-                rm -f "$dir/$supersedes"
+                mv "$dir/$supersedes" "$dir/$supersedes.bak.$ts"
                 index_drop "$index" "$supersedes"
                 index_drop "$index" "$filename"
                 echo "memory: retired $supersedes (backup -> $dir/$supersedes.bak.$ts)"
