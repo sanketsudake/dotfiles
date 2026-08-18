@@ -18,6 +18,10 @@ SCRIPTS_DIR := $(CLAUDE_DIR)/scripts
 AGENTS_DIR := $(CLAUDE_DIR)/agents
 
 RESOURCE_MANAGER := $(CURDIR)/scripts/resource-manager.sh
+# Cap on the always-loaded context this repo injects per session (see
+# `make context-budget`). Raise it deliberately — the diff is the alert.
+CONTEXT_BUDGET_TOKENS ?= 12000
+export CONTEXT_BUDGET_TOKENS
 SKILLS_VENDOR := $(CURDIR)/scripts/skills-vendor.sh
 
 PI_MONO_REPO := https://github.com/badlogic/pi-mono
@@ -344,8 +348,16 @@ skills-catalog:
 suites-catalog:
 	@$(RESOURCE_MANAGER) --kind skill suites $(if $(CHECK),--check)
 
+# Estimate the always-loaded context this repo injects into every Claude Code
+# session (shared CLAUDE.md + rules, skill/agent/command names+descriptions).
+# CHECK=1 exits 1 when the total exceeds CONTEXT_BUDGET_TOKENS (also enforced
+# by skills-doctor). TOP=N lists the N heaviest skill descriptions.
+context-budget:
+	@CONTEXT_BUDGET_TOKENS=$(CONTEXT_BUDGET_TOKENS) $(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
+
 # Validate every skill (SKILL.md present, name/description frontmatter,
-# sidecar + category) and that the README catalog is current.
+# sidecar + category), that the README catalog is current, and that the
+# always-loaded context stays under CONTEXT_BUDGET_TOKENS.
 skills-doctor:
 	@$(RESOURCE_MANAGER) --kind skill doctor
 

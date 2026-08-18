@@ -30,6 +30,7 @@
 #   resource-manager.sh --kind {skill|agent} category --name NAME --category CAT
 #   resource-manager.sh --kind skill catalog [--check]
 #   resource-manager.sh --kind skill suites [--check]
+#   resource-manager.sh --kind skill budget [--check] [--limit TOKENS] [--top N]
 #   resource-manager.sh --kind {skill|agent} doctor
 #
 set -euo pipefail
@@ -959,6 +960,71 @@ cmd_suites() {
 # Validate every resource of this kind; exit 1 if any problem is found.
 # Skills additionally verify the README catalog + suites blocks are current.
 # Everything is checked from committed state — no materialization required.
+# --- budget ------------------------------------------------------------------
+# Estimate the always-loaded context this repo injects into every Claude Code
+# session — the shared CLAUDE.md + rules, every skill's name+description, every
+# agent's name+description, and every command's description — so the aggregate
+# footprint is measured, not guessed. Tokens ≈ chars/4 (no API, no key).
+# --check exits 1 when the total exceeds --limit (env CONTEXT_BUDGET_TOKENS,
+# default 12000). Plugin/marketplace skills are outside this repo and not counted.
+est_tokens() { local c; c="$(printf '%s' "$1" | wc -c | tr -d ' ')"; echo $(( (c + 3) / 4 )); }
+
+cmd_budget() {
+  [[ "$KIND" == "skill" ]] || die "budget: only supported for --kind skill"
+  local check=0 limit="${CONTEXT_BUDGET_TOKENS:-12000}" top=10
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --check) check=1; shift ;;
+      --limit) limit="$2"; shift 2 ;;
+      --top)   top="$2"; shift 2 ;;
+      *) die "budget: unknown argument '$1'" ;;
+    esac
+  done
+  local claude_dir="$REPO_ROOT/claude"
+  local inst=0 skills=0 agents=0 cmds=0 n_inst=0 n_skills=0 n_agents=0 n_cmds=0
+  local f name desc t rows=""
+
+  for f in "$claude_dir/CLAUDE.md" "$claude_dir"/rules/*.md; do
+    [[ -f "$f" ]] || continue
+    t="$(est_tokens "$(cat "$f")")"; inst=$((inst + t)); n_inst=$((n_inst + 1))
+  done
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    skill_exists "$name" || continue
+    desc="$(skill_description "$name")"
+    t="$(est_tokens "$name: $desc")"; skills=$((skills + t)); n_skills=$((n_skills + 1))
+    rows+="$t"$'\t'"$name"$'\n'
+  done < <(all_skill_names)
+  for f in "$claude_dir"/agents/*.md; do
+    [[ -f "$f" ]] || continue
+    desc="$(frontmatter_field "$f" description)"
+    t="$(est_tokens "$(basename "$f" .md): $desc")"; agents=$((agents + t)); n_agents=$((n_agents + 1))
+  done
+  for f in "$claude_dir"/commands/*.md; do
+    [[ -f "$f" ]] || continue
+    desc="$(frontmatter_field "$f" description)"
+    [[ -n "$desc" ]] || desc="$(grep -m1 -v '^[[:space:]]*$' "$f" || true)"
+    t="$(est_tokens "$(basename "$f" .md): $desc")"; cmds=$((cmds + t)); n_cmds=$((n_cmds + 1))
+  done
+  local total=$((inst + skills + agents + cmds))
+
+  printf 'context budget (tokens ≈ chars/4; always-loaded segments from this repo)\n'
+  printf '  %-34s %6d  (%d files)\n' "CLAUDE.md + rules/*.md" "$inst" "$n_inst"
+  printf '  %-34s %6d  (%d skills)\n' "skill name+description" "$skills" "$n_skills"
+  printf '  %-34s %6d  (%d agents)\n' "agent name+description" "$agents" "$n_agents"
+  printf '  %-34s %6d  (%d commands)\n' "command name+description" "$cmds" "$n_cmds"
+  printf '  %-34s %6d  limit %d (%d%%)\n' "TOTAL" "$total" "$limit" $(( total * 100 / limit ))
+  if [[ "$top" -gt 0 && -n "$rows" ]]; then
+    printf '  heaviest skill descriptions:\n'
+    printf '%s' "$rows" | sort -rn | head -n "$top" | awk -F'\t' '{ printf "    %5d  %s\n", $1, $2 }'
+  fi
+  if [[ "$total" -gt "$limit" ]]; then
+    err "budget: always-loaded context is $total tokens, over the $limit-token limit (trim descriptions, drop unused skills, or raise CONTEXT_BUDGET_TOKENS deliberately)"
+    [[ "$check" -eq 1 ]] && return 1
+  fi
+  return 0
+}
+
 cmd_doctor() {
   local issues=0 name sidecar md desc
   flag() { printf '%s\n' "$*"; issues=$((issues + 1)); }
@@ -1005,6 +1071,7 @@ cmd_doctor() {
     done
     cmd_catalog --check || issues=$((issues + 1))
     cmd_suites --check || issues=$((issues + 1))
+    cmd_budget --check --top 0 >/dev/null || issues=$((issues + 1))
   else
     while IFS=$'\t' read -r name sidecar; do
       [[ -n "$name" ]] || continue
@@ -1081,6 +1148,7 @@ case "$cmd" in
   category)    cmd_category    "$@" ;;
   catalog)     cmd_catalog     "$@" ;;
   suites)      cmd_suites      "$@" ;;
+  budget)      cmd_budget      "$@" ;;
   doctor)      cmd_doctor      "$@" ;;
-  *) die "unknown command '$cmd' (expected fetch|materialize|list|update|delete|category|catalog|suites|doctor)" ;;
+  *) die "unknown command '$cmd' (expected fetch|materialize|list|update|delete|category|catalog|suites|budget|doctor)" ;;
 esac
