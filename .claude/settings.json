@@ -12,7 +12,26 @@
       "Bash(chrome-cdp snap *)",
       "Bash(chrome-cdp find *)",
       "Bash(chrome-cdp grid *)",
-      "Bash(chrome-cdp wait *)"
+      "Bash(chrome-cdp wait *)",
+      "Bash(make skills-scan *)",
+      "Bash(make skills-scan)",
+      "Bash(make context-budget *)",
+      "Bash(make context-budget)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/precommit-gate-hook.sh",
+            "timeout": 60,
+            "statusMessage": "Running skill pre-flight gate"
+          }
+        ]
+      }
     ]
   }
 }

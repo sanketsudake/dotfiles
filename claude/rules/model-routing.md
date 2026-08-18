@@ -20,11 +20,17 @@ Route work to the cheapest model that can do it reliably; escalate only when the
 
 - Pass `model`/`effort` per `agent()` call: haiku+low for mechanical stages, sonnet for judgment stages, inherit only for the few calls that need the session model.
 - Inline task constants directly in the workflow script rather than threading them through `args`.
+- Draw the orchestration before writing the script, and make the script carry each of these explicitly:
+  - a JSON `schema` on every edge that hands data between agents — never a prose description of the shape;
+  - the acceptance criteria inside every gate/judge stage, stated in the prompt or as a schema field, not just a "pass?" label;
+  - a numeric cap on every retry or feedback edge (loop-until-dry, re-verify, re-request), the way `pr-shepherd` caps bot-review passes at 3;
+  - a fixed bound on fan-out width — never derived from input size without a ceiling, because the bill grows with it and no step reports the growth.
 
 ## Enforcement
 
 - The routing table's pins are not just prose: every named agent carries `model:` (and `effort:` where it matters) in its `claude/agents/*.md` frontmatter, and a `PreToolUse` hook (`scripts/agent-routing-hook.sh`, wired per-profile in `settings.json`) logs every subagent spawn to `$CLAUDE_CONFIG_DIR/agent-routing.log` and rewrites any explicit model override that conflicts with a pin.
 - Audit drift with the log; keep the hook's pin map in sync with the agent frontmatter when adding or re-tiering agents.
+- Spend is measured, not assumed: `scripts/usage-log-hook.py` logs every subagent run, turn, and session (agent type, model, tokens, cache-hit ratio) to `$CLAUDE_CONFIG_DIR/usage.jsonl`; `make usage-report` aggregates it by agent type × model and by day.
 
 ## Rules of thumb
 

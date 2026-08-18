@@ -1,0 +1,39 @@
+# First-ring regression gate: the deterministic checks the repo already defines,
+# run on every push/PR instead of being a remembered pre-flight step.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: preflight (doctors, catalog, budget, lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make preflight
+
+  script-tests:
+    name: script tests (make test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test
+
+  skill-security-scan:
+    name: SkillSpector scan (static)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: install skillspector (pinned via SKILLSPECTOR_REF in the Makefile)
+        run: make skillspector-install
+      - name: materialize vendored skills
+        run: make skills-materialize
+      - name: scan every skill against the reviewed baselines
+        run: make skills-scan QUIET=1

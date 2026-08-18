@@ -1,0 +1,7 @@
+{
+  "_comment": "mattpocock/skills to-tickets (vendored, read-only). Reviewed 2026-08-18.",
+  "version": 2,
+  "rules": [
+    {"id": "TM2", "path": "SKILL.md", "reason": "Prose about the expand/migrate/contract refactor pattern ('add the new form beside the old, migrate call sites in batches') is planning advice, not chained tool calls."}
+  ]
+}

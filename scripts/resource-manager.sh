@@ -30,6 +30,7 @@
 #   resource-manager.sh --kind {skill|agent} category --name NAME --category CAT
 #   resource-manager.sh --kind skill catalog [--check]
 #   resource-manager.sh --kind skill suites [--check]
+#   resource-manager.sh --kind skill budget [--check] [--limit TOKENS] [--top N]
 #   resource-manager.sh --kind {skill|agent} doctor
 #
 set -euo pipefail
@@ -62,6 +63,7 @@ KIND=""
 RESOURCE_ROOT=""
 MANIFEST=""          # skills/vendored.json (skill kind only)
 GITIGNORE="$REPO_ROOT/.gitignore"
+SCAN_BASELINE_DIR="$REPO_ROOT/security/skillspector"   # per-skill SkillSpector baselines
 
 configure_kind() {
   case "$KIND" in
@@ -398,6 +400,27 @@ cmd_materialize() {
 
 # --- subcommands -----------------------------------------------------------
 
+# --- security scan gate (skills) ---------------------------------------------
+# Run scripts/skills-scan.py (NVIDIA SkillSpector) on a staged skill dir before
+# it is installed by fetch/update. A failed scan aborts the install; set
+# SKILLS_SCAN=0 to skip explicitly (the skip is logged). When skillspector is
+# not installed the gate warns and lets the install through — install it with
+# `make skillspector-install` (pinned to SKILLSPECTOR_REF in the Makefile).
+scan_gate() {  # staged_dir name
+  [[ "$KIND" == "skill" ]] || return 0
+  if [[ "${SKILLS_SCAN:-1}" == "0" ]]; then
+    info "$2: security scan skipped (SKILLS_SCAN=0)"; return 0
+  fi
+  info "$2: security scan (skillspector, static)"
+  # skills-scan.py exports its own copy of the dir; exit 3 = scanner not installed.
+  python3 "$REPO_ROOT/scripts/skills-scan.py" --path "$1" --name "$2" --quiet >&2
+  case $? in
+    0) return 0 ;;
+    3) info "$2: WARNING — skillspector not installed, skill NOT security-scanned"; return 0 ;;
+    *) err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."; return 1 ;;
+  esac
+}
+
 cmd_fetch() {
   local url="" repo="" subpath="" ref="" name="" category="" force=0
   while [[ $# -gt 0 ]]; do
@@ -446,6 +469,7 @@ cmd_fetch() {
   [[ -n "$ref" ]] || ref="$(git -C "$tmp/repo" rev-parse --abbrev-ref HEAD)"
   validate_artifact "$tmp/repo/$subpath" "$subpath" \
     || die "$subpath in $repo is not a valid $KIND"
+  scan_gate "$tmp/repo/$subpath" "$name" || die "$name: refused by the security scan gate"
 
   copy_artifact "$tmp/repo/$subpath" "$dest"
   if [[ "$KIND" == "skill" ]]; then
@@ -564,6 +588,8 @@ update_one_skill() {
   fi
   validate_artifact "$tmp/repo/$subpath" "$subpath" \
     || { err "$name: $subpath is no longer a valid skill upstream, skipping"; return 1; }
+  scan_gate "$tmp/repo/$subpath" "$name" \
+    || { err "$name: upstream ${new_commit:0:7} refused by the security scan gate, keeping ${old_commit:0:7}"; return 1; }
 
   local dest description
   dest="$(artifact_path "$name")"
@@ -671,14 +697,23 @@ cmd_delete() {
     manifest_remove "$name"
     rm -rf "$artifact"
     sync_gitignore
+    drop_scan_baseline "$name"
     info "deleted vendored skill $name (removed from manifest, working tree, and .gitignore)"
     return 0
   fi
   case "$KIND" in
-    skill) rm -rf "$artifact" ;;
+    skill) rm -rf "$artifact"; drop_scan_baseline "$name" ;;
     agent) rm -f "$artifact" "$(sidecar_path "$name")" ;;
   esac
   info "deleted $(rel "$artifact")"
+}
+
+# A skill's accepted-findings file for the security scan (see scan_gate).
+drop_scan_baseline() {  # name
+  local f="$SCAN_BASELINE_DIR/$1.json"
+  [[ -f "$f" ]] || return 0
+  rm -f "$f"
+  info "removed $(rel "$f") (scan baseline of a deleted skill)"
 }
 
 # Read a scalar frontmatter field from a markdown file, joining folded (`>`)
@@ -959,6 +994,63 @@ cmd_suites() {
 # Validate every resource of this kind; exit 1 if any problem is found.
 # Skills additionally verify the README catalog + suites blocks are current.
 # Everything is checked from committed state — no materialization required.
+# --- budget ------------------------------------------------------------------
+# Estimate the always-loaded context this repo injects into every Claude Code
+# session — the shared CLAUDE.md + rules, every skill's name+description, every
+# agent's name+description, and every command's description. Tokens ≈ chars/4
+# (no API, no key). --check exits 1 when the total exceeds --limit (env
+# CONTEXT_BUDGET_TOKENS, default 12000). Plugin/marketplace skills are outside
+# this repo and not counted.
+est_tokens() { local c; c="$(printf '%s' "$1" | wc -c | tr -d ' ')"; echo $(( (c + 3) / 4 )); }
+
+cmd_budget() {
+  [[ "$KIND" == "skill" ]] || die "budget: only supported for --kind skill"
+  local check=0 limit="${CONTEXT_BUDGET_TOKENS:-12000}" top=10
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --check) check=1; shift ;;
+      --limit) limit="$2"; shift 2 ;;
+      --top)   top="$2"; shift 2 ;;
+      *) die "budget: unknown argument '$1'" ;;
+    esac
+  done
+  [[ "$limit" =~ ^[1-9][0-9]*$ ]] || die "budget: limit must be a positive integer (got '$limit'; set CONTEXT_BUDGET_TOKENS or --limit)"
+  local claude_dir="$REPO_ROOT/claude"
+  # Each segment is "N items, T estimated tokens"; sum_segment reads whole
+  # files, sum_descs reads "name: description" strings from stdin, one per line.
+  sum_segment() { local t=0 n=0 f; for f in "$@"; do [[ -f "$f" ]] || continue; t=$((t + $(est_tokens "$(cat "$f")"))); n=$((n + 1)); done; echo "$t $n"; }
+  sum_descs()   { local t=0 n=0 line; while IFS= read -r line; do [[ -n "$line" ]] || continue; t=$((t + $(est_tokens "$line"))); n=$((n + 1)); done; echo "$t $n"; }
+  desc_of()     { local d; d="$(frontmatter_field "$1" description)"; [[ -n "$d" ]] || d="$(grep -m1 -v '^[[:space:]]*$' "$1" || true)"; printf '%s: %s\n' "$(basename "$1" .md)" "$d"; }
+
+  local inst n_inst skills n_skills agents n_agents cmds n_cmds name f rows=""
+  read -r inst n_inst < <(sum_segment "$claude_dir/CLAUDE.md" "$claude_dir"/rules/*.md)
+  # Skills: one weight per skill (kept for the "heaviest" list), summed below.
+  while IFS= read -r name; do
+    [[ -n "$name" ]] && skill_exists "$name" || continue
+    rows+="$(est_tokens "$name: $(skill_description "$name")")"$'\t'"$name"$'\n'
+  done < <(all_skill_names)
+  read -r skills n_skills < <(printf '%s' "$rows" | awk -F'\t' '{ t += $1; n++ } END { print t+0, n+0 }')
+  read -r agents n_agents < <(for f in "$claude_dir"/agents/*.md; do [[ -f "$f" ]] && desc_of "$f"; done | sum_descs)
+  read -r cmds n_cmds < <(for f in "$claude_dir"/commands/*.md; do [[ -f "$f" ]] && desc_of "$f"; done | sum_descs)
+  local total=$((inst + skills + agents + cmds))
+
+  printf 'context budget (tokens ≈ chars/4; always-loaded segments from this repo)\n'
+  printf '  %-34s %6d  (%d files)\n' "CLAUDE.md + rules/*.md" "$inst" "$n_inst"
+  printf '  %-34s %6d  (%d skills)\n' "skill name+description" "$skills" "$n_skills"
+  printf '  %-34s %6d  (%d agents)\n' "agent name+description" "$agents" "$n_agents"
+  printf '  %-34s %6d  (%d commands)\n' "command name+description" "$cmds" "$n_cmds"
+  printf '  %-34s %6d  limit %d (%d%%)\n' "TOTAL" "$total" "$limit" $(( total * 100 / limit ))
+  if [[ "$top" -gt 0 && -n "$rows" ]]; then
+    printf '  heaviest skill descriptions:\n'
+    printf '%s' "$rows" | sort -rn | head -n "$top" | awk -F'\t' '{ printf "    %5d  %s\n", $1, $2 }'
+  fi
+  if [[ "$total" -gt "$limit" ]]; then
+    err "budget: always-loaded context is $total tokens, over the $limit-token limit (trim descriptions, drop unused skills, or raise CONTEXT_BUDGET_TOKENS deliberately)"
+    [[ "$check" -eq 1 ]] && return 1
+  fi
+  return 0
+}
+
 cmd_doctor() {
   local issues=0 name sidecar md desc
   flag() { printf '%s\n' "$*"; issues=$((issues + 1)); }
@@ -994,6 +1086,15 @@ cmd_doctor() {
       [[ -f "$md" ]] || { flag "$name: missing $(rel "$md")"; continue; }
       [[ -n "$(frontmatter_field "$md" name)" ]] || flag "$name: SKILL frontmatter has no 'name'"
       [[ -n "$(frontmatter_field "$md" description)" ]] || flag "$name: frontmatter has no 'description'"
+      # Optional golden-task evals (skill-creator shape): validate when present.
+      if [[ -f "$dir/evals/evals.json" ]] && ! jq -e --arg n "$name" '
+            type == "object" and (.skill_name == $n)
+            and (.evals | type == "array" and length > 0)
+            and all(.evals[]; (.name|type=="string") and (.prompt|type=="string") and (.expected_output|type=="string"))
+            and ((.evals | map(.name) | length) == (.evals | map(.name) | unique | length))
+          ' "$dir/evals/evals.json" >/dev/null 2>&1; then
+        flag "$name: evals/evals.json malformed (want {skill_name: \"$name\", evals: [{name, prompt, expected_output, files?}, ...]} with unique names)"
+      fi
       sidecar="$dir.source.json"
       if [[ ! -f "$sidecar" ]]; then
         flag "$name: unmanaged (no .source.json sidecar)"
@@ -1003,8 +1104,17 @@ cmd_doctor() {
         flag "$name: sidecar has no 'category'"
       fi
     done
+    # Scan baselines must name a live skill (skills-delete removes them; catch drift).
+    local bl bname
+    for bl in "$SCAN_BASELINE_DIR"/*.json; do
+      [[ -f "$bl" ]] || continue
+      bname="$(basename "$bl" .json)"
+      [[ "$bname" == _* ]] && continue
+      skill_exists "$bname" || flag "$(rel "$bl"): scan baseline for '$bname', which is not a skill (delete it, or restore the skill)"
+    done
     cmd_catalog --check || issues=$((issues + 1))
     cmd_suites --check || issues=$((issues + 1))
+    cmd_budget --check --top 0 >/dev/null || issues=$((issues + 1))
   else
     while IFS=$'\t' read -r name sidecar; do
       [[ -n "$name" ]] || continue
@@ -1081,6 +1191,7 @@ case "$cmd" in
   category)    cmd_category    "$@" ;;
   catalog)     cmd_catalog     "$@" ;;
   suites)      cmd_suites      "$@" ;;
+  budget)      cmd_budget      "$@" ;;
   doctor)      cmd_doctor      "$@" ;;
-  *) die "unknown command '$cmd' (expected fetch|materialize|list|update|delete|category|catalog|suites|doctor)" ;;
+  *) die "unknown command '$cmd' (expected fetch|materialize|list|update|delete|category|catalog|suites|budget|doctor)" ;;
 esac

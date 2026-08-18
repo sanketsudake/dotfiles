@@ -1,0 +1,7 @@
+{
+  "_comment": "readwiseio/readwise-skills readwise-cli (vendored, read-only). Reviewed 2026-08-18.",
+  "version": 2,
+  "rules": [
+    {"id": "PE3", "path": "SKILL.md", "message": "*access token*", "reason": "Docs explain `readwise login-with-token`; the user supplies their own Readwise access token, no credential file is read."}
+  ]
+}

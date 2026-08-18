@@ -18,6 +18,15 @@ SCRIPTS_DIR := $(CLAUDE_DIR)/scripts
 AGENTS_DIR := $(CLAUDE_DIR)/agents
 
 RESOURCE_MANAGER := $(CURDIR)/scripts/resource-manager.sh
+# NVIDIA SkillSpector release the security scan and its baselines were reviewed
+# against. Bump deliberately, then re-run `make skills-scan` and re-review
+# security/skillspector/*.json — rule ids and finding text can change upstream.
+SKILLSPECTOR_REF ?= v2.9.5
+
+# Cap on the always-loaded context this repo injects per session (see
+# `make context-budget`). Raise it deliberately — the diff is the alert.
+CONTEXT_BUDGET_TOKENS ?= 12000
+export CONTEXT_BUDGET_TOKENS
 SKILLS_VENDOR := $(CURDIR)/scripts/skills-vendor.sh
 
 PI_MONO_REPO := https://github.com/badlogic/pi-mono
@@ -46,9 +55,9 @@ SHELL := /bin/bash
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
 	skills-fetch skills-materialize skills-list skills-update skills-update-all skills-category skills-delete \
-	skills-catalog suites-catalog skills-doctor \
+	skills-catalog suites-catalog skills-doctor context-budget skills-scan skillspector-install usage-report \
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
-	agents-doctor
+	agents-doctor preflight lint test
 
 install: skills-materialize skills-link claude-md-link commands-link rules-link scripts-link agents-link
 	mkdir -p $(PI_TARGET)
@@ -344,8 +353,36 @@ skills-catalog:
 suites-catalog:
 	@$(RESOURCE_MANAGER) --kind skill suites $(if $(CHECK),--check)
 
+# Estimate the always-loaded context this repo injects into every Claude Code
+# session (shared CLAUDE.md + rules, skill/agent/command names+descriptions).
+# CHECK=1 exits 1 when the total exceeds CONTEXT_BUDGET_TOKENS (also enforced
+# by skills-doctor). TOP=N lists the N heaviest skill descriptions.
+context-budget:
+	@$(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
+
+# Aggregate the usage telemetry (claude/scripts/usage-log-hook.py) of every
+# profile: subagent spend by agent type × model, per-day cache-hit ratio.
+# SINCE=N limits to the last N days (default 30).
+usage-report:
+	@python3 $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) $(foreach d,$(CLAUDE_CONFIG_DIRS),--log "$(d)/usage.jsonl")
+
+# Security-scan skills with NVIDIA SkillSpector (scripts/skills-scan.py):
+# every skill by default, NAME=x for one, LLM=1 adds the semantic pass via the
+# local `claude` CLI, SHOW=1 lists baseline-suppressed findings, REPORT=file
+# writes the combined JSON. Fails on any residual HIGH/CRITICAL finding or a
+# score >= FAIL_AT (default 50). Accepted findings live in security/skillspector/.
+# skills-fetch / skills-update run the same scan on the staged skill before
+# installing it (SKILLS_SCAN=0 skips).
+skills-scan:
+	@python3 $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
+
+# Install (or move to) the pinned SkillSpector release with uv.
+skillspector-install:
+	@uv tool install --force "git+https://github.com/NVIDIA/skillspector.git@$(SKILLSPECTOR_REF)"
+
 # Validate every skill (SKILL.md present, name/description frontmatter,
-# sidecar + category) and that the README catalog is current.
+# sidecar + category), that the README catalog is current, and that the
+# always-loaded context stays under CONTEXT_BUDGET_TOKENS.
 skills-doctor:
 	@$(RESOURCE_MANAGER) --kind skill doctor
 
@@ -377,3 +414,18 @@ agents-delete:
 
 agents-doctor:
 	@$(RESOURCE_MANAGER) --kind agent doctor
+
+# The pre-flight gate, defined once: both doctors (skills-doctor already covers
+# catalog, suites, and the context budget) plus a syntax pass over every script.
+# The project commit-gate hook (scripts/precommit-gate-hook.sh) and CI run this
+# same target; a new check goes here and nowhere else.
+preflight: skills-doctor agents-doctor lint
+
+lint:
+	@for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
+	@python3 -m py_compile scripts/*.py claude/scripts/*.py
+
+# The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
+test:
+	@set -e; for t in scripts/test-*.sh; do echo "== $$t"; bash "$$t"; done; \
+	for t in scripts/test-*.py; do echo "== $$t"; python3 "$$t"; done

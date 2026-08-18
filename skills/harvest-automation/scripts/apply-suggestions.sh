@@ -4,22 +4,37 @@
 # superpowers:writing-skills skill, which authors and validates them.)
 #
 # Usage: apply-suggestions.sh <scope> <payload.json>
-#   scope : all | claude | memory
+#   scope : all | claude | memory | evals
 #   payload.json schema:
 #     {
 #       "claude_md": { "path": "...", "append": "..." },
+#       "evals":     [ { "skill_dir": "/abs/skills/<name>",
+#                        "entries": [ { "name": "...", "prompt": "...", "expected_output": "...", "files": [] } ] } ],
 #       "memory":    { "dir":  "...", "entries": [
-#                        { "filename": "...", "content": "...", "index_line": "..." }
+#                        { "filename": "...", "content": "...", "index_line": "...",
+#                          "action": "create|update|supersede", "supersedes": "<old-filename>" }
 #                      ] }
 #     }
+#   action (default create):
+#     create    — write a new file; skipped if the filename already exists.
+#     update    — replace the existing file's content (backed up to <file>.bak.<ts>)
+#                 and its MEMORY.md line; the file must exist.
+#     supersede — write the new file and retire the file named in "supersedes"
+#                 (backed up, removed, its MEMORY.md line dropped). A contradiction
+#                 becomes an update or a supersede, never a second entry.
+#   Every memory write stamps `metadata.modified: YYYY-MM-DD` in the frontmatter.
+#   evals: appended to <skill_dir>/evals/evals.json in the skill-creator shape
+#     {skill_name, evals: [{id, name, prompt, expected_output, files}]} — created if
+#     absent, next free id assigned, entries whose name already exists are skipped.
 #
 # Safety:
 #   - CLAUDE.md is backed up to CLAUDE.md.bak.<ts> before every write.
-#   - Never overwrites existing content; only appends.
+#   - CLAUDE.md is only ever appended to.
 #   - Refuses to touch CLAUDE.md if it has >100 lines of uncommitted diff
 #     AND is inside a git repo (protects mid-edit work). Override with HARVEST_FORCE=1.
-#   - Memory index (MEMORY.md) is appended to, not rewritten. Duplicate
-#     index lines are skipped.
+#   - Memory files are only replaced by an explicit update/supersede, with a backup.
+#   - Memory index (MEMORY.md) lines are added, replaced, or dropped per entry;
+#     duplicate index lines are skipped.
 
 set -euo pipefail
 
@@ -27,11 +42,11 @@ scope="${1:-}"
 payload="${2:-}"
 
 if [[ -z "$scope" || -z "$payload" ]]; then
-    echo "usage: apply-suggestions.sh <all|claude|memory> <payload.json>" >&2
+    echo "usage: apply-suggestions.sh <all|claude|memory|evals> <payload.json>" >&2
     exit 2
 fi
 case "$scope" in
-    all|claude|memory) ;;
+    all|claude|memory|evals) ;;
     *) echo "invalid scope: $scope" >&2; exit 2 ;;
 esac
 [[ -f "$payload" ]] || { echo "payload not found: $payload" >&2; exit 2; }
@@ -40,7 +55,7 @@ command -v jq >/dev/null || { echo "jq required" >&2; exit 2; }
 ts=$(date +%Y%m%d%H%M%S)
 
 apply_claude_md() {
-    local path append backup diff_lines
+    local path append diff_lines
     path=$(jq -r '.claude_md.path // empty' "$payload")
     append=$(jq -r '.claude_md.append // empty' "$payload")
     if [[ -z "$path" || -z "$append" ]]; then
@@ -59,9 +74,7 @@ apply_claude_md() {
 
     mkdir -p "$(dirname "$path")"
     if [[ -f "$path" ]]; then
-        backup="$path.bak.$ts"
-        cp "$path" "$backup"
-        echo "claude: backup -> $backup"
+        backup_file claude "$path"
         # Ensure a blank line before our append if the file doesn't already end with one.
         if [[ -n "$(tail -c1 "$path")" ]]; then
             printf '\n' >> "$path"
@@ -74,8 +87,68 @@ apply_claude_md() {
     echo "claude: appended $(wc -l <<<"$append" | tr -d ' ') lines to $path"
 }
 
+# Stamp (or refresh) `metadata.modified: <today>` inside a memory file's YAML
+# frontmatter, adding a metadata block if the file has none. Body is untouched.
+stamp_modified() {  # content -> stdout
+    local today; today=$(date +%F)
+    if [[ "$(head -n1 <<<"$1")" != "---" ]]; then
+        printf -- '---\nmetadata:\n  modified: %s\n---\n\n%s\n' "$today" "$1"
+        return
+    fi
+    awk -v today="$today" '
+        BEGIN { fm = 0; done = 0 }
+        NR == 1 && $0 == "---" { fm = 1; print; next }
+        fm == 1 && $0 == "---" {
+            if (!done) {
+                if (!has_meta) print "metadata:"
+                print "  modified: " today
+                done = 1
+            }
+            fm = 2; print; next
+        }
+        fm == 1 && $0 ~ /^metadata:/ { has_meta = 1; in_meta = 1; print; next }
+        fm == 1 && in_meta && $0 ~ /^  modified:/ { if (!done) { print "  modified: " today; done = 1 }; next }
+        fm == 1 && in_meta && $0 !~ /^  / {
+            if (!done) { print "  modified: " today; done = 1 }
+            in_meta = 0
+        }
+        { print }
+    ' <<<"$1"
+}
+
+# Back up <file> as <file>.bak.<ts> and announce it under <scope>.
+backup_file() {  # scope file
+    cp "$2" "$2.bak.$ts"
+    echo "$1: backup -> $2.bak.$ts"
+}
+
+# Retire a memory file: move it to <file>.bak.<ts> and drop its MEMORY.md line.
+retire_memory() {  # index dir filename
+    mv "$2/$3" "$2/$3.bak.$ts"
+    index_drop "$1" "$3"
+    echo "memory: retired $3 (backup -> $2/$3.bak.$ts)"
+}
+
+# The MEMORY.md line that links to <filename>, or empty.
+index_line_for() {  # index filename
+    grep -F -m1 -- "]($2)" "$1" 2>/dev/null || true
+}
+
+# Drop the MEMORY.md line that links to <filename> (idempotent).
+index_drop() {  # index filename
+    local tmp; tmp=$(mktemp)
+    grep -Fv -- "]($2)" "$1" > "$tmp" || true
+    mv "$tmp" "$1"
+}
+
+index_add() {  # index line
+    grep -Fqx -- "$2" "$1" && return 0
+    if [[ -s "$1" && -n "$(tail -c1 "$1")" ]]; then printf '\n' >> "$1"; fi
+    printf '%s\n' "$2" >> "$1"
+}
+
 apply_memory() {
-    local dir entries written skipped index filename content index_line
+    local dir entries written skipped index filename content index_line action supersedes tmp_new
     dir=$(jq -r '.memory.dir // empty' "$payload")
     entries=$(jq -c '.memory.entries // [] | .[]' "$payload")
     if [[ -z "$dir" || -z "$entries" ]]; then
@@ -93,31 +166,102 @@ apply_memory() {
         filename=$(jq -r '.filename' <<<"$entry")
         content=$(jq -r '.content' <<<"$entry")
         index_line=$(jq -r '.index_line // empty' <<<"$entry")
+        action=$(jq -r '.action // "create"' <<<"$entry")
+        supersedes=$(jq -r '.supersedes // empty' <<<"$entry")
 
-        if [[ -e "$dir/$filename" ]]; then
-            echo "memory: skip existing $filename"
-            ((skipped+=1))
-            continue
-        fi
-        printf '%s' "$content" > "$dir/$filename"
-        ((written+=1))
-
-        if [[ -n "$index_line" ]]; then
-            if ! grep -Fqx -- "$index_line" "$index"; then
-                # Ensure newline before appending.
-                if [[ -s "$index" && -n "$(tail -c1 "$index")" ]]; then
-                    printf '\n' >> "$index"
+        # Preconditions per action; `retire` names the file to retire (if any).
+        local retire=""
+        case "$action" in
+            create)
+                if [[ -e "$dir/$filename" ]]; then
+                    echo "memory: skip existing $filename (use action=update to replace it)"; ((skipped+=1)); continue
+                fi ;;
+            update)
+                if [[ ! -e "$dir/$filename" ]]; then
+                    echo "memory: skip update of missing $filename (use action=create)"; ((skipped+=1)); continue
                 fi
-                printf '%s\n' "$index_line" >> "$index"
-            fi
+                retire="$filename" ;;
+            supersede)
+                if [[ -z "$supersedes" || ! -e "$dir/$supersedes" ]]; then
+                    echo "memory: skip supersede of $filename — 'supersedes' missing or names a file that does not exist"; ((skipped+=1)); continue
+                fi
+                if [[ -e "$dir/$filename" && "$filename" != "$supersedes" ]]; then
+                    echo "memory: skip supersede — $filename already exists (use action=update)"; ((skipped+=1)); continue
+                fi
+                retire="$supersedes" ;;
+            *)
+                echo "memory: skip $filename — unknown action '$action'"; ((skipped+=1)); continue ;;
+        esac
+
+        # No index_line in the payload: carry the retired entry's line over
+        # (re-pointed at the new filename), so an update never orphans a file.
+        if [[ -z "$index_line" && -n "$retire" ]]; then
+            index_line=$(index_line_for "$index" "$retire")
+            index_line=${index_line//"]($retire)"/"]($filename)"}
         fi
+        # Write the new content to a temp file first, then retire the old entry
+        # and move the new one in — a failed write never leaves the index empty.
+        tmp_new=$(mktemp "$dir/.$filename.XXXXXX")
+        stamp_modified "$content" > "$tmp_new"
+        [[ -n "$retire" ]] && retire_memory "$index" "$dir" "$retire"
+        mv "$tmp_new" "$dir/$filename"
+        ((written+=1))
+        [[ -n "$index_line" ]] && index_add "$index" "$index_line"
     done <<<"$entries"
 
     echo "memory: wrote $written, skipped $skipped — index $index"
 }
 
+apply_evals() {
+    local groups group skill_dir file skill_name added skipped tmp before after created
+    groups=$(jq -c '.evals // [] | .[]' "$payload")
+    if [[ -z "$groups" ]]; then
+        echo "evals: nothing to apply"
+        return 0
+    fi
+    while IFS= read -r group; do
+        skill_dir=$(jq -r '.skill_dir // empty' <<<"$group")
+        [[ -n "$skill_dir" && -f "$skill_dir/SKILL.md" ]] || { echo "evals: skip — skill_dir missing or has no SKILL.md: $skill_dir" >&2; continue; }
+        if [[ -f "$skill_dir/.source.json" && "$(jq -r '.repo // "null"' "$skill_dir/.source.json")" != "null" ]]; then
+            echo "evals: skip $skill_dir — vendored skill (read-only); propose the task upstream" >&2
+            continue
+        fi
+        skill_name=$(basename "$skill_dir")
+        file="$skill_dir/evals/evals.json"
+        mkdir -p "$skill_dir/evals"
+        local created=0
+        if [[ ! -f "$file" ]]; then
+            jq -n --arg n "$skill_name" '{skill_name: $n, evals: []}' > "$file"; created=1
+        else
+            backup_file evals "$file" >/dev/null
+        fi
+        before=$(jq '.evals|length' "$file")
+        tmp=$(mktemp)
+        jq --argjson new "$(jq -c '.entries // []' <<<"$group")" '
+            reduce $new[] as $e (.;
+                if ($e.name|type) != "string" or ($e.prompt|type) != "string" or ($e.expected_output|type) != "string" then .
+                elif any(.evals[]; .name == $e.name) then .
+                else .evals += [{
+                    id: ((.evals | map(.id // -1) | max // -1) + 1),
+                    name: $e.name, prompt: $e.prompt, expected_output: $e.expected_output,
+                    files: ($e.files // []) }]
+                end)
+        ' "$file" > "$tmp" && mv "$tmp" "$file"
+        after=$(jq '.evals|length' "$file")
+        added=$((after - before))
+        skipped=$(( $(jq '.entries // [] | length' <<<"$group") - added ))
+        if [[ "$created" -eq 1 && "$after" -eq 0 ]]; then
+            rm -f "$file"; rmdir "$skill_dir/evals" 2>/dev/null || true
+            echo "evals: $skill_name — nothing valid to add; no evals.json created"
+            continue
+        fi
+        echo "evals: $skill_name — added $added, skipped $skipped$( [[ $created -eq 0 ]] && echo " (backup -> $file.bak.$ts)")"
+    done <<<"$groups"
+}
+
 case "$scope" in
-    all)    apply_claude_md; apply_memory ;;
+    all)    apply_claude_md; apply_memory; apply_evals ;;
     claude) apply_claude_md ;;
     memory) apply_memory ;;
+    evals)  apply_evals ;;
 esac

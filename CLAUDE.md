@@ -35,6 +35,8 @@ All targets follow a `<resource>-<action>` naming convention (e.g. `skills-link`
 
 `scripts/resource-manager.sh` (wrapped by the `skills-*` and `agents-*` make targets) fetches individual **skills** or **agents** from any git repo at any subpath and tracks where each came from, so they can be updated later.
 It is repo tooling and lives in top-level `scripts/`, not `claude/scripts/` — it is not symlinked into the profiles.
+`scripts/test-*.sh` and `scripts/test-*.py` are the repo's own regression tests (run by CI); `scripts/test-resource-manager.sh` round-trips a fetch → materialize → doctor → delete in a throwaway clone, `scripts/test-safety-guard-hook.py` is the table-driven test of the safety gate.
+Hook scripts and repo tooling that parse JSON or do regex work are Python (stdlib only, 3.9+); shell stays for the thin wrappers around `make`/`git`.
 Requires `git` and `jq`.
 
 The tool takes a leading `--kind skill|agent`; the make targets supply it.
@@ -89,9 +91,21 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
   Vendored skills' `category`/`description` come from `skills/vendored.json`; authored skills' come from their `.source.json` `category` + `SKILL.md` frontmatter `description` (first sentence, truncated) — so the catalog regenerates correctly even on a bare checkout where the vendored dirs aren't materialized.
   The main `README.md` just links to it.
   Run it after adding, removing, or recategorizing a skill; `CHECK=1` only verifies (exit 1 if stale).
-- `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is well-formed (required fields, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + sidecar with `category`, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current; for agents, markdown present with non-empty frontmatter `name`/`description` and a sidecar carrying a `category`.
+- `make context-budget [CHECK=1] [TOP=N]` — estimate the always-loaded context this repo injects into every Claude Code session (shared `claude/CLAUDE.md` + `rules/*.md`, every skill's name+description, every agent's and command's name+description; tokens ≈ chars/4, no API call), per segment and in total, plus the N heaviest skill descriptions.
+  `CHECK=1` exits 1 when the total exceeds `CONTEXT_BUDGET_TOKENS` (Makefile default 12000; `skills-doctor` enforces the same cap, so CI and the commit gate catch growth).
+  Raise the cap deliberately in the Makefile — the diff is the alert.
+  Plugin/marketplace skills live outside this repo and are not counted.
+- `make skills-scan [NAME=…] [LLM=1] [SHOW=1] [REPORT=file] [FAIL_AT=50]` — security-scan skills with [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) via `scripts/skills-scan.py` (prompt injection, exfiltration, privilege escalation, supply chain, excessive agency, dangerous code, …).
+  Every skill by default (authored + materialized vendored), exported minus `__pycache__`/`.pyc`/`bin/` so only what would be installed is scanned; static analysis by default, `LLM=1` adds the semantic pass through the local `claude` CLI.
+  Fails on any residual HIGH/CRITICAL finding or a risk score ≥ `FAIL_AT`.
+  Accepted findings live in `security/skillspector/` — `_global.json` for every skill, `<name>.json` per skill — as SkillSpector baseline glob rules, each with a `reason`; `SHOW=1` lists what they suppress.
+  `skills-fetch` and `skills-update` run the same scan on the staged skill **before** installing it and refuse on failure (`SKILLS_SCAN=0` installs unscanned, logged); when `skillspector` is not installed the gate warns and lets the install through.
+  Install: `make skillspector-install` — pinned to `SKILLSPECTOR_REF` in the Makefile (the release the baselines were reviewed against); bump it deliberately and re-review `security/skillspector/`.
+  `skills-delete` also removes the skill's baseline, and `skills-doctor` flags a baseline that names no skill.
+- `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is well-formed (required fields, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + sidecar with `category`, an authored skill's optional `evals/evals.json` (golden tasks in the skill-creator shape `{skill_name, evals: [{id, name, prompt, expected_output, files}]}`, grown by `harvest-automation`'s `apply evals`) is well-formed, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current and the always-loaded context is under `CONTEXT_BUDGET_TOKENS` (see `context-budget`); for agents, markdown present with non-empty frontmatter `name`/`description` and a sidecar carrying a `category`.
   Exit 1 on any issue.
 - `make suites-catalog [CHECK=1]` — regenerate (or verify) the generated blocks in `suites/*/README.md` and the Suites index in `README.md` (see "Skill suites").
+- `make preflight` / `make lint` / `make test` — the pre-flight gate (both doctors + lint), the syntax pass alone (`bash -n`, `py_compile`), and the repo's own regression tests (`scripts/test-*.{sh,py}`); the commit-gate hook and CI call these same targets.
 
 Note: the make variable is `SUBPATH`, not `PATH` — `PATH=` on a make command line would clobber the shell `PATH` inside recipes and break `git`/`jq`.
 
@@ -146,7 +160,11 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
 - **`claude/commands/`, `claude/rules/`, `claude/scripts/`, and `claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `pi/extensions/subagent/agents/`).
 Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the path resolves correctly under either profile.
-`claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`) and `statusline-command.sh` (a `statusLine` hook script — it is not symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo).
+`claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`),
+`safety-guard-hook.py` (a `PreToolUse` deny/ask gate on `Bash` and `Edit|Write` — the Claude-side twin of pi's `permission-gate.ts` + `protected-paths.ts`, referenced by `rules/git-hygiene.md`),
+`usage-log-hook.py` + `usage-report.py` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
+and `statusline-command.sh` (a `statusLine` hook script).
+None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.
@@ -175,5 +193,6 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 ## Skill authoring addenda
 
 - Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
-- Before committing any skill change, run the pre-flight gate:
-  `make skills-doctor && make skills-catalog CHECK=1 && make suites-catalog CHECK=1`.
+- Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `security/skillspector/<skill>.json`.
+- Before committing any change, run the pre-flight gate: `make preflight` (both doctors — which cover the catalog, suites, and the context budget — plus `bash -n`/`py_compile` over every script) and `make test` (every `scripts/test-*.{sh,py}`).
+  The gate is defined once in the Makefile and enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while `make preflight` fails, and `.github/workflows/checks.yml` runs `make preflight`, `make test`, and the SkillSpector scan on push and PR.

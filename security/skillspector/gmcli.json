@@ -1,0 +1,7 @@
+{
+  "_comment": "badlogic/pi-skills gmcli (vendored, read-only). Reviewed 2026-08-18.",
+  "version": 2,
+  "rules": [
+    {"id": "PE3", "path": "SKILL.md", "message": "*credentials.json*", "reason": "Setup docs tell the user where to place their own Google OAuth client credentials.json; the skill documents, it does not read other credential stores."}
+  ]
+}
