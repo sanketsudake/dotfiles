@@ -4,10 +4,12 @@
 # superpowers:writing-skills skill, which authors and validates them.)
 #
 # Usage: apply-suggestions.sh <scope> <payload.json>
-#   scope : all | claude | memory
+#   scope : all | claude | memory | evals
 #   payload.json schema:
 #     {
 #       "claude_md": { "path": "...", "append": "..." },
+#       "evals":     [ { "skill_dir": "/abs/skills/<name>",
+#                        "entries": [ { "name": "...", "prompt": "...", "expected_output": "...", "files": [] } ] } ],
 #       "memory":    { "dir":  "...", "entries": [
 #                        { "filename": "...", "content": "...", "index_line": "...",
 #                          "action": "create|update|supersede", "supersedes": "<old-filename>" }
@@ -21,6 +23,9 @@
 #                 (backed up, removed, its MEMORY.md line dropped). A contradiction
 #                 becomes an update or a supersede, never a second entry.
 #   Every memory write stamps `metadata.modified: YYYY-MM-DD` in the frontmatter.
+#   evals: appended to <skill_dir>/evals/evals.json in the skill-creator shape
+#     {skill_name, evals: [{id, name, prompt, expected_output, files}]} — created if
+#     absent, next free id assigned, entries whose name already exists are skipped.
 #
 # Safety:
 #   - CLAUDE.md is backed up to CLAUDE.md.bak.<ts> before every write.
@@ -37,11 +42,11 @@ scope="${1:-}"
 payload="${2:-}"
 
 if [[ -z "$scope" || -z "$payload" ]]; then
-    echo "usage: apply-suggestions.sh <all|claude|memory> <payload.json>" >&2
+    echo "usage: apply-suggestions.sh <all|claude|memory|evals> <payload.json>" >&2
     exit 2
 fi
 case "$scope" in
-    all|claude|memory) ;;
+    all|claude|memory|evals) ;;
     *) echo "invalid scope: $scope" >&2; exit 2 ;;
 esac
 [[ -f "$payload" ]] || { echo "payload not found: $payload" >&2; exit 2; }
@@ -194,8 +199,47 @@ apply_memory() {
     echo "memory: wrote $written, skipped $skipped — index $index"
 }
 
+apply_evals() {
+    local groups group skill_dir file skill_name added skipped tmp before after
+    groups=$(jq -c '.evals // [] | .[]' "$payload")
+    if [[ -z "$groups" ]]; then
+        echo "evals: nothing to apply"
+        return 0
+    fi
+    while IFS= read -r group; do
+        skill_dir=$(jq -r '.skill_dir // empty' <<<"$group")
+        [[ -n "$skill_dir" && -f "$skill_dir/SKILL.md" ]] || { echo "evals: skip — skill_dir missing or has no SKILL.md: $skill_dir" >&2; continue; }
+        if [[ -f "$skill_dir/.source.json" && "$(jq -r '.repo // "null"' "$skill_dir/.source.json")" != "null" ]]; then
+            echo "evals: skip $skill_dir — vendored skill (read-only); propose the task upstream" >&2
+            continue
+        fi
+        skill_name=$(basename "$skill_dir")
+        file="$skill_dir/evals/evals.json"
+        mkdir -p "$skill_dir/evals"
+        [[ -f "$file" ]] || jq -n --arg n "$skill_name" '{skill_name: $n, evals: []}' > "$file"
+        cp "$file" "$file.bak.$ts"
+        before=$(jq '.evals|length' "$file")
+        tmp=$(mktemp)
+        jq --argjson new "$(jq -c '.entries // []' <<<"$group")" '
+            reduce $new[] as $e (.;
+                if ($e.name|type) != "string" or ($e.prompt|type) != "string" or ($e.expected_output|type) != "string" then .
+                elif any(.evals[]; .name == $e.name) then .
+                else .evals += [{
+                    id: ((.evals | map(.id // -1) | max // -1) + 1),
+                    name: $e.name, prompt: $e.prompt, expected_output: $e.expected_output,
+                    files: ($e.files // []) }]
+                end)
+        ' "$file" > "$tmp" && mv "$tmp" "$file"
+        after=$(jq '.evals|length' "$file")
+        added=$((after - before))
+        skipped=$(( $(jq '.entries // [] | length' <<<"$group") - added ))
+        echo "evals: $skill_name — added $added, skipped $skipped (backup -> $file.bak.$ts)"
+    done <<<"$groups"
+}
+
 case "$scope" in
-    all)    apply_claude_md; apply_memory ;;
+    all)    apply_claude_md; apply_memory; apply_evals ;;
     claude) apply_claude_md ;;
     memory) apply_memory ;;
+    evals)  apply_evals ;;
 esac

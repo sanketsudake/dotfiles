@@ -52,6 +52,13 @@ It is the local copy of those guidelines — audit against it even when offline.
 17. **No PII** — examples use fake placeholders; no real names, meetings, client/project identifiers, emails, or tokens anywhere in the skill.
 18. **Self-containment** — referenced helper scripts exist inside the skill dir (or are declared external tools); paths use `{baseDir}`-style or relative references that survive the symlinked profiles.
 
+### E. Evals
+
+22. **Golden tasks** — a reasoning-heavy authored skill (financial or legal logic, multi-step judgment, anything where a wrong answer is silent) carries `evals/evals.json` in the skill-creator shape:
+    `{"skill_name": "<name>", "evals": [{"id", "name", "prompt", "expected_output", "files": []}, ...]}` — one entry per real failure or user correction the skill has met.
+    SOFT-FLAG when absent on such a skill; not expected on mechanical skills.
+    When present, `make skills-doctor` validates the shape; you check that `expected_output` states a checkable outcome, not "a good answer".
+
 ## Output
 
 Per check: PASS, FAIL, or SOFT-FLAG with `path:line` evidence and a one-line fix.

@@ -994,6 +994,17 @@ cmd_doctor() {
       [[ -f "$md" ]] || { flag "$name: missing $(rel "$md")"; continue; }
       [[ -n "$(frontmatter_field "$md" name)" ]] || flag "$name: SKILL frontmatter has no 'name'"
       [[ -n "$(frontmatter_field "$md" description)" ]] || flag "$name: frontmatter has no 'description'"
+      # Optional golden-task evals (skill-creator shape): validate when present.
+      if [[ -f "$dir/evals/evals.json" ]]; then
+        if ! jq -e --arg n "$name" '
+              type == "object" and (.skill_name == $n)
+              and (.evals | type == "array" and length > 0)
+              and all(.evals[]; (.name|type=="string") and (.prompt|type=="string") and (.expected_output|type=="string"))
+              and ((.evals | map(.name) | length) == (.evals | map(.name) | unique | length))
+            ' "$dir/evals/evals.json" >/dev/null 2>&1; then
+          flag "$name: evals/evals.json malformed (want {skill_name: \"$name\", evals: [{name, prompt, expected_output, files?}, ...]} with unique names)"
+        fi
+      fi
       sidecar="$dir.source.json"
       if [[ ! -f "$sidecar" ]]; then
         flag "$name: unmanaged (no .source.json sidecar)"
