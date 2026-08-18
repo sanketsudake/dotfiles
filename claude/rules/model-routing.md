@@ -20,6 +20,11 @@ Route work to the cheapest model that can do it reliably; escalate only when the
 
 - Pass `model`/`effort` per `agent()` call: haiku+low for mechanical stages, sonnet for judgment stages, inherit only for the few calls that need the session model.
 - Inline task constants directly in the workflow script rather than threading them through `args`.
+- Draw the orchestration before writing the script, and make the script carry each of these explicitly:
+  - a JSON `schema` on every edge that hands data between agents — never a prose description of the shape;
+  - the acceptance criteria inside every gate/judge stage, stated in the prompt or as a schema field, not just a "pass?" label;
+  - a numeric cap on every retry or feedback edge (loop-until-dry, re-verify, re-request), the way `pr-shepherd` caps bot-review passes at 3;
+  - a fixed bound on fan-out width — never derived from input size without a ceiling, because the bill grows with it and no step reports the growth.
 
 ## Enforcement
 
