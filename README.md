@@ -16,7 +16,14 @@ Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#ad
 - **Generated catalog, enforced by a doctor.**
   `skills/README.md` is generated from that metadata; `make skills-doctor` fails when anything drifts.
 - **Guardrails as code, not hope.**
-  Extensions for pi confirm before destructive actions, block dirty-repo commits, and protect paths; `plugins.txt` declares the plugin set and `make plugins-check` reports drift per profile.
+  Extensions for pi confirm before destructive actions, block dirty-repo commits, and protect paths;
+  a `PreToolUse` safety hook does the same for Claude Code (deny/ask on dangerous shell, secrets, and VCS internals);
+  `plugins.txt` declares the plugin set and `make plugins-check` reports drift per profile.
+- **Skills are scanned before they land.**
+  `make skills-scan` runs [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) over every skill, `skills-fetch`/`skills-update` refuse a skill that fails, and accepted findings carry a reason in `security/skillspector/`.
+- **Measured, not assumed.**
+  `make context-budget` reports the always-loaded context per session (capped by the doctor), and a `SubagentStop`/`Stop` telemetry hook plus `make usage-report` show spend by agent type × model and cache-hit ratio.
+  CI runs the doctor, catalog, script tests, and the security scan on every push.
 
 ## Layout
 
@@ -29,11 +36,12 @@ harness-configs/
 │   ├── commands/   #   slash commands
 │   ├── agents/     #   subagents (+ .source.json sidecars)
 │   ├── rules/      #   model routing, git hygiene, delegation
-│   ├── scripts/    #   helper scripts (md formatter, statusline)
+│   ├── scripts/    #   hooks (routing, safety guard, usage telemetry) + statusline
 │   └── plugins.txt #   desired-state plugin list
 ├── skills/         # shared skills for Claude + pi — the source of truth
 │   └── README.md   #   generated catalog — start here
 ├── suites/         # curated skill-suite landing pages
+├── security/       # SkillSpector baselines (accepted findings, with reasons)
 ├── pi/             # pi agent config, stowed into ~/.pi
 └── scripts/        # repo tooling (not symlinked into profiles)
 ```
