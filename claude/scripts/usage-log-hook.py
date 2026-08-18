@@ -2,9 +2,8 @@
 """Usage/cost telemetry hook for Claude Code.
 
 Turns transcripts into one JSON line per unit of work in
-$CLAUDE_CONFIG_DIR/usage.jsonl, so the routing table (rules/model-routing.md) is
-a measured saving, not an assumed one, and cache-hit ratio is a first-class
-number instead of a guess.
+$CLAUDE_CONFIG_DIR/usage.jsonl, for measuring the routing table's savings
+(rules/model-routing.md) and cache-hit ratio.
 
 Events (wire all three; each is one settings.json entry):
   SubagentStop -> kind=subagent : the whole subagent transcript (agent_type, model, tokens, duration)

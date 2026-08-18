@@ -75,7 +75,7 @@ WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 LOG_DIR = Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
 
 
-def decide(tool: str, tool_input: dict) -> "tuple[str, str, str] | None":
+def decide(tool: str, tool_input: dict) -> tuple[str, str, str] | None:
     """Return (decision, reason, subject) or None to allow silently."""
     if tool == "Bash":
         cmd = tool_input.get("command") or ""

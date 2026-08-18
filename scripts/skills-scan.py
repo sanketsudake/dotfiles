@@ -61,7 +61,7 @@ def parse_args() -> argparse.Namespace:
     return ap.parse_args()
 
 
-def select_targets(args: argparse.Namespace) -> "list[tuple[str, Path]]":
+def select_targets(args: argparse.Namespace) -> list[tuple[str, Path]]:
     """(name, source dir) for every skill to scan."""
     if args.path:
         src = Path(args.path)
@@ -87,7 +87,7 @@ def load_baseline(path: Path) -> dict:
     return {"rules": doc.get("rules", []), "fingerprints": doc.get("fingerprints", [])}
 
 
-def merged_baseline(name: str, global_rules: dict, tmp: Path) -> "Path | None":
+def merged_baseline(name: str, global_rules: dict, tmp: Path) -> Path | None:
     """Merge the global rules + <name>.json into one baseline file the scanner accepts."""
     own = load_baseline(BASELINE_DIR / f"{name}.json")
     if not (global_rules["rules"] or global_rules["fingerprints"] or own["rules"] or own["fingerprints"]):

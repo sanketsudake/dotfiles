@@ -36,7 +36,7 @@ def context_tokens(rec: dict) -> int:
     return rec.get("cache_read", 0) + rec.get("input", 0) + rec.get("cache_create", 0)
 
 
-def agg(records: list) -> "tuple[int, int, float]":
+def agg(records: list) -> tuple[int, int, float]:
     """(output tokens, context tokens, cache-hit ratio) over a group of records."""
     out = sum(r.get("output", 0) for r in records)
     ctx = sum(context_tokens(r) for r in records)
