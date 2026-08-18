@@ -7,9 +7,34 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 git clone --quiet "$REPO_ROOT" "$tmp/repo"
+# Test the tooling as it is on disk (uncommitted edits included), not the last commit.
+cp "$REPO_ROOT"/scripts/*.sh "$REPO_ROOT"/scripts/*.py "$tmp/repo/scripts/"
+cp "$REPO_ROOT/Makefile" "$tmp/repo/Makefile"
 cd "$tmp/repo"
+git -c user.email=ci@example.invalid -c user.name=ci commit -qam "working-tree tooling" || true
 
-REPO=mattpocock/skills SUBPATH=skills/productivity/grilling NAME=ci-smoke
+# Hermetic upstream: a local git repo holding one small skill, so the test
+# never depends on a third party's default branch (a rename there must not red CI).
+UPSTREAM="$tmp/upstream"
+mkdir -p "$UPSTREAM/skills/ci-smoke"
+cat > "$UPSTREAM/skills/ci-smoke/SKILL.md" <<'SKILL'
+---
+name: ci-smoke
+description: Smoke-test fixture for resource-manager.sh; does nothing. Use never.
+license: Apache-2.0
+metadata:
+  author: ci
+  version: "1.0"
+---
+
+# ci-smoke
+
+A fixture. It has no behaviour.
+SKILL
+git -C "$UPSTREAM" init -q -b main
+git -C "$UPSTREAM" -c user.email=ci@example.invalid -c user.name=ci add -A
+git -C "$UPSTREAM" -c user.email=ci@example.invalid -c user.name=ci commit -qm "fixture"
+REPO="file://$UPSTREAM" SUBPATH=skills/ci-smoke NAME=ci-smoke
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 echo "== fetch"
@@ -32,8 +57,10 @@ make -s skills-catalog
 make -s skills-doctor
 make -s skills-catalog CHECK=1
 
-echo "== delete"
+echo "== delete (also drops the skill's scan baseline)"
+mkdir -p security/skillspector && echo '{"version":2,"rules":[]}' > "security/skillspector/$NAME.json"
 make -s skills-delete NAME=$NAME YES=1
+[[ ! -e "security/skillspector/$NAME.json" ]] || fail "scan baseline survived delete"
 make -s skills-catalog
 jq -e --arg n "$NAME" '[.[]|select(.name==$n)]|length==0' skills/vendored.json >/dev/null || fail "manifest entry survived delete"
 grep -qx "/skills/$NAME/" .gitignore && fail ".gitignore line survived delete"

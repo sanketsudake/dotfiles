@@ -31,8 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: install skillspector
-        run: uv tool install git+https://github.com/NVIDIA/skillspector.git
+      - name: install skillspector (pinned via SKILLSPECTOR_REF in the Makefile)
+        run: make skillspector-install
       - name: materialize vendored skills
         run: make skills-materialize
       - name: scan every skill against the reviewed baselines

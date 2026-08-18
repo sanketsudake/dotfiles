@@ -63,6 +63,7 @@ KIND=""
 RESOURCE_ROOT=""
 MANIFEST=""          # skills/vendored.json (skill kind only)
 GITIGNORE="$REPO_ROOT/.gitignore"
+SCAN_BASELINE_DIR="$REPO_ROOT/security/skillspector"   # per-skill SkillSpector baselines
 
 configure_kind() {
   case "$KIND" in
@@ -403,8 +404,8 @@ cmd_materialize() {
 # Run scripts/skills-scan.py (NVIDIA SkillSpector) on a staged skill dir before
 # it is installed by fetch/update. A failed scan aborts the install; set
 # SKILLS_SCAN=0 to skip explicitly (the skip is logged). When skillspector is
-# not installed the gate warns and lets the install through — install it with:
-#   uv tool install git+https://github.com/NVIDIA/skillspector.git
+# not installed the gate warns and lets the install through — install it with
+# `make skillspector-install` (pinned to SKILLSPECTOR_REF in the Makefile).
 scan_gate() {  # staged_dir name
   [[ "$KIND" == "skill" ]] || return 0
   if [[ "${SKILLS_SCAN:-1}" == "0" ]]; then
@@ -696,14 +697,23 @@ cmd_delete() {
     manifest_remove "$name"
     rm -rf "$artifact"
     sync_gitignore
+    drop_scan_baseline "$name"
     info "deleted vendored skill $name (removed from manifest, working tree, and .gitignore)"
     return 0
   fi
   case "$KIND" in
-    skill) rm -rf "$artifact" ;;
+    skill) rm -rf "$artifact"; drop_scan_baseline "$name" ;;
     agent) rm -f "$artifact" "$(sidecar_path "$name")" ;;
   esac
   info "deleted $(rel "$artifact")"
+}
+
+# A skill's accepted-findings file for the security scan (see scan_gate).
+drop_scan_baseline() {  # name
+  local f="$SCAN_BASELINE_DIR/$1.json"
+  [[ -f "$f" ]] || return 0
+  rm -f "$f"
+  info "removed $(rel "$f") (scan baseline of a deleted skill)"
 }
 
 # Read a scalar frontmatter field from a markdown file, joining folded (`>`)
@@ -1004,6 +1014,7 @@ cmd_budget() {
       *) die "budget: unknown argument '$1'" ;;
     esac
   done
+  [[ "$limit" =~ ^[1-9][0-9]*$ ]] || die "budget: limit must be a positive integer (got '$limit'; set CONTEXT_BUDGET_TOKENS or --limit)"
   local claude_dir="$REPO_ROOT/claude"
   # Each segment is "N items, T estimated tokens"; sum_segment reads whole
   # files, sum_descs reads "name: description" strings from stdin, one per line.
@@ -1092,6 +1103,14 @@ cmd_doctor() {
       elif [[ "$(jq -r '.category // ""' "$sidecar")" == "" ]]; then
         flag "$name: sidecar has no 'category'"
       fi
+    done
+    # Scan baselines must name a live skill (skills-delete removes them; catch drift).
+    local bl bname
+    for bl in "$SCAN_BASELINE_DIR"/*.json; do
+      [[ -f "$bl" ]] || continue
+      bname="$(basename "$bl" .json)"
+      [[ "$bname" == _* ]] && continue
+      skill_exists "$bname" || flag "$(rel "$bl"): scan baseline for '$bname', which is not a skill (delete it, or restore the skill)"
     done
     cmd_catalog --check || issues=$((issues + 1))
     cmd_suites --check || issues=$((issues + 1))

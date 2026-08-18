@@ -129,6 +129,11 @@ retire_memory() {  # index dir filename
     echo "memory: retired $3 (backup -> $2/$3.bak.$ts)"
 }
 
+# The MEMORY.md line that links to <filename>, or empty.
+index_line_for() {  # index filename
+    grep -F -m1 -- "]($2)" "$1" 2>/dev/null || true
+}
+
 # Drop the MEMORY.md line that links to <filename> (idempotent).
 index_drop() {  # index filename
     local tmp; tmp=$(mktemp)
@@ -188,6 +193,12 @@ apply_memory() {
                 echo "memory: skip $filename — unknown action '$action'"; ((skipped+=1)); continue ;;
         esac
 
+        # No index_line in the payload: carry the retired entry's line over
+        # (re-pointed at the new filename), so an update never orphans a file.
+        if [[ -z "$index_line" && -n "$retire" ]]; then
+            index_line=$(index_line_for "$index" "$retire")
+            index_line=${index_line//"]($retire)"/"]($filename)"}
+        fi
         # Write the new content to a temp file first, then retire the old entry
         # and move the new one in — a failed write never leaves the index empty.
         tmp_new=$(mktemp "$dir/.$filename.XXXXXX")
@@ -202,7 +213,7 @@ apply_memory() {
 }
 
 apply_evals() {
-    local groups group skill_dir file skill_name added skipped tmp before after
+    local groups group skill_dir file skill_name added skipped tmp before after created
     groups=$(jq -c '.evals // [] | .[]' "$payload")
     if [[ -z "$groups" ]]; then
         echo "evals: nothing to apply"
@@ -218,8 +229,12 @@ apply_evals() {
         skill_name=$(basename "$skill_dir")
         file="$skill_dir/evals/evals.json"
         mkdir -p "$skill_dir/evals"
-        [[ -f "$file" ]] || jq -n --arg n "$skill_name" '{skill_name: $n, evals: []}' > "$file"
-        backup_file evals "$file" >/dev/null
+        local created=0
+        if [[ ! -f "$file" ]]; then
+            jq -n --arg n "$skill_name" '{skill_name: $n, evals: []}' > "$file"; created=1
+        else
+            backup_file evals "$file" >/dev/null
+        fi
         before=$(jq '.evals|length' "$file")
         tmp=$(mktemp)
         jq --argjson new "$(jq -c '.entries // []' <<<"$group")" '
@@ -235,7 +250,12 @@ apply_evals() {
         after=$(jq '.evals|length' "$file")
         added=$((after - before))
         skipped=$(( $(jq '.entries // [] | length' <<<"$group") - added ))
-        echo "evals: $skill_name — added $added, skipped $skipped (backup -> $file.bak.$ts)"
+        if [[ "$created" -eq 1 && "$after" -eq 0 ]]; then
+            rm -f "$file"; rmdir "$skill_dir/evals" 2>/dev/null || true
+            echo "evals: $skill_name — nothing valid to add; no evals.json created"
+            continue
+        fi
+        echo "evals: $skill_name — added $added, skipped $skipped$( [[ $created -eq 0 ]] && echo " (backup -> $file.bak.$ts)")"
     done <<<"$groups"
 }
 

@@ -37,6 +37,8 @@ SEG = r"(?:[^;&|]*\s)?"
 END = r"(?=[\s;&|]|$)"
 # rm's recursive flag in any of its spellings (-r, -R, -rf, -fr, --recursive).
 RECURSIVE = r"(?:-[A-Za-z]*[rR][A-Za-z]*|--recursive)"
+# An optional shell quote around a single argument.
+Q = r"[\"']?"
 
 
 def rx(pattern: str) -> re.Pattern:
@@ -49,14 +51,14 @@ BASH_DENY = [
     ("world-writable chmod/chown", rx(rf"{W} (?:chmod|chown) \s+ {SEG} [0-7]?777 {END}")),
     ("rm -rf on / ~ $HOME .git", rx(
         rf"{W} rm \s+ {SEG} {RECURSIVE} \s+ {SEG}"
-        rf"(?:/|~|\$HOME|\$\{{HOME\}}|\.git) /? \*? \s* (?:[;&|]|$)")),
-    ("git add -A / --all / .", rx(rf"{W} git \s+ {SEG} add \s+ {SEG} (?:-A|--all|\.) {END}")),
+        rf"{Q} (?:\./)? (?:/|~|\$HOME|\$\{{HOME\}}|\.git) /? \*? {Q} \s* (?:[;&|]|$)")),
+    ("git add -A / --all / .", rx(rf"{W} git \s+ {SEG} add \s+ {SEG} (?:-[a-zA-Z]*A[a-zA-Z]*|--all|\.) {END}")),
 ]
 
 # --- Bash: ask the user --------------------------------------------------------
 BASH_ASK = [
     ("recursive rm", rx(rf"{W} rm \s+ {SEG} {RECURSIVE} {END}")),
-    ("force-push", rx(rf"{W} git \s+ {SEG} push \s+ {SEG} (?:-f|--force|--force-with-lease) {END}")),
+    ("force-push", rx(rf"{W} git \s+ {SEG} push \s+ {SEG} (?:-f|--force|--force-with-lease(?:=\S*)?) {END}")),
     ("discard work (reset --hard / clean -f)", rx(
         rf"{W} git \s+ {SEG} (?: reset \s+ {SEG} --hard | clean \s+ {SEG} -[A-Za-z]*[fF] )")),
 ]
@@ -82,7 +84,7 @@ def decide(tool: str, tool_input: dict) -> tuple[str, str, str] | None:
         if not cmd:
             return None
         # "git rm" is index bookkeeping, not a filesystem rm; keep it out of the rm rules.
-        norm = re.sub(r"git\s+rm", "git-rm", cmd)
+        norm = re.sub(rf"{W}git\s+rm{END}", "git-rm", cmd)
         for label, pat in BASH_DENY:
             if pat.search(norm):
                 return ("deny", f"safety-guard: hard-deny — {label}. See rules/git-hygiene.md and claude/CLAUDE.md.", cmd)

@@ -22,8 +22,8 @@ SkillSpector's baseline schema (version 2, glob `rules`); global + per-skill are
 merged into the baseline handed to the scanner.
 
 Exit 1 when any skill fails: a residual HIGH/CRITICAL finding, or score >= --fail-at.
-Exit 3 when skillspector is not installed:
-  uv tool install git+https://github.com/NVIDIA/skillspector.git
+Exit 3 when skillspector is not installed: `make skillspector-install`
+(pinned to SKILLSPECTOR_REF in the Makefile).
 Stdlib only, Python 3.9+.
 """
 from __future__ import annotations
@@ -41,7 +41,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = REPO_ROOT / "skills"
 BASELINE_DIR = REPO_ROOT / "security" / "skillspector"
-INSTALL_HINT = "uv tool install git+https://github.com/NVIDIA/skillspector.git"
+INSTALL_HINT = "make skillspector-install (pinned to SKILLSPECTOR_REF in the Makefile)"
 # Local build/cache artifacts: gitignored, never installed, but a scan of the
 # live tree would flag them (a .pyc next to clean sources is a supply-chain hit).
 EXPORT_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "node_modules", ".venv")

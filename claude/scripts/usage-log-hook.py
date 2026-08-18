@@ -6,7 +6,7 @@ $CLAUDE_CONFIG_DIR/usage.jsonl, for measuring the routing table's savings
 (rules/model-routing.md) and cache-hit ratio.
 
 Events (wire all three; each is one settings.json entry):
-  SubagentStop -> kind=subagent : the whole subagent transcript (agent_type, model, tokens, duration)
+  SubagentStop -> kind=subagent : the subagent's own transcript (agent_transcript_path; agent_type, model, tokens, duration)
   Stop         -> kind=turn     : the main transcript since the previous Stop (delta via a per-session offset)
   SessionEnd   -> kind=session  : totals for the whole main transcript, then the offset file is removed
 
@@ -104,9 +104,13 @@ def handle(payload: dict) -> None:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
 
     if event == "SubagentStop":
-        summary = summarize(transcript)
+        # transcript_path is the MAIN session's file; the subagent's own is agent_transcript_path.
+        agent_transcript = Path(payload.get("agent_transcript_path") or "")
+        if not agent_transcript.is_file():
+            return
+        summary = summarize(agent_transcript)
         if summary["turns"]:
-            emit("subagent", session_id, transcript, summary,
+            emit("subagent", session_id, agent_transcript, summary,
                  {"agent_id": payload.get("agent_id"), "agent_type": payload.get("agent_type")})
 
     elif event == "Stop":

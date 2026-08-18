@@ -18,6 +18,11 @@ SCRIPTS_DIR := $(CLAUDE_DIR)/scripts
 AGENTS_DIR := $(CLAUDE_DIR)/agents
 
 RESOURCE_MANAGER := $(CURDIR)/scripts/resource-manager.sh
+# NVIDIA SkillSpector release the security scan and its baselines were reviewed
+# against. Bump deliberately, then re-run `make skills-scan` and re-review
+# security/skillspector/*.json — rule ids and finding text can change upstream.
+SKILLSPECTOR_REF ?= v2.9.5
+
 # Cap on the always-loaded context this repo injects per session (see
 # `make context-budget`). Raise it deliberately — the diff is the alert.
 CONTEXT_BUDGET_TOKENS ?= 12000
@@ -50,7 +55,7 @@ SHELL := /bin/bash
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
 	skills-fetch skills-materialize skills-list skills-update skills-update-all skills-category skills-delete \
-	skills-catalog suites-catalog skills-doctor context-budget skills-scan usage-report \
+	skills-catalog suites-catalog skills-doctor context-budget skills-scan skillspector-install usage-report \
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
 	agents-doctor preflight lint test
 
@@ -370,6 +375,10 @@ usage-report:
 # installing it (SKILLS_SCAN=0 skips).
 skills-scan:
 	@python3 $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
+
+# Install (or move to) the pinned SkillSpector release with uv.
+skillspector-install:
+	@uv tool install --force "git+https://github.com/NVIDIA/skillspector.git@$(SKILLSPECTOR_REF)"
 
 # Validate every skill (SKILL.md present, name/description frontmatter,
 # sidecar + category), that the README catalog is current, and that the
