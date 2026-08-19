@@ -1,0 +1,8 @@
+{
+  "repo": "https://github.com/cursor/plugins",
+  "subpath": "thermos/agents/thermo-nuclear-review-subagent.md",
+  "ref": "main",
+  "commit": "60c641e4fad674784b30abcf9f8915dea39df38d",
+  "fetched_at": "2026-08-19T16:02:17Z",
+  "category": "pr-review"
+}

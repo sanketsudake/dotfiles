@@ -19,7 +19,7 @@ Findings-only passes run first so the diff is stable; the passes that apply chan
 
 1. `/code-review`
 2. `/security-review`
-3. `/thermo-nuclear-code-quality-review`
+3. `/thermos` (runs the `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` subagents in parallel)
 4. `/simplify`
 5. `/deslop`
 6. `/make-pr-easy-to-review`
