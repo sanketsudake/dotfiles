@@ -236,11 +236,20 @@
   {
     "name": "thermo-nuclear-code-quality-review",
     "repo": "https://github.com/cursor/plugins",
-    "subpath": "cursor-team-kit/skills/thermo-nuclear-code-quality-review",
+    "subpath": "thermos/skills/thermo-nuclear-code-quality-review",
     "ref": "main",
-    "commit": "8185ad9fbb903efc7d1cf152a9be9777e516cfbc",
+    "commit": "60c641e4fad674784b30abcf9f8915dea39df38d",
     "category": "pr-review",
     "description": "Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a thermo-nuclear code quality review, thermonuclear review, deep code quality audit, or especially harsh maintainability review."
+  },
+  {
+    "name": "thermo-nuclear-review",
+    "repo": "https://github.com/cursor/plugins",
+    "subpath": "thermos/skills/thermo-nuclear-review",
+    "ref": "main",
+    "commit": "60c641e4fad674784b30abcf9f8915dea39df38d",
+    "category": "pr-review",
+    "description": "Comprehensive security and correctness audit of a branch's changes. Use for thermo nuclear, thermonuclear, or deep review requests, or branch/PR diff audits focused on bugs, breaking changes, security issues, devex regressions, and feature-gate leaks."
   },
   {
     "name": "to-spec",
