@@ -37,8 +37,11 @@ It preserves rendered output, code blocks, tables, and frontmatter.
 # Interacting with browser
 
 - Default to `/agent-browser` for browser work.
-For my running Chrome (live logins), attach with `--auto-connect --pin-tab`;
-for a detached or headless browser, use its own named session.
+For my running Chrome (live logins), attach with `--cdp 9222 --pin-tab`;
+that needs Chrome launched with `--remote-debugging-port=9222` (`open -a "Google Chrome" --args --remote-debugging-port=9222`, no consent prompt).
+The `chrome://inspect` toggle serves no `/json` discovery, so `--cdp 9222` and `--auto-connect` time out there;
+pass the browser WebSocket URL from Chrome's `DevToolsActivePort` file to `--cdp` instead.
+For a detached or headless browser, use its own named session.
 - Use `/drive-chrome-cdp` (`chrome-cdp`) when a skill names it (the Workday, Engage, and Microsoft-SSO skills)
 or when the task needs its primitives:
 `wait --request`, cascade `select`, `fill --by cell`, `--in-row`, `grid`, `recipe`, exit-code branching.
