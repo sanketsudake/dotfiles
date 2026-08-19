@@ -252,15 +252,6 @@
     "description": "Comprehensive security and correctness audit of a branch's changes. Use for thermo nuclear, thermonuclear, or deep review requests, or branch/PR diff audits focused on bugs, breaking changes, security issues, devex regressions, and feature-gate leaks."
   },
   {
-    "name": "thermos",
-    "repo": "https://github.com/cursor/plugins",
-    "subpath": "thermos/skills/thermos",
-    "ref": "main",
-    "commit": "60c641e4fad674784b30abcf9f8915dea39df38d",
-    "category": "pr-review",
-    "description": "\"Launch both thermo-nuclear review subagents in parallel, then synthesize their findings. Use for thermos, double thermo review, or combined bug/security and code-quality branch audits.\""
-  },
-  {
     "name": "to-spec",
     "repo": "https://github.com/mattpocock/skills",
     "subpath": "skills/engineering/to-spec",

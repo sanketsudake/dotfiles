@@ -17,8 +17,7 @@ disable-model-invocation: true
 # Review battery
 
 One entry point for reviewing a change set.
-It runs the two thermos review subagents (the vendored `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` rubrics) in parallel, adds the `/simplify` and `/deslop` passes, and consolidates everything into one verified list and a verdict.
-For the two subagents alone, with no cleanup passes or PR delivery, `/thermos` is the lighter tool.
+It runs the two thermo-nuclear review subagents (the vendored `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` rubrics) in parallel, adds the `/simplify` and `/deslop` passes, and consolidates everything into one verified list and a verdict.
 
 Arguments (`$ARGUMENTS`):
 
@@ -91,6 +90,5 @@ Never push commits to the PR branch.
 
 ## Related skills
 
-- `thermos` — the two subagents alone, no cleanup passes, no PR delivery.
 - `make-pr-easy-to-review` — tidy your own PR's history and description; run it on its own, it is not a review pass.
 - `resolve-bot-review-threads`, `watch-ci`, `debug-ci` — the post-review loop once the findings are addressed.
