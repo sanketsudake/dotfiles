@@ -1,0 +1,11 @@
+{
+  "_comment": "Accepted findings for the vendored drive-chrome-cdp skill (sanketsudake/chrome-cdp-cli). Every rule needs a reason.",
+  "version": 2,
+  "rules": [
+    {
+      "id": "YR1",
+      "path": "SKILL.md",
+      "reason": "YARA 'info_stealer' matches the frontmatter description's phrase \"its live tabs, logins, and cookies, so it types no credentials\" (new in the 0.3.0 description trim, which added the word \"cookies\"). The sentence states the opposite of credential harvesting: the skill drives Chrome's existing signed-in session precisely so it never types or reads credentials, and the whole skill is prose plus `chrome-cdp` CLI invocations — no scripts, no network egress, no credential or cookie store access (scan reports has_executable_scripts: false). Path-scoped to SKILL.md so any real match in references/ or a future script still fails the gate."
+    }
+  ]
+}
