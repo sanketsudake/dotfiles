@@ -45,6 +45,8 @@ For a detached or headless browser, use its own named session.
 - Use `/drive-chrome-cdp` (`chrome-cdp`) when a skill names it (the Workday, Engage, and Microsoft-SSO skills)
 or when the task needs its primitives:
 `wait --request`, cascade `select`, `fill --by cell`, `--in-row`, `grid`, `recipe`, exit-code branching.
+On the `chrome://inspect` path, `--endpoint ws://…` (the URL from `DevToolsActivePort`) attaches where port discovery fails.
+For parallel agents on one Chrome, `--session <name>` namespaces the sticky current tab so they do not steal each other's tab.
 - Both tools attach to my real Chrome and can raise one "Allow remote debugging?" consent prompt;
 run one probe and wait for it, do not stack probes.
 - Type no credentials in either tool; stop at a login or passkey page and ask me to sign in.
