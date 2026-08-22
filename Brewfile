@@ -125,6 +125,7 @@ cask "devin-cli"
 cask "dbeaver-community"
 cask "gcloud-cli"
 cask "ghostty"
+cask "helium-browser" # Chromium-based; to replace google-chrome eventually
 cask "insomnia"
 cask "itsycal"
 cask "obsidian"
