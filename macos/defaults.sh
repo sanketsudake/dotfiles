@@ -58,6 +58,43 @@ defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
 defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
 
+# --- helium (browser) --------------------------------------------------------
+# New tab page: no "frequently visited" tiles. No enterprise policy covers this,
+# so it lives in the profile's Preferences JSON. Helium rewrites that file when
+# it exits, so the patch only applies while Helium is closed. The key name has a
+# typo (`shortcust`); that typo is Chromium's own and is the real key.
+HELIUM_PREFS="$HOME/Library/Application Support/net.imput.helium/Default/Preferences"
+if [[ ! -f "$HELIUM_PREFS" ]]; then
+	echo "  helium: no profile at $HELIUM_PREFS — skipped"
+elif pgrep -x Helium >/dev/null 2>&1; then
+	echo "  helium: running — quit Helium and re-run to hide the new-tab tiles"
+else
+	python3 - "$HELIUM_PREFS" <<'PY'
+import json, os, sys, tempfile
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    prefs = json.load(fh)
+
+ntp = prefs.setdefault("ntp", {})
+if ntp.get("shortcust_visible") is False:
+    print("  helium: new-tab tiles already hidden")
+else:
+    ntp["shortcust_visible"] = False
+    directory = os.path.dirname(path)
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix="Preferences.")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(prefs, fh, separators=(",", ":"))
+        os.chmod(tmp, os.stat(path).st_mode & 0o777)
+        os.replace(tmp, path)
+    except BaseException:
+        os.path.exists(tmp) and os.unlink(tmp)
+        raise
+    print("  helium: new-tab tiles hidden")
+PY
+fi
+
 # --- apply -------------------------------------------------------------------
 killall Finder 2>/dev/null || true
 killall Dock 2>/dev/null || true

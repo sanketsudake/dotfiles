@@ -22,7 +22,7 @@ On an existing machine, clone the repo and run `make install`.
 | `Brewfile` | Curated brew formulae, casks, App Store apps (mas), and VS Code extensions |
 | `manifests/` | Non-brew tools: `go-tools.txt`, `npm-globals.txt`, `pipx-tools.txt` |
 | `bootstrap.sh` | New-Mac entry point |
-| `macos/defaults.sh` | Deliberately-changed macOS settings, applied via `make macos-apply` |
+| `macos/defaults.sh` | Deliberately-changed macOS and app settings, applied via `make macos-apply` |
 | `scripts/doctor.sh` | Health checks behind `make doctor` |
 
 ## Make targets
