@@ -59,28 +59,54 @@ defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool
 defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
 
 # --- helium (browser) --------------------------------------------------------
-# New tab page: no "frequently visited" tiles. No enterprise policy covers this,
-# so it lives in the profile's Preferences JSON. Helium rewrites that file when
-# it exits, so the patch only applies while Helium is closed. The key name has a
-# typo (`shortcust`); that typo is Chromium's own and is the real key.
+# Helium reads Chromium enterprise policy from its own preferences domain, so
+# `defaults write` reaches it — no sudo, no /Library/Managed Preferences. An
+# unforced write lands as level "recommended": it sets the default but Settings
+# can still override it. Confirm with helium://policy after a relaunch.
+# Not set here: PasswordManagerEnabled and PasswordManagerPasskeysEnabled.
+# Helium's built-in HOP provider already forces both off, at a higher priority
+# than any policy this file can write.
+# No autofill of cards or addresses, and sites cannot probe for saved cards.
+defaults write net.imput.helium AutofillCreditCardEnabled -bool false
+defaults write net.imput.helium AutofillAddressEnabled -bool false
+defaults write net.imput.helium PaymentMethodQueryEnabled -bool false
+# No omnibox keystrokes to the search engine, and no link prefetch (2 = off).
+defaults write net.imput.helium SearchSuggestEnabled -bool false
+defaults write net.imput.helium NetworkPredictionOptions -int 2
+# Ask where to save each download.
+defaults write net.imput.helium PromptForDownloadLocation -bool true
+
+# The new tab page's "frequently visited" tiles have no policy, so they live in
+# the profile's Preferences JSON. The `shortcust` typo is Chromium's own key
+# name. Helium rewrites that file when it exits, so the patch only applies while
+# it is closed. Add further JSON-only keys to WANTED below.
 HELIUM_PREFS="$HOME/Library/Application Support/net.imput.helium/Default/Preferences"
 if [[ ! -f "$HELIUM_PREFS" ]]; then
-	echo "  helium: no profile at $HELIUM_PREFS — skipped"
+	echo "  helium: no profile at $HELIUM_PREFS — prefs patch skipped"
 elif pgrep -x Helium >/dev/null 2>&1; then
-	echo "  helium: running — quit Helium and re-run to hide the new-tab tiles"
+	echo "  helium: running — quit Helium and re-run to apply the prefs patch"
 else
 	python3 - "$HELIUM_PREFS" <<'PY'
 import json, os, sys, tempfile
+
+WANTED = {
+    ("ntp", "shortcust_visible"): False,          # typo is Chromium's own key
+}
 
 path = sys.argv[1]
 with open(path, encoding="utf-8") as fh:
     prefs = json.load(fh)
 
-ntp = prefs.setdefault("ntp", {})
-if ntp.get("shortcust_visible") is False:
-    print("  helium: new-tab tiles already hidden")
+changed = []
+for (section, key), value in WANTED.items():
+    block = prefs.setdefault(section, {})
+    if block.get(key) != value:
+        block[key] = value
+        changed.append(key)
+
+if not changed:
+    print("  helium: prefs already set")
 else:
-    ntp["shortcust_visible"] = False
     directory = os.path.dirname(path)
     fd, tmp = tempfile.mkstemp(dir=directory, prefix="Preferences.")
     try:
@@ -91,7 +117,7 @@ else:
     except BaseException:
         os.path.exists(tmp) and os.unlink(tmp)
         raise
-    print("  helium: new-tab tiles hidden")
+    print("  helium: set " + ", ".join(sorted(changed)))
 PY
 fi
 
