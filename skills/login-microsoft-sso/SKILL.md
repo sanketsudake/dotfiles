@@ -44,17 +44,16 @@ All commands take `--json`.
 Parse the envelope and branch on the exit code (see `drive-chrome-cdp`).
 
 1. **Connection.**
-   The user's browser is **Helium**, not Google Chrome, and `doctor` reads Chrome's port file by default —
-   so give it Helium's endpoint and start the daemon first (one consent prompt per session):
+   `doctor` defaults to Chrome's port file, and the user's browser is Helium —
+   so pass the endpoint and start the daemon first (one consent prompt per session):
 
    ```sh
-   PF="$HOME/Library/Application Support/net.imput.helium/DevToolsActivePort"
-   EP="ws://127.0.0.1:$(head -1 "$PF")$(sed -n 2p "$PF")"
+   EP="$("$CLAUDE_CONFIG_DIR"/scripts/browser-endpoint.sh)"
    chrome-cdp daemon start --endpoint "$EP" --json
    ```
 
    Then run `chrome-cdp doctor --json`.
-   If the port file is absent, or `ok:false` (connection_failed),
+   If the script fails, or `ok:false` (connection_failed),
    tell the user to enable `helium://inspect/#remote-debugging`, then re-run.
    Do not proceed until ready.
 2. **Pick a tab.**
