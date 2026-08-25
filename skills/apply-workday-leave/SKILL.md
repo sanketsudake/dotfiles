@@ -6,7 +6,7 @@ description: >-
   reconciles the timesheet so the leave day carries no project hours.
   Use when the user wants to apply leave, absence, sick leave, casual leave,
   planned leave, or comp off in Workday, or invokes /apply-workday-leave.
-  Drives the user's real Chrome via the chrome-cdp CLI and logs in through
+  Drives the user's real browser via the chrome-cdp CLI and logs in through
   login-microsoft-sso.
 disable-model-invocation: true
 license: Apache-2.0
@@ -17,7 +17,7 @@ metadata:
 
 # Apply Workday Leave
 
-This skill automates the Workday **Request Absence** flow via **`chrome-cdp`** on the user's real, logged-in Chrome.
+This skill automates the Workday **Request Absence** flow via **`chrome-cdp`** on the user's real, logged-in browser.
 It requests absence for given dates and type, shows the plan, and waits for confirmation before submitting — then checks the timesheet and clears any project hours already entered.
 Submitting writes real data and notifies the approver; never submit without explicit confirmation.
 

@@ -36,17 +36,28 @@ It preserves rendered output, code blocks, tables, and frontmatter.
 
 # Interacting with browser
 
-- Default to `/agent-browser` for browser work.
-For my running Chrome (live logins), attach with `--cdp 9222 --pin-tab`;
-that needs Chrome launched with `--remote-debugging-port=9222` (`open -a "Google Chrome" --args --remote-debugging-port=9222`, no consent prompt).
-The `chrome://inspect` toggle serves no `/json` discovery, so `--cdp 9222` and `--auto-connect` time out there;
-pass the browser WebSocket URL from Chrome's `DevToolsActivePort` file to `--cdp` instead.
+- My browser is **Helium** (`/Applications/Helium.app`), a Chromium fork — not Google Chrome.
+It holds the live logins, so all browser work attaches to Helium.
+When a skill says "the user's real Chrome", read it as Helium.
+- Remote debugging comes from the toggle at `helium://inspect/#remote-debugging` —
+no restart, tabs and logins survive, one consent prompt.
+If it is off, ask me to enable it; do not relaunch the browser.
+- That toggle serves no `/json` discovery, so `--cdp 9222` and `--auto-connect` time out.
+Read the browser WebSocket URL from Helium's own `DevToolsActivePort` file and pass it explicitly:
+
+```sh
+PF="$HOME/Library/Application Support/net.imput.helium/DevToolsActivePort"
+EP="ws://127.0.0.1:$(head -1 "$PF")$(sed -n 2p "$PF")"
+```
+
+- Default to `/agent-browser` for browser work; attach with `--cdp "$EP" --pin-tab`.
 For a detached or headless browser, use its own named session.
 - Use `/drive-chrome-cdp` (`chrome-cdp`) when a skill names it (the Workday, Engage, and Microsoft-SSO skills)
 or when the task needs its primitives:
 `wait --request`, cascade `select`, `fill --by cell`, `--in-row`, `grid`, `recipe`, exit-code branching.
-On the `chrome://inspect` path, `--endpoint ws://…` (the URL from `DevToolsActivePort`) attaches where port discovery fails.
-For parallel agents on one Chrome, `--session <name>` namespaces the sticky current tab so they do not steal each other's tab.
-- Both tools attach to my real Chrome and can raise one "Allow remote debugging?" consent prompt;
+Start the daemon first — `chrome-cdp daemon start --endpoint "$EP" --json` —
+because it holds one connection, so the consent prompt is answered once per session, not on every attach.
+For parallel agents on one browser, `--session <name>` namespaces the sticky current tab so they do not steal each other's tab.
+- Both tools attach to my real browser and can raise one "Allow remote debugging?" consent prompt;
 run one probe and wait for it, do not stack probes.
 - Type no credentials in either tool; stop at a login or passkey page and ask me to sign in.

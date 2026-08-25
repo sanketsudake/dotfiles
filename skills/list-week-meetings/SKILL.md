@@ -6,7 +6,7 @@ description: >-
   meeting status.
   Use when the user asks for their week's meetings, "what's on my calendar
   this week", a meeting list, or invokes /list-week-meetings.
-  Drives the user's real, logged-in Chrome via the chrome-cdp CLI and logs
+  Drives the user's real, logged-in browser via the chrome-cdp CLI and logs
   in through login-microsoft-sso (app outlook).
   Read-only — never creates, edits, or deletes calendar events.
 disable-model-invocation: true
@@ -19,7 +19,7 @@ metadata:
 # List Week Meetings
 
 This skill reads a week's meetings from the Outlook web calendar.
-It uses the `chrome-cdp` CLI to drive the user's real, logged-in Chrome browser.
+It uses the `chrome-cdp` CLI to drive the user's real, logged-in browser.
 It groups events by day.
 It does not create, edit, or delete any event.
 

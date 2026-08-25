@@ -22,7 +22,7 @@ metadata:
 
 # Record Engage Activity
 
-Assisted, review-first automation of the Engage **Add Activity** form, driven by the **`chrome-cdp`** CLI (the user's real, logged-in Chrome).
+Assisted, review-first automation of the Engage **Add Activity** form, driven by the **`chrome-cdp`** CLI (the user's real, logged-in browser).
 It fills category, type, date, quantity, and notes, then shows the entry and points before submitting.
 Submit only after the user confirms — it writes real data and points.
 
