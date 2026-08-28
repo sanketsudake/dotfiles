@@ -9,3 +9,4 @@ if command -v kubecolor >/dev/null; then
 fi
 command -v eza >/dev/null && alias ll='eza -l --git'
 command -v lazygit >/dev/null && alias lg=lazygit
+command -v glow >/dev/null && alias md='glow -p'

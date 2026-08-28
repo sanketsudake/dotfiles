@@ -51,6 +51,7 @@ brew "fd"          # gitignore-aware find
 brew "git-delta"   # readable side-by-side git diffs (wired in gitconfig)
 brew "yq"          # jq for YAML/TOML/XML
 brew "jless"       # interactive JSON pager
+brew "glow"        # markdown renderer/pager for the terminal
 brew "dust"        # visual du
 brew "lazygit"     # git TUI (same author as lazydocker)
 
