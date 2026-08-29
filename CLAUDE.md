@@ -163,8 +163,10 @@ Rules and docs reference scripts via `$CLAUDE_CONFIG_DIR/scripts/...` so the pat
 `claude/scripts/` currently holds `agent-routing-hook.sh` (the `PreToolUse` routing hook referenced by `rules/model-routing.md`),
 `safety-guard-hook.py` (a `PreToolUse` deny/ask gate on `Bash` and `Edit|Write` — the Claude-side twin of pi's `permission-gate.ts` + `protected-paths.ts`, referenced by `rules/git-hygiene.md`),
 `usage-log-hook.py` + `usage-report.py` (`SubagentStop`/`Stop`/`SessionEnd` telemetry into `$CLAUDE_CONFIG_DIR/usage.jsonl` and its aggregator, also referenced by `rules/model-routing.md`; `make usage-report` runs the aggregator for every profile),
+`browser-endpoint.sh` (prints the CDP endpoint of the user's browser, referenced by `claude/CLAUDE.md`),
 and `statusline-command.sh` (a `statusLine` hook script).
-None is symlinked-by-reference; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
+No hook among them is wired by default; a profile must opt in via its own `settings.json`, which is not tracked in this repo — each hook script's header carries its wiring snippet.
+`browser-endpoint.sh` is a plain helper instead: it is invoked by path and needs no wiring.
 Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see "Skill & agent source management").
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.

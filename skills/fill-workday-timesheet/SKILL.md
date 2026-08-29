@@ -8,7 +8,7 @@ description: >-
   Use when the user wants to fill in their Workday timesheet ("fill my
   timesheet", "make sure time is entered through the 15th"), invoked as
   /fill-workday-timesheet.
-  Drives the user's real Chrome via the chrome-cdp CLI, logging in through
+  Drives the user's real browser via the chrome-cdp CLI, logging in through
   login-microsoft-sso.
 disable-model-invocation: true
 license: Apache-2.0
@@ -19,7 +19,7 @@ metadata:
 
 # Fill Workday Timesheet
 
-Automates Workday's **Enter Time** flow with the **`chrome-cdp`** CLI, in the user's real, logged-in Chrome.
+Automates Workday's **Enter Time** flow with the **`chrome-cdp`** CLI, in the user's real, logged-in browser.
 For each week in scope, it proposes hours per weekday against a project, shows the whole plan, and waits for confirmation before saving.
 Entering time writes real data.
 

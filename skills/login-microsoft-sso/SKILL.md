@@ -1,9 +1,9 @@
 ---
 name: login-microsoft-sso
 description: >-
-  Ensures a Chrome tab is signed in to an app behind your organization's
+  Ensures a browser tab is signed in to an app behind your organization's
   Microsoft (Entra) SSO (e.g. Workday, Engage, Outlook), driven by the
-  `chrome-cdp` CLI on the user's real, already-logged-in Chrome — so it
+  `chrome-cdp` CLI on the user's real, already-logged-in browser — so it
   types no credentials.
   Use when another skill or task needs a logged-in tab before automating
   Workday, Engage, or Outlook web, or when the user runs
@@ -19,8 +19,8 @@ metadata:
 
 # Login to an SSO app (Microsoft-federated)
 
-Ensure a Chrome tab is signed in to an app behind your organization's **Microsoft (Entra) SSO**.
-Use the **`chrome-cdp`** CLI on the user's real, already signed-in Chrome — this skill types **no** credentials.
+Ensure a browser tab is signed in to an app behind your organization's **Microsoft (Entra) SSO**.
+Use the **`chrome-cdp`** CLI on the user's real, already signed-in browser — this skill types **no** credentials.
 
 > See **`drive-chrome-cdp`** for CLI setup, output contract, and the passkey rule.
 > Local skill, maintained in this repo (`.source.json` has `"repo": null`).
@@ -44,8 +44,17 @@ All commands take `--json`.
 Parse the envelope and branch on the exit code (see `drive-chrome-cdp`).
 
 1. **Connection.**
-   Run `chrome-cdp doctor --json`.
-   If `ok:false` (connection_failed), tell the user to enable `chrome://inspect/#remote-debugging`, then re-run.
+   `doctor` defaults to Chrome's port file, and the user's browser is Helium —
+   so pass the endpoint and start the daemon first (one consent prompt per session):
+
+   ```sh
+   EP="$("$CLAUDE_CONFIG_DIR"/scripts/browser-endpoint.sh)"
+   chrome-cdp daemon start --endpoint "$EP" --json
+   ```
+
+   Then run `chrome-cdp doctor --json`.
+   If the script fails, or `ok:false` (connection_failed),
+   tell the user to enable `helium://inspect/#remote-debugging`, then re-run.
    Do not proceed until ready.
 2. **Pick a tab.**
    Run `chrome-cdp list --url "<app host>" --json` (filters, so it skips scanning the full list).
@@ -77,7 +86,7 @@ Parse the envelope and branch on the exit code (see `drive-chrome-cdp`).
 
 ## Output
 
-The Chrome tab id (from `list` or `use`), signed in to the app.
+The browser tab id (from `list` or `use`), signed in to the app.
 Reuse it via `--target <id>` (or the sticky `use`).
 
 ## Safety
