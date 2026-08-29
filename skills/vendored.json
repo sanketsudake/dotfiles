@@ -216,6 +216,69 @@
     "description": "How to use the Readwise CLI — access highlights, documents, and your entire reading library from the command line"
   },
   {
+    "name": "readwise-second-brain-sync",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/readwise-second-brain-sync",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Syncs Readwise highlights and Reader documents into the second-brain vault's raw/ folder in Obsidian-Web-Clipper format. Use when the user says \"sync readwise\", \"pull my readwise highlights\", \"update raw/ from reader\", or wants their reading library reflected in the wiki (triggers: readwise sync, reader sync, import highlights). Sync only — follow with /second-brain-ingest."
+  },
+  {
+    "name": "second-brain",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/second-brain",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Sets up a new Obsidian knowledge base using the LLM Wiki pattern, where the LLM acts as librarian over raw sources. Use when the user wants to create a second brain, initialize a vault, set up a personal knowledge base, or says \"onboard\". Interactive setup wizard."
+  },
+  {
+    "name": "second-brain-ideate",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/second-brain-ideate",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Mines the knowledge-base wiki for strong, defensible content ideas — blog posts, conference talks, internal sessions, threads. Use when the user says \"ideate\", \"what should I write about\", \"find content ideas in my wiki\", \"blog/talk ideas\", or wants to turn collected knowledge into publishable content. Produces a scored shortlist with outlines in output/ and maintains an ideas backlog in wiki/synthesis/."
+  },
+  {
+    "name": "second-brain-ingest",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/second-brain-ingest",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Process raw source documents into wiki pages. Use when the user adds files to raw/ and wants them ingested, or says \"process this source\", \"ingest this article\", \"batch ingest\", \"deepen\", \"I added something to raw/\", \"I clipped some articles\", or wants to incorporate new material into their knowledge base. Sweeps the vault's Clippings/ folder (Obsidian Web Clipper) into raw/ first, enriching metadata on the way."
+  },
+  {
+    "name": "second-brain-lint",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/second-brain-lint",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Health-checks the wiki for contradictions, orphan pages, stale claims, and missing cross-references. Use when the user says \"audit\", \"health check\", \"lint\", \"find problems\", or wants to improve wiki quality."
+  },
+  {
+    "name": "second-brain-query",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/second-brain-query",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Answers questions against the knowledge base wiki. Use when the user asks a question about their collected knowledge, wants to explore connections between topics, says \"what do I know about X\", or wants to search their wiki."
+  },
+  {
+    "name": "second-brain-review",
+    "repo": "https://github.com/sanketsudake/second-brain",
+    "subpath": "skills/second-brain-review",
+    "ref": "main",
+    "commit": "7c503f4367c7ef08a0a74a70541672ccab0de86d",
+    "category": "knowledge-base",
+    "description": "Resurfaces knowledge from the second-brain wiki: a daily or periodic review of highlights, concepts, and stale pages, replacing Readwise's daily review. Use when the user says \"daily review\", \"review my highlights\", \"resurface something\", \"what should I revisit\", or wants spaced-repetition-style engagement with their wiki."
+  },
+  {
     "name": "sembr-reformat",
     "repo": "https://github.com/sembr/skills",
     "subpath": "skills/sembr-reformat",

@@ -48,13 +48,13 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 
 | Skill | Purpose |
 |-------|---------|
-| [`second-brain`](../../skills/second-brain/SKILL.md) | Sets up a new Obsidian knowledge base using the LLM Wiki pattern, where the LLM acts as librarian over raw sources. |
-| [`readwise-second-brain-sync`](../../skills/readwise-second-brain-sync/SKILL.md) | Syncs Readwise highlights and Reader documents into the second-brain vault's raw/ folder in Obsidian-Web-Clipper format. |
-| [`second-brain-ingest`](../../skills/second-brain-ingest/SKILL.md) | Process raw source documents into wiki pages. |
-| [`second-brain-query`](../../skills/second-brain-query/SKILL.md) | Answers questions against the knowledge base wiki. |
-| [`second-brain-review`](../../skills/second-brain-review/SKILL.md) | Resurfaces knowledge from the second-brain wiki: a daily or periodic review of highlights, concepts, and stale pages, replacing Readwise's daily review. |
-| [`second-brain-ideate`](../../skills/second-brain-ideate/SKILL.md) | Mines the knowledge-base wiki for strong, defensible content ideas — blog posts, conference talks, internal sessions, threads. |
-| [`second-brain-lint`](../../skills/second-brain-lint/SKILL.md) | Health-checks the wiki for contradictions, orphan pages, stale claims, and missing cross-references. |
+| [`second-brain`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/second-brain) | Sets up a new Obsidian knowledge base using the LLM Wiki pattern, where the LLM acts as librarian over raw sources. |
+| [`readwise-second-brain-sync`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/readwise-second-brain-sync) | Syncs Readwise highlights and Reader documents into the second-brain vault's raw/ folder in Obsidian-Web-Clipper format. |
+| [`second-brain-ingest`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/second-brain-ingest) | Process raw source documents into wiki pages. |
+| [`second-brain-query`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/second-brain-query) | Answers questions against the knowledge base wiki. |
+| [`second-brain-review`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/second-brain-review) | Resurfaces knowledge from the second-brain wiki: a daily or periodic review of highlights, concepts, and stale pages, replacing Readwise's daily review. |
+| [`second-brain-ideate`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/second-brain-ideate) | Mines the knowledge-base wiki for strong, defensible content ideas — blog posts, conference talks, internal sessions, threads. |
+| [`second-brain-lint`](https://github.com/sanketsudake/second-brain/tree/7c503f4367c7ef08a0a74a70541672ccab0de86d/skills/second-brain-lint) | Health-checks the wiki for contradictions, orphan pages, stale claims, and missing cross-references. |
 
 ## Install
 

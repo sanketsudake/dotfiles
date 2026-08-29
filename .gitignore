@@ -40,6 +40,13 @@ skills/*/package-lock.json
 /skills/pr-review-canvas/
 /skills/prototype/
 /skills/readwise-cli/
+/skills/readwise-second-brain-sync/
+/skills/second-brain/
+/skills/second-brain-ideate/
+/skills/second-brain-ingest/
+/skills/second-brain-lint/
+/skills/second-brain-query/
+/skills/second-brain-review/
 /skills/sembr-reformat/
 /skills/setup-matt-pocock-skills/
 /skills/thermo-nuclear-code-quality-review/
