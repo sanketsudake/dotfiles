@@ -62,7 +62,7 @@ RESOURCE_ROOT=""
 MANIFEST=""          # sources.toml (both kinds; KIND selects the array)
 TOML_MANIFEST="$REPO_ROOT/scripts/toml-manifest.py"
 GITIGNORE="$REPO_ROOT/.gitignore"
-SCAN_BASELINE_DIR="$REPO_ROOT/security/skillspector"   # per-skill SkillSpector baselines
+SCAN_BASELINE_DIR="$REPO_ROOT/skills/.security/skillspector"   # per-skill SkillSpector baselines
 
 configure_kind() {
   case "$KIND" in
@@ -422,7 +422,7 @@ scan_gate() {  # staged_dir name
   case $? in
     0) return 0 ;;
     3) info "$2: WARNING — skillspector not installed, skill NOT security-scanned"; return 0 ;;
-    *) err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."; return 1 ;;
+    *) err "$2: security scan FAILED — not installed. Review the findings above; accept a false positive with a reason in skills/.security/skillspector/$2.json, or re-run with SKILLS_SCAN=0 to install unscanned."; return 1 ;;
   esac
 }
 

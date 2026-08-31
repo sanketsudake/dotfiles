@@ -102,9 +102,9 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
 - `make skills-scan [NAME=…] [LLM=1] [SHOW=1] [REPORT=file] [FAIL_AT=50]` — security-scan skills with [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) via `scripts/skills-scan.py` (prompt injection, exfiltration, privilege escalation, supply chain, excessive agency, dangerous code, …).
   Every skill by default (authored + materialized vendored), exported minus `__pycache__`/`.pyc`/`bin/` so only what would be installed is scanned; static analysis by default, `LLM=1` adds the semantic pass through the local `claude` CLI.
   Fails on any residual HIGH/CRITICAL finding or a risk score ≥ `FAIL_AT`.
-  Accepted findings live in `security/skillspector/` — `_global.json` for every skill, `<name>.json` per skill — as SkillSpector baseline glob rules, each with a `reason`; `SHOW=1` lists what they suppress.
+  Accepted findings live in `skills/.security/skillspector/` — `_global.json` for every skill, `<name>.json` per skill — as SkillSpector baseline glob rules, each with a `reason`; `SHOW=1` lists what they suppress.
   `skills-fetch` and `skills-update` run the same scan on the staged skill **before** installing it and refuse on failure (`SKILLS_SCAN=0` installs unscanned, logged); when `skillspector` is not installed the gate warns and lets the install through.
-  Install: `make skillspector-install` — pinned to `SKILLSPECTOR_REF` in the Makefile (the release the baselines were reviewed against); bump it deliberately and re-review `security/skillspector/`.
+  Install: `make skillspector-install` — pinned to `SKILLSPECTOR_REF` in the Makefile (the release the baselines were reviewed against); bump it deliberately and re-review `skills/.security/skillspector/`.
   `skills-delete` also removes the skill's baseline, and `skills-doctor` flags a baseline that names no skill.
 - `make skills-doctor` / `make agents-doctor` — validate every resource: for skills, the manifest is valid TOML (required fields on vendored entries, no duplicate names, every vendored dir gitignored), each authored dir has a `SKILL.md` + a `sources.toml` entry with `category`, an authored skill's optional `evals/evals.json` (golden tasks in the skill-creator shape `{skill_name, evals: [{id, name, prompt, expected_output, files}]}`, grown by `harvest-automation`'s `apply evals`) is well-formed, and no dir is a stale vendored orphan (a `.source.json` naming a `repo` with no manifest entry — `skills-materialize` prunes these), plus `skills/README.md` is current and the always-loaded context is under `CONTEXT_BUDGET_TOKENS` (see `context-budget`); for agents, markdown present with non-empty frontmatter `name`/`description` and a `sources.toml` entry carrying a `category`.
   Exit 1 on any issue.
@@ -199,7 +199,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 ## Skill authoring addenda
 
 - Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
-- Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `security/skillspector/<skill>.json`.
+- Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `skills/.security/skillspector/<skill>.json`.
 - Before committing any change, run the pre-flight gate: `make preflight` (both doctors — which cover the catalog, suites, and the context budget — plus `bash -n`/`py_compile` over every script) and `make test` (every `scripts/test-*.{sh,py}`).
   The gate is defined once in the Makefile and enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while `make preflight` fails, and `.github/workflows/checks.yml` runs `make preflight`, `make test`, and the SkillSpector scan on push and PR.
 

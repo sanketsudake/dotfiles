@@ -16,7 +16,7 @@ Usage:
   --fail-at N    fail when a skill's residual risk score is >= N (default 50)
   --report FILE  write the combined JSON report
 
-Baselines (accepted findings, each with a reason) live in security/skillspector/:
+Baselines (accepted findings, each with a reason) live in skills/.security/skillspector/:
 _global.json applies to every skill, <name>.json to one. They are JSON in
 SkillSpector's baseline schema (version 2, glob `rules`); global + per-skill are
 merged into the baseline handed to the scanner.
@@ -40,7 +40,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = REPO_ROOT / "skills"
-BASELINE_DIR = REPO_ROOT / "security" / "skillspector"
+BASELINE_DIR = REPO_ROOT / "skills" / ".security" / "skillspector"
 INSTALL_HINT = "make skillspector-install (pinned to SKILLSPECTOR_REF in the Makefile)"
 # Local build/cache artifacts: gitignored, never installed, but a scan of the
 # live tree would flag them (a .pyc next to clean sources is a supply-chain hit).

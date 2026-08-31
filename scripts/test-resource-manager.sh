@@ -65,9 +65,9 @@ make -s skills-doctor
 make -s skills-catalog CHECK=1
 
 echo "== delete (also drops the skill's scan baseline)"
-mkdir -p security/skillspector && echo '{"version":2,"rules":[]}' > "security/skillspector/$NAME.json"
+mkdir -p skills/.security/skillspector && echo '{"version":2,"rules":[]}' > "skills/.security/skillspector/$NAME.json"
 make -s skills-delete NAME=$NAME YES=1
-[[ ! -e "security/skillspector/$NAME.json" ]] || fail "scan baseline survived delete"
+[[ ! -e "skills/.security/skillspector/$NAME.json" ]] || fail "scan baseline survived delete"
 make -s skills-catalog
 manifest_json | jq -e --arg n "$NAME" '[.skill[]|select(.name==$n)]|length==0' >/dev/null || fail "manifest entry survived delete"
 grep -qx "/skills/$NAME/" .gitignore && fail ".gitignore line survived delete"

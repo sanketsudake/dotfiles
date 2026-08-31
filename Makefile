@@ -33,7 +33,7 @@ PI_PKG_ENTRIES := agent extensions prompts skills README.md
 RESOURCE_MANAGER := $(CURDIR)/scripts/resource-manager.sh
 # NVIDIA SkillSpector release the security scan and its baselines were reviewed
 # against. Bump deliberately, then re-run `make skills-scan` and re-review
-# security/skillspector/*.json — rule ids and finding text can change upstream.
+# skills/.security/skillspector/*.json — rule ids and finding text can change upstream.
 SKILLSPECTOR_REF ?= v2.9.5
 
 # Cap on the always-loaded context this repo injects per session (see
@@ -342,7 +342,7 @@ usage-report:
 # every skill by default, NAME=x for one, LLM=1 adds the semantic pass via the
 # local `claude` CLI, SHOW=1 lists baseline-suppressed findings, REPORT=file
 # writes the combined JSON. Fails on any residual HIGH/CRITICAL finding or a
-# score >= FAIL_AT (default 50). Accepted findings live in security/skillspector/.
+# score >= FAIL_AT (default 50). Accepted findings live in skills/.security/skillspector/.
 # skills-fetch / skills-update run the same scan on the staged skill before
 # installing it (SKILLS_SCAN=0 skips).
 skills-scan:
