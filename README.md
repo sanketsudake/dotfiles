@@ -31,7 +31,7 @@ On an existing machine, clone the repo and run `make install`.
   a `PreToolUse` safety hook does the same for Claude Code (deny/ask on dangerous shell, secrets, and VCS internals);
   `plugins.txt` declares the plugin set and `make plugins-check` reports drift per profile.
 - **Skills are scanned before they land.**
-  `make skills-scan` runs [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) over every skill, `skills-fetch`/`skills-update` refuse a skill that fails, and accepted findings carry a reason in `security/skillspector/`.
+  `make skills-scan` runs [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) over every skill, `skills-fetch`/`skills-update` refuse a skill that fails, and accepted findings carry a reason in `skills/.security/skillspector/`.
 - **Measured, not assumed.**
   `make context-budget` reports the always-loaded context per session (capped by the doctor), and a `SubagentStop`/`Stop` telemetry hook plus `make usage-report` show spend by agent type × model and cache-hit ratio.
   CI runs the doctor, catalog, script tests, and the security scan on every push.
@@ -55,9 +55,9 @@ dotfiles/
 │   ├── scripts/    #   hooks (routing, safety guard, usage telemetry) + statusline
 │   └── plugins.txt #   desired-state plugin list
 ├── skills/         # shared skills for Claude + pi — the source of truth
-│   └── README.md   #   generated catalog — start here
+│   ├── README.md   #   generated catalog — start here
+│   └── .security/  #   SkillSpector baselines (accepted findings, with reasons)
 ├── suites/         # curated skill-suite landing pages
-├── security/       # SkillSpector baselines (accepted findings, with reasons)
 ├── pi/             # pi agent config, stowed into ~/.pi
 └── scripts/        # repo tooling (doctor, drift, resource manager — not symlinked)
 ```
