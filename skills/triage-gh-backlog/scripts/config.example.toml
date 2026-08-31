@@ -31,6 +31,13 @@ gitcrawl_db = "~/.config/gitcrawl/gitcrawl.db"
 # stricter. Cross-references only UPGRADE confidence (title->ref => auto tier);
 # they never create a duplicate on their own (a "fixes #N" link is not a dup).
 dup_title_jaccard = 0.7
+# Threads excluded from duplicate clustering entirely. Machine-generated threads
+# share a title template by construction, so title-token overlap is meaningless
+# for them: every "chore(deps): bump the X group with N updates" scores near 1.0
+# against every other one and the engine proposes closing live PRs as duplicates.
+# Author logins match bare, "app/" -prefixed and "[bot]"-suffixed forms.
+dup_exclude_authors = ["dependabot", "renovate", "github-actions"]
+dup_exclude_title_patterns = ["^chore\\(deps\\)", "^build\\(deps"]
 # --- staleness ---
 stale_days = 540                 # ~18mo no activity -> stale candidate
 stale_comment_max = 8            # skip stale-close if more engaged than this

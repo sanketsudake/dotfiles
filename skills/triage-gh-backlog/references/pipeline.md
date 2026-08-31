@@ -43,7 +43,8 @@ No network. Safe to re-run any time after a sync.
 
 ## Stage 3 — triage (`triage.py`)
 
-Deterministic rule engine over `threads.jsonl`, config-driven. Triages **open, not-locally-closed** threads only. Builds duplicate groups locally (same-kind title-token Jaccard ≥ `dup_title_jaccard`, default 0.7; cross-references upgrade confidence) — no embeddings. Emits `triage.jsonl`: `disposition, tier, add_labels[], comment_template, context, rationale, type, areas`.
+Deterministic rule engine over `threads.jsonl`, config-driven. Triages **open, not-locally-closed** threads only. Builds duplicate groups locally (same-kind title-token Jaccard ≥ `dup_title_jaccard`, default 0.7; cross-references upgrade confidence) — no embeddings.
+`dup_exclude_authors` / `dup_exclude_title_patterns` drop machine-generated threads out of clustering entirely (bot logins match bare, `app/`-prefixed and `[bot]`-suffixed forms): they share a title template by construction, so title overlap is pure false-positive signal for them. Emits `triage.jsonl`: `disposition, tier, add_labels[], comment_template, context, rationale, type, areas`.
 
 See `triage-rules.md` for the full rule list. Pure; re-run after tuning config without re-syncing.
 
