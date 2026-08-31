@@ -100,8 +100,6 @@ brew "minio/stable/mc"
 
 # --- cloud & misc ------------------------------------------------------------
 brew "cloudflared"
-brew "codecov-cli"
-brew "semgrep"
 brew "hugo"
 brew "agent-browser"
 brew "herdr"
