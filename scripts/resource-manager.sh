@@ -853,7 +853,7 @@ cmd_catalog() {
 # command) and the Suites index in the top-level README.md.
 
 SUITES_ROOT="$REPO_ROOT/suites"
-SUITE_INSTALL_REPO="sanketsudake/harness-configs"
+SUITE_INSTALL_REPO="sanketsudake/dotfiles"
 SUITE_BEGIN='<!-- suite-skills:begin -->'
 SUITE_END='<!-- suite-skills:end -->'
 SUITES_INDEX_BEGIN='<!-- suites:begin -->'

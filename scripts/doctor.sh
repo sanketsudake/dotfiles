@@ -3,7 +3,6 @@
 set -uo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HARNESS_DIR="${HARNESS_DIR:-$(cd "$REPO_DIR/.." && pwd)/harness-configs}"
 FAIL=0
 
 ok()   { printf '  ok: %s\n' "$*"; }
@@ -29,8 +28,8 @@ if command -v stow >/dev/null; then
 else
   bad "stow not found"
 fi
-# npx is only needed for harness-configs' optional skills-find/vendor targets.
-if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: nvm install --lts (needed only for harness-configs skill vendoring)"; fi
+# npx is only needed for the optional skills-find/vendor targets.
+if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: nvm install --lts (needed only for skill vendoring)"; fi
 
 echo "== brew bundle =="
 if brew bundle check --file="$REPO_DIR/Brewfile" >/dev/null 2>&1; then
@@ -103,17 +102,19 @@ else
   warn "broken symlinks (stale stow links or removed targets):"$'\n'"$(printf '%s\n' "$broken" | sed 's/^/    /')"
 fi
 
-echo "== harness-configs =="
-if [ -d "$HARNESS_DIR/.git" ]; then
-  ok "repo present at $HARNESS_DIR"
-  if [ -r "$HARNESS_DIR/scripts/claude-multi-account.sh" ]; then
-    ok "claude-multi-account.sh readable (sourced by ~/.config/zsh/50-harness.zsh)"
-  else
-    bad "claude-multi-account.sh missing"
-  fi
+echo "== AI harness =="
+if [ -r "$REPO_DIR/scripts/claude-multi-account.sh" ]; then
+  ok "claude-multi-account.sh readable (sourced by ~/.config/zsh/50-harness.zsh)"
 else
-  bad "harness-configs not found at $HARNESS_DIR — run: make harness-install"
+  bad "claude-multi-account.sh missing"
 fi
+for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOME/.pi/skills"; do
+  r="$(resolve "$t")"
+  case "$r" in
+    "$REPO_DIR"/packages/*) ok "$t -> repo" ;;
+    *) bad "$t does not resolve into $REPO_DIR/packages — run: make harness-link" ;;
+  esac
+done
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then echo "doctor: all checks passed"; else echo "doctor: FAILURES above"; fi

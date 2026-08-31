@@ -9,7 +9,7 @@ _zsh_autosuggest="${HOMEBREW_PREFIX:-/opt/homebrew}/share/zsh-autosuggestions/zs
 [ -r "$_zsh_autosuggest" ] && source "$_zsh_autosuggest"
 unset _zsh_autosuggest
 
-# nvm — node version manager (also provides npx for harness-configs tooling).
+# nvm — node version manager (also provides npx for the skill-vendoring tooling).
 _nvm_dir="${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$_nvm_dir/nvm.sh" ] && \. "$_nvm_dir/nvm.sh"

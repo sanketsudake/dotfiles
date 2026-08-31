@@ -56,7 +56,7 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 With the [skills.sh](https://www.skills.sh/) CLI (needs Node.js):
 
 ```bash
-npx skills add sanketsudake/harness-configs \
+npx skills add sanketsudake/dotfiles \
   --skill triage-gh-backlog \
   --skill remediate-codeql-alerts \
   --skill go-deps-security-sweep \
@@ -76,4 +76,4 @@ npx skills add sanketsudake/harness-configs \
 
 ---
 
-Part of [harness-configs](../../README.md); browse all skills in the [catalog](../../skills/README.md).
+Part of [dotfiles](../../README.md); browse all skills in the [catalog](../../skills/README.md).

@@ -23,11 +23,11 @@ brew "ripgrep"
 brew "tree"
 brew "wget"
 
-# --- harness-configs prereqs (stow, jq, gh, node-via-nvm, python) -----------
-brew "stow"        # dotfiles + harness-configs symlink manager (needs >= 2.4.0)
+# --- AI-harness prereqs (stow, jq, gh, node-via-nvm, python) ----------------
+brew "stow"        # dotfiles + harness symlink manager (needs >= 2.4.0)
 brew "jq"
 brew "gh"
-brew "nvm"         # provides node/npx for harness-configs skill tooling
+brew "nvm"         # provides node/npx for skill-vendoring tooling
 brew "python@3.13"
 brew "mas"         # Mac App Store CLI (for the mas entries below)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # New-Mac bootstrap: Xcode CLT -> Homebrew -> clone dotfiles -> brew bundle ->
-# stow links -> harness-configs -> doctor. Idempotent; every step checks first.
+# stow links -> harness links -> doctor. Idempotent; every step checks first.
 #
 # Preferred invocation (casks may prompt for sudo, which clashes with curl|bash
 # sharing stdin with the script):
@@ -74,10 +74,10 @@ if [ -d "$backup_dir" ]; then
   echo "!! into ~/.config/zsh/90-local.zsh (gitignored), then delete the backup."
 fi
 
-step "harness-configs (AI harness setup)"
-make harness-install || {
-  echo "!! harness-configs setup failed (no GitHub access yet?)."
-  echo "!! After 'gh auth login' / SSH keys, run: make harness-install"
+step "AI harness (claude profiles + pi)"
+make skills-materialize harness-link || {
+  echo "!! harness link failed (skills materialize needs network)."
+  echo "!! Re-run: make skills-materialize harness-link"
 }
 
 step "Doctor"
