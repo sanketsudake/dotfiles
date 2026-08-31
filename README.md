@@ -23,7 +23,7 @@ On an existing machine, clone the repo and run `make install`.
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
   `pclaude` / `wclaude` wrappers keep personal and work accounts isolated while sharing the same skills and rules.
 - **Per-resource source tracking.**
-  Each vendored skill is pinned in `skills/vendored.json` (repo, subpath, commit) and materialized on install — so an upstream update is one command and a bare clone stays reproducible.
+  Every skill and agent source lives in one `sources.toml` manifest; vendored skills are pinned there (repo, subpath, commit) and materialized on install — so an upstream update is one command and a bare clone stays reproducible.
 - **Generated catalog, enforced by a doctor.**
   `skills/README.md` is generated from that metadata; `make skills-doctor` fails when anything drifts.
 - **Guardrails as code, not hope.**

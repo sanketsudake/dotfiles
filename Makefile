@@ -1,6 +1,10 @@
 STOW := stow
 PI_TARGET := $(HOME)/.pi
 
+# sources.toml is read/written via tomllib, so python >= 3.11 is required;
+# prefer the brew python the Brewfile installs over a stale system python3.
+PYTHON ?= python3
+
 # Home stow packages (dotfiles). Flags are a security invariant, not a style
 # choice — see "The stow model" in README.md.
 HOME_STOW_FLAGS := --dir=$(CURDIR)/packages --target=$(HOME) --dotfiles --no-folding --verbose=1
@@ -57,7 +61,7 @@ PI_EXTENSIONS := \
 
 SHELL := /bin/bash
 
-.PHONY: install uninstall doctor drift \
+.PHONY: install uninstall doctor drift python-check \
 	brew-install brew-check brew-dump cask-adopt \
 	go-install npm-install pipx-install tools-install \
 	stow-link stow-unlink stow-adopt macos-apply raycast-export \
@@ -253,7 +257,7 @@ extensions-sync:
 # Front-end onto the vercel-labs `skills` CLI (npx skills, the skills.sh
 # ecosystem). skills-find discovers; skills-add fetches via the CLI and vendors
 # the result into skills/ through resource-manager.sh, so each lands with a
-# .source.json and stays manageable by skills-list / skills-update / skills-delete.
+# sources.toml entry and stays manageable by skills-list / skills-update / skills-delete.
 # The CLI is used only as a resolver/fetcher — it never installs per-agent, so
 # the two Claude profiles and packages/claude/agents/ subagents are unaffected.
 # Set GITHUB_TOKEN (or have `gh` logged in) to avoid anonymous rate limits.
@@ -273,7 +277,7 @@ skills-add:
 
 # --- Source management (scripts/resource-manager.sh) -----------------------
 # Fetch one skill (dir under skills/) or agent (.md under packages/claude/agents/) from
-# any repo/subpath, tracking its source in a .source.json sidecar so it can be
+# any repo/subpath, tracking its source in the sources.toml manifest so it can be
 # listed, updated, and deleted.
 
 skills-fetch:
@@ -287,7 +291,7 @@ skills-fetch:
 		$(if $(FORCE),--force)
 
 # Reconstruct vendored skills' working files from the pinned commits in
-# skills/vendored.json (their files are gitignored, not committed). Idempotent —
+# sources.toml (their files are gitignored, not committed). Idempotent —
 # skips any skill already present at the right commit. Run by `make install`;
 # NAME=<skill> materializes one, FORCE=1 re-fetches even if present.
 skills-materialize:
@@ -332,7 +336,7 @@ context-budget:
 # profile: subagent spend by agent type × model, per-day cache-hit ratio.
 # SINCE=N limits to the last N days (default 30).
 usage-report:
-	@python3 $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) $(foreach d,$(CLAUDE_CONFIG_DIRS),--log "$(d)/usage.jsonl")
+	@$(PYTHON) $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) $(foreach d,$(CLAUDE_CONFIG_DIRS),--log "$(d)/usage.jsonl")
 
 # Security-scan skills with NVIDIA SkillSpector (scripts/skills-scan.py):
 # every skill by default, NAME=x for one, LLM=1 adds the semantic pass via the
@@ -342,7 +346,7 @@ usage-report:
 # skills-fetch / skills-update run the same scan on the staged skill before
 # installing it (SKILLS_SCAN=0 skips).
 skills-scan:
-	@python3 $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
+	@$(PYTHON) $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
 
 # Install (or move to) the pinned SkillSpector release with uv.
 skillspector-install:
@@ -387,13 +391,17 @@ agents-doctor:
 # catalog, suites, and the context budget) plus a syntax pass over every script.
 # The project commit-gate hook (scripts/precommit-gate-hook.sh) and CI run this
 # same target; a new check goes here and nowhere else.
-preflight: skills-doctor agents-doctor lint
+preflight: python-check skills-doctor agents-doctor lint
+
+python-check:
+	@$(PYTHON) -c 'import tomllib' 2>/dev/null \
+		|| { echo "python3 >= 3.11 with tomllib is required (brew install python)"; exit 1; }
 
 lint:
 	@for f in scripts/*.sh packages/claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
-	@python3 -m py_compile scripts/*.py packages/claude/scripts/*.py
+	@$(PYTHON) -m py_compile scripts/*.py packages/claude/scripts/*.py
 
 # The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
 test:
 	@set -e; for t in scripts/test-*.sh; do echo "== $$t"; bash "$$t"; done; \
-	for t in scripts/test-*.py; do echo "== $$t"; python3 "$$t"; done
+	for t in scripts/test-*.py; do echo "== $$t"; $(PYTHON) "$$t"; done

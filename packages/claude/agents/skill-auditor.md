@@ -25,7 +25,7 @@ It is the local copy of those guidelines — audit against it even when offline.
    Don't let the description script the workflow step-by-step — agents may follow it instead of reading the body.
 4. **License** — `license:` present (this repo stamps `Apache-2.0`, matching the repo LICENSE on authored skills).
 5. **Metadata** — `metadata:` map present with at least `author` and `version`.
-   (`category` deliberately lives in the `.source.json` sidecar / `skills/vendored.json`, not frontmatter — flag duplication as drift risk.)
+   (`category` deliberately lives in the skill's `sources.toml` entry, not frontmatter — flag duplication as drift risk.)
 6. **Optional fields sane** — `compatibility` ≤500 chars if present; `allowed-tools` space-delimited; `disable-model-invocation` boolean.
 
 ### B. Body content (best practices)
@@ -47,7 +47,7 @@ It is the local copy of those guidelines — audit against it even when offline.
     Flag bundled unrelated workflows; each should be its own skill.
 15. **Soft dependencies** — when the skill needs another skill, it references it by name instead of copying its content.
     Flag duplicated logic that should be a shared script.
-16. **Sidecar** — `.source.json` present with a `category`; locally authored skills carry `{"repo": null}`.
+16. **Manifest entry** — a `sources.toml` entry present with a `category`; locally authored skills have no `repo` field there.
     (`make skills-doctor` checks this mechanically — still report it so one audit covers everything.)
 17. **No PII** — examples use fake placeholders; no real names, meetings, client/project identifiers, emails, or tokens anywhere in the skill.
 18. **Self-containment** — referenced helper scripts exist inside the skill dir (or are declared external tools); paths use `{baseDir}`-style or relative references that survive the symlinked profiles.

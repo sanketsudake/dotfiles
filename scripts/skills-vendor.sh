@@ -2,7 +2,7 @@
 #
 # skills-vendor.sh — discover/fetch skills with the vercel-labs `skills` CLI
 # (the skills.sh ecosystem), then vendor them into this repo's skills/ tree
-# via resource-manager.sh so they keep a .source.json sidecar and stay
+# via resource-manager.sh so they land in sources.toml and stay
 # manageable with the existing skills-list / skills-update / skills-delete
 # targets and the Makefile symlinks.
 #
@@ -77,7 +77,7 @@ lock="$staging/skills-lock.json"
 [[ -f "$lock" ]] || die "skills CLI wrote no skills-lock.json (nothing fetched?)"
 
 # Translate each lock entry into a resource-manager fetch so the vendored skill
-# gets our standard .source.json. lock schema (v1):
+# gets our standard sources.toml entry. lock schema (v1):
 #   skills.<name> = { source, sourceType, skillPath: "<subpath>/SKILL.md", ... }
 # Read into an array with a while-loop (mapfile is bash 4+; macOS ships 3.2).
 entries=()

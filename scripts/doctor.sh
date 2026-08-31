@@ -31,6 +31,12 @@ fi
 # npx is only needed for the optional skills-find/vendor targets.
 if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: nvm install --lts (needed only for skill vendoring)"; fi
 
+if python3 -c 'import tomllib' 2>/dev/null; then
+  ok "python3 with tomllib ($(python3 --version | awk '{print $2}'))"
+else
+  bad "python3 >= 3.11 with tomllib not found — sources.toml tooling needs it (brew install python)"
+fi
+
 echo "== brew bundle =="
 if brew bundle check --file="$REPO_DIR/Brewfile" >/dev/null 2>&1; then
   ok "Brewfile satisfied"
