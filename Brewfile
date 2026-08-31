@@ -99,8 +99,6 @@ brew "loft-sh/tap/vcluster"
 brew "minio/stable/mc"
 
 # --- cloud & misc ------------------------------------------------------------
-brew "awscli"
-brew "okta-awscli"
 brew "cloudflared"
 brew "codecov-cli"
 brew "semgrep"
@@ -123,14 +121,10 @@ cask "1password-cli"
 cask "claude-code@latest"
 cask "copilot-cli"
 cask "devin-cli"
-cask "dbeaver-community"
-cask "gcloud-cli"
 cask "ghostty"
 cask "helium-browser" # Chromium-based; to replace google-chrome eventually
-cask "insomnia"
 cask "itsycal"
 cask "obsidian"
-cask "postman"
 cask "raycast"     # launcher + clipboard history + window snapping + extensions
 cask "slack"
 cask "visual-studio-code"
