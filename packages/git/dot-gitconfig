@@ -13,10 +13,6 @@
 	conflictStyle = zdiff3
 [url "ssh://git@github.com/"]
 	insteadOf = https://github.com/
-# Identity: personal everywhere, work under ~/qwiet. Later include wins.
+# Identity: personal everywhere.
 [include]
 	path = ~/.config/git/config-personal
-[includeIf "gitdir:~/qwiet/"]
-	path = ~/.config/git/config-qwiet
-[url "gh-qwiet:ShiftLeftSecurity"]
- 	insteadOf = git@github.com:ShiftLeftSecurity
