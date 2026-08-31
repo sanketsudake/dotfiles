@@ -1,0 +1,2 @@
+# Python CLI tools installed in isolated envs via `make pipx-install`.
+evernote-backup

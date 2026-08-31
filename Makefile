@@ -2,6 +2,14 @@ STOW := stow
 STOW_DIR := $(CURDIR)
 PI_TARGET := $(HOME)/.pi
 
+# Home stow packages (dotfiles). Flags are a security invariant, not a style
+# choice — see "The stow model" in README.md.
+HOME_STOW_FLAGS := --dir=$(CURDIR)/packages --target=$(HOME) --dotfiles --no-folding --verbose=1
+HOME_PACKAGES := zsh git atuin btop gh bin
+
+BREWFILE := $(CURDIR)/Brewfile
+MANIFESTS := $(CURDIR)/manifests
+
 PI_SKILLS_REPO := https://github.com/badlogic/pi-skills
 PI_SKILLS_CACHE := /tmp/pi-skills
 PI_SKILLS_DIR := $(CURDIR)/skills
@@ -48,7 +56,10 @@ PI_EXTENSIONS := \
 
 SHELL := /bin/bash
 
-.PHONY: install uninstall \
+.PHONY: install uninstall doctor drift \
+	brew-install brew-check brew-dump cask-adopt \
+	go-install npm-install pipx-install tools-install \
+	stow-link stow-unlink stow-adopt macos-apply raycast-export \
 	skills-link skills-unlink claude-md-link claude-md-unlink \
 	commands-link commands-unlink rules-link rules-unlink scripts-link scripts-unlink \
 	agents-link agents-unlink \
@@ -59,12 +70,82 @@ SHELL := /bin/bash
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
 	agents-doctor preflight lint test
 
-install: skills-materialize skills-link claude-md-link commands-link rules-link scripts-link agents-link
+install: brew-install stow-link skills-materialize skills-link claude-md-link commands-link rules-link scripts-link agents-link tools-install
 	mkdir -p $(PI_TARGET)
 	$(STOW) --dir=$(STOW_DIR) --target=$(PI_TARGET) --adopt pi
 
-uninstall: skills-unlink claude-md-unlink commands-unlink rules-unlink scripts-unlink agents-unlink
+uninstall: stow-unlink skills-unlink claude-md-unlink commands-unlink rules-unlink scripts-unlink agents-unlink
 	$(STOW) --dir=$(STOW_DIR) --target=$(PI_TARGET) --delete pi
+
+brew-install:
+	brew bundle --file=$(BREWFILE)
+
+brew-check:
+	brew bundle check --file=$(BREWFILE)
+
+# Regenerate Brewfile.dump (gitignored) to diff against the curated Brewfile;
+# never overwrites Brewfile itself.
+brew-dump:
+	brew bundle dump --file=$(CURDIR)/Brewfile.dump --describe --force
+	@echo "wrote Brewfile.dump — diff against Brewfile to re-curate"
+
+# Take over apps that were installed outside brew (pkg-based casks prompt for sudo).
+cask-adopt:
+	brew install --cask --adopt 1password claude devin-desktop google-chrome \
+		openvpn-connect tailscale-app wispr-flow
+
+tools-install: go-install npm-install pipx-install
+
+# Installs each module from manifests/go-tools.txt; lines without @version get @latest.
+go-install:
+	@command -v go >/dev/null || { echo "go not found — run: make brew-install"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/go-tools.txt | while read -r mod; do \
+		case "$$mod" in *@*) ;; *) mod="$$mod@latest" ;; esac; \
+		echo "go install $$mod"; \
+		go install "$$mod"; \
+	done
+
+npm-install:
+	@command -v npm >/dev/null || { echo "npm not found — run: nvm install --lts"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g
+
+pipx-install:
+	@command -v pipx >/dev/null || { echo "pipx not found — run: make brew-install"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/pipx-tools.txt | while read -r pkg; do \
+		pipx install "$$pkg"; \
+	done
+
+stow-link:
+	$(STOW) $(HOME_STOW_FLAGS) --restow $(HOME_PACKAGES)
+
+stow-unlink:
+	$(STOW) $(HOME_STOW_FLAGS) --delete $(HOME_PACKAGES)
+
+# Absorb pre-existing real files at target paths into the repo working tree.
+stow-adopt:
+	$(STOW) $(HOME_STOW_FLAGS) --adopt $(HOME_PACKAGES)
+	@echo ""
+	@echo "== adopted; repo state now =="
+	@git status --short
+	@echo ""
+	@echo "!! REVIEW 'git diff' BEFORE COMMITTING — adopt replaces repo files with the live ones !!"
+
+macos-apply:
+	bash $(CURDIR)/macos/defaults.sh
+
+doctor:
+	bash $(CURDIR)/scripts/doctor.sh
+
+drift:
+	bash $(CURDIR)/scripts/drift.sh
+
+# Raycast keeps settings in an encrypted local DB (extension configs can hold
+# API tokens), so its own encrypted export is the backup mechanism — never this
+# repo (*.rayconfig is gitignored). Opens the export dialog; save the file to a
+# private location (iCloud Drive / 1Password). Restore on a new Mac via
+# Raycast Settings -> Advanced -> Import.
+raycast-export:
+	open "raycast://extensions/raycast/raycast/export-settings-data"
 
 skills-link:
 	mkdir -p $(PI_SKILLS_DIR)

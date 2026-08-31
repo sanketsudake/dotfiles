@@ -1,0 +1,9 @@
+# Only the settings that differ from atuin's defaults.
+# Full reference: https://docs.atuin.sh/configuration/config/
+
+# Hitting enter runs the selected command instead of only pasting it at the prompt.
+enter_accept = true
+
+[sync]
+# Sync v2 (record store) instead of the legacy history sync.
+records = true

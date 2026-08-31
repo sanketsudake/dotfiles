@@ -1,0 +1,4 @@
+# npm packages installed globally (into the active nvm node) via `make npm-install`.
+@readwise/cli
+@tobilu/qmd
+corepack

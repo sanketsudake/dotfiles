@@ -1,3 +1,19 @@
+# Secret-safety net — none of these should ever be committed.
+hosts.yml
+*.rayconfig
+.env
+.env.*
+*.pem
+*.key
+*token*
+*credential*
+
+# Machine-local zsh overrides (see packages/zsh/dot-config/zsh/90-local.zsh.example).
+packages/zsh/dot-config/zsh/90-local.zsh
+
+# Generated dump for Brewfile re-curation (make brew-dump); never committed.
+Brewfile.dump
+
 # Superpowers working docs (brainstorming specs, implementation plans) —
 # kept locally as design artifacts, not checked in.
 docs/superpowers/
