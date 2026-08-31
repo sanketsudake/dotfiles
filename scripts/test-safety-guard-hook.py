@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Table-driven test for claude/scripts/safety-guard-hook.py.
+"""Table-driven test for packages/claude/scripts/safety-guard-hook.py.
 
 Each case: (tool, tool_input, expected decision). Runs the hook as a subprocess
 with a stock PATH and a temp CLAUDE_CONFIG_DIR, exactly as Claude Code would.
@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HOOK = Path(__file__).resolve().parent.parent / "claude" / "scripts" / "safety-guard-hook.py"
+HOOK = Path(__file__).resolve().parent.parent / "packages" / "claude" / "scripts" / "safety-guard-hook.py"
 
 CASES = [
     # --- Bash: deny

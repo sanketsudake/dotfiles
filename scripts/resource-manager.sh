@@ -4,7 +4,7 @@
 # (skills or agents) from arbitrary git repos, tracking each resource's source.
 #
 # A "skill" is a directory containing SKILL.md, vendored under skills/.
-# An "agent" is a single .md file, vendored under claude/agents/.
+# An "agent" is a single .md file, vendored under packages/claude/agents/.
 #
 # VENDORED SKILLS are recorded in a single committed manifest and their files
 # are NOT committed — they are materialized from their pinned commit on install:
@@ -18,7 +18,7 @@
 #   local sidecar: {"repo": null[, "category"]}
 #   remote sidecar (agents): {"repo","subpath","ref","commit","fetched_at"[,"category"]}
 #   skill sidecar: skills/<name>/.source.json        (inside the dir)
-#   agent sidecar: claude/agents/<name>.source.json  (sibling of the .md)
+#   agent sidecar: packages/claude/agents/<name>.source.json  (sibling of the .md)
 # A resource with neither a manifest entry nor a sidecar is "unmanaged".
 #
 # Usage:
@@ -68,7 +68,7 @@ SCAN_BASELINE_DIR="$REPO_ROOT/security/skillspector"   # per-skill SkillSpector 
 configure_kind() {
   case "$KIND" in
     skill) RESOURCE_ROOT="$REPO_ROOT/skills"; MANIFEST="$RESOURCE_ROOT/vendored.json" ;;
-    agent) RESOURCE_ROOT="$REPO_ROOT/claude/agents" ;;
+    agent) RESOURCE_ROOT="$REPO_ROOT/packages/claude/agents" ;;
     *) die "missing or unknown --kind '$KIND' (expected skill|agent)" ;;
   esac
 }
@@ -1015,7 +1015,7 @@ cmd_budget() {
     esac
   done
   [[ "$limit" =~ ^[1-9][0-9]*$ ]] || die "budget: limit must be a positive integer (got '$limit'; set CONTEXT_BUDGET_TOKENS or --limit)"
-  local claude_dir="$REPO_ROOT/claude"
+  local claude_dir="$REPO_ROOT/packages/claude"
   # Each segment is "N items, T estimated tokens"; sum_segment reads whole
   # files, sum_descs reads "name: description" strings from stdin, one per line.
   sum_segment() { local t=0 n=0 f; for f in "$@"; do [[ -f "$f" ]] || continue; t=$((t + $(est_tokens "$(cat "$f")"))); n=$((n + 1)); done; echo "$t $n"; }

@@ -1,5 +1,4 @@
 STOW := stow
-STOW_DIR := $(CURDIR)
 PI_TARGET := $(HOME)/.pi
 
 # Home stow packages (dotfiles). Flags are a security invariant, not a style
@@ -15,15 +14,17 @@ PI_SKILLS_CACHE := /tmp/pi-skills
 PI_SKILLS_DIR := $(CURDIR)/skills
 
 CLAUDE_CONFIG_DIRS := $(HOME)/.claude-personal $(HOME)/.claude-work
-SKILL_LINK_TARGETS := $(PI_TARGET) $(CLAUDE_CONFIG_DIRS)
 
-CLAUDE_DIR := $(CURDIR)/claude
-PLUGINS_FILE := $(CLAUDE_DIR)/plugins.txt
-CLAUDE_MD_FILE := $(CLAUDE_DIR)/CLAUDE.md
-COMMANDS_DIR := $(CLAUDE_DIR)/commands
-RULES_DIR := $(CLAUDE_DIR)/rules
+CLAUDE_DIR := $(CURDIR)/packages/claude
+PLUGINS_FILE := $(MANIFESTS)/claude-plugins.txt
 SCRIPTS_DIR := $(CLAUDE_DIR)/scripts
-AGENTS_DIR := $(CLAUDE_DIR)/agents
+
+# Harness stow packages (claude → each profile, pi → ~/.pi). These stow with
+# directory folding ON — whole-dir symlinks are the point, unlike the
+# --no-folding invariant that protects the $HOME packages.
+HARNESS_STOW := $(STOW) --dir=$(CURDIR)/packages
+CLAUDE_PKG_ENTRIES := CLAUDE.md commands rules scripts agents skills
+PI_PKG_ENTRIES := agent extensions prompts skills README.md
 
 RESOURCE_MANAGER := $(CURDIR)/scripts/resource-manager.sh
 # NVIDIA SkillSpector release the security scan and its baselines were reviewed
@@ -60,9 +61,7 @@ SHELL := /bin/bash
 	brew-install brew-check brew-dump cask-adopt \
 	go-install npm-install pipx-install tools-install \
 	stow-link stow-unlink stow-adopt macos-apply raycast-export \
-	skills-link skills-unlink claude-md-link claude-md-unlink \
-	commands-link commands-unlink rules-link rules-unlink scripts-link scripts-unlink \
-	agents-link agents-unlink \
+	harness-link harness-unlink \
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
 	skills-fetch skills-materialize skills-list skills-update skills-update-all skills-category skills-delete \
@@ -70,12 +69,9 @@ SHELL := /bin/bash
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
 	agents-doctor preflight lint test
 
-install: brew-install stow-link skills-materialize skills-link claude-md-link commands-link rules-link scripts-link agents-link tools-install
-	mkdir -p $(PI_TARGET)
-	$(STOW) --dir=$(STOW_DIR) --target=$(PI_TARGET) --adopt pi
+install: brew-install stow-link skills-materialize harness-link tools-install
 
-uninstall: stow-unlink skills-unlink claude-md-unlink commands-unlink rules-unlink scripts-unlink agents-unlink
-	$(STOW) --dir=$(STOW_DIR) --target=$(PI_TARGET) --delete pi
+uninstall: stow-unlink harness-unlink
 
 brew-install:
 	brew bundle --file=$(BREWFILE)
@@ -147,145 +143,36 @@ drift:
 raycast-export:
 	open "raycast://extensions/raycast/raycast/export-settings-data"
 
-skills-link:
-	mkdir -p $(PI_SKILLS_DIR)
-	for target in $(SKILL_LINK_TARGETS); do \
-		mkdir -p $$target; \
-		link=$$target/skills; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(PI_SKILLS_DIR) $$link; \
-		echo "linked: $$link -> $(PI_SKILLS_DIR)"; \
+# Stow the claude package into each profile and the pi package into ~/.pi.
+# Pre-clean removes only SYMLINKS at the managed names (stale links from the
+# pre-stow era, or dangling ones after a repo move — including per-file links
+# inside real target subdirs); a real file or dir is left
+# for stow to conflict on — move it aside yourself (timestamped backup), and do
+# not reach for --adopt on the profile dirs.
+harness-link:
+	@for d in $(CLAUDE_CONFIG_DIRS); do \
+		mkdir -p $$d; \
+		for entry in $(CLAUDE_PKG_ENTRIES); do \
+			if [ -L $$d/$$entry ]; then rm $$d/$$entry; fi; \
+		done; \
+		find $$d -maxdepth 2 -type l ! -exec test -e {} \; -delete; \
+		$(HARNESS_STOW) --target=$$d --restow claude; \
+		echo "stowed: claude -> $$d"; \
 	done
+	@mkdir -p $(PI_TARGET)
+	@for entry in $(PI_PKG_ENTRIES); do \
+		if [ -L $(PI_TARGET)/$$entry ]; then rm $(PI_TARGET)/$$entry; fi; \
+	done
+	@find $(PI_TARGET) -maxdepth 2 -type l ! -exec test -e {} \; -delete
+	@$(HARNESS_STOW) --target=$(PI_TARGET) --adopt pi
+	@echo "stowed: pi -> $(PI_TARGET)"
 
-skills-unlink:
-	for target in $(SKILL_LINK_TARGETS); do \
-		link=$$target/skills; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(PI_SKILLS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
+harness-unlink:
+	@for d in $(CLAUDE_CONFIG_DIRS); do \
+		$(HARNESS_STOW) --target=$$d --delete claude && echo "unstowed: claude -> $$d"; \
 	done
-
-claude-md-link:
-	@test -f $(CLAUDE_MD_FILE) || { echo "missing: $(CLAUDE_MD_FILE)"; exit 1; }
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/CLAUDE.md; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -f $$link ]; then \
-			backup=$$link.bak.$$(date +%Y%m%d%H%M%S); \
-			mv $$link $$backup; \
-			echo "backed up: $$link -> $$backup"; \
-		fi; \
-		ln -s $(CLAUDE_MD_FILE) $$link; \
-		echo "linked: $$link -> $(CLAUDE_MD_FILE)"; \
-	done
-
-claude-md-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/CLAUDE.md; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(CLAUDE_MD_FILE)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
-
-commands-link:
-	mkdir -p $(COMMANDS_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/commands; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(COMMANDS_DIR) $$link; \
-		echo "linked: $$link -> $(COMMANDS_DIR)"; \
-	done
-
-commands-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/commands; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(COMMANDS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
-
-rules-link:
-	mkdir -p $(RULES_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/rules; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(RULES_DIR) $$link; \
-		echo "linked: $$link -> $(RULES_DIR)"; \
-	done
-
-rules-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/rules; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(RULES_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
-
-scripts-link:
-	mkdir -p $(SCRIPTS_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/scripts; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(SCRIPTS_DIR) $$link; \
-		echo "linked: $$link -> $(SCRIPTS_DIR)"; \
-	done
-
-scripts-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/scripts; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(SCRIPTS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
-
-agents-link:
-	mkdir -p $(AGENTS_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/agents; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(AGENTS_DIR) $$link; \
-		echo "linked: $$link -> $(AGENTS_DIR)"; \
-	done
-
-agents-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/agents; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(AGENTS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
+	@$(HARNESS_STOW) --target=$(PI_TARGET) --delete pi
+	@echo "unstowed: pi -> $(PI_TARGET)"
 
 plugins-check:
 	@test -f $(PLUGINS_FILE) || { echo "missing: $(PLUGINS_FILE)"; exit 1; }
@@ -368,7 +255,7 @@ extensions-sync:
 # the result into skills/ through resource-manager.sh, so each lands with a
 # .source.json and stays manageable by skills-list / skills-update / skills-delete.
 # The CLI is used only as a resolver/fetcher — it never installs per-agent, so
-# the two Claude profiles and claude/agents/ subagents are unaffected.
+# the two Claude profiles and packages/claude/agents/ subagents are unaffected.
 # Set GITHUB_TOKEN (or have `gh` logged in) to avoid anonymous rate limits.
 
 skills-find:
@@ -385,7 +272,7 @@ skills-add:
 		$(if $(FORCE),--force)
 
 # --- Source management (scripts/resource-manager.sh) -----------------------
-# Fetch one skill (dir under skills/) or agent (.md under claude/agents/) from
+# Fetch one skill (dir under skills/) or agent (.md under packages/claude/agents/) from
 # any repo/subpath, tracking its source in a .source.json sidecar so it can be
 # listed, updated, and deleted.
 
@@ -441,7 +328,7 @@ suites-catalog:
 context-budget:
 	@$(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
 
-# Aggregate the usage telemetry (claude/scripts/usage-log-hook.py) of every
+# Aggregate the usage telemetry (packages/claude/scripts/usage-log-hook.py) of every
 # profile: subagent spend by agent type × model, per-day cache-hit ratio.
 # SINCE=N limits to the last N days (default 30).
 usage-report:
@@ -503,8 +390,8 @@ agents-doctor:
 preflight: skills-doctor agents-doctor lint
 
 lint:
-	@for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
-	@python3 -m py_compile scripts/*.py claude/scripts/*.py
+	@for f in scripts/*.sh packages/claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
+	@python3 -m py_compile scripts/*.py packages/claude/scripts/*.py
 
 # The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
 test:
