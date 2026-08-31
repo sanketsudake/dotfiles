@@ -23,7 +23,7 @@ Ensure a browser tab is signed in to an app behind your organization's **Microso
 Use the **`chrome-cdp`** CLI on the user's real, already signed-in browser — this skill types **no** credentials.
 
 > See **`drive-chrome-cdp`** for CLI setup, output contract, and the passkey rule.
-> Local skill, maintained in this repo (`.source.json` has `"repo": null`).
+> Local skill, maintained in this repo (its `sources.toml` entry has no `repo`).
 
 ## Supported apps & config
 

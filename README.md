@@ -1,9 +1,20 @@
-# harness-configs
+# dotfiles
 
-Portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) and [pi](https://github.com/badlogic/pi-mono) profiles.
+One repo for the whole machine: macOS dotfiles (GNU stow packages, a curated Brewfile, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) and [pi](https://github.com/badlogic/pi-mono) profiles.
 
-A personal dotfiles-style repo, published so others can borrow the architecture.
+A personal repo, published so others can borrow the architecture.
 Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#adopt-it)).
+
+## New Mac quick start
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/main/bootstrap.sh -o /tmp/bootstrap.sh
+bash /tmp/bootstrap.sh
+```
+
+The script is idempotent: Xcode CLT and Homebrew if missing, clone to `~/personal/dotfiles`, `brew bundle`, stow links (pre-existing files are moved to a timestamped `~/.dotfiles-backup-*` dir), harness links, and `make doctor`.
+Afterwards run the printed manual steps (`gh auth login`, `atuin login`, `git lfs install`) and open a new terminal.
+On an existing machine, clone the repo and run `make install`.
 
 ## Ideas worth stealing
 
@@ -12,7 +23,7 @@ Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#ad
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
   `pclaude` / `wclaude` wrappers keep personal and work accounts isolated while sharing the same skills and rules.
 - **Per-resource source tracking.**
-  Each vendored skill is pinned in `skills/vendored.json` (repo, subpath, commit) and materialized on install — so an upstream update is one command and a bare clone stays reproducible.
+  Every skill and agent source lives in one `sources.toml` manifest; vendored skills are pinned there (repo, subpath, commit) and materialized on install — so an upstream update is one command and a bare clone stays reproducible.
 - **Generated catalog, enforced by a doctor.**
   `skills/README.md` is generated from that metadata; `make skills-doctor` fails when anything drifts.
 - **Guardrails as code, not hope.**
@@ -28,13 +39,18 @@ Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#ad
 ## Layout
 
 ```
-harness-configs/
+dotfiles/
 ├── Makefile        # primary interface — every <resource>-<action> target
 ├── CLAUDE.md       # guide for agents working IN this repo (full Makefile reference)
+├── bootstrap.sh    # new-Mac entry point
+├── Brewfile        # curated brew formulae, casks, mas apps, VS Code extensions
+├── manifests/      # non-brew tools: go-tools.txt, npm-globals.txt, pipx-tools.txt
+├── macos/          # deliberately-changed macOS defaults (make macos-apply)
+├── packages/       # stow packages for $HOME (zsh, git, atuin, btop, gh, bin)
 ├── claude/         # Claude Code config, symlinked into both profiles
 │   ├── CLAUDE.md   #   shared global user instructions
 │   ├── commands/   #   slash commands
-│   ├── agents/     #   subagents (+ .source.json sidecars)
+│   ├── agents/     #   subagents
 │   ├── rules/      #   model routing, git hygiene, delegation
 │   ├── scripts/    #   hooks (routing, safety guard, usage telemetry) + statusline
 │   └── plugins.txt #   desired-state plugin list
@@ -43,7 +59,7 @@ harness-configs/
 ├── suites/         # curated skill-suite landing pages
 ├── security/       # SkillSpector baselines (accepted findings, with reasons)
 ├── pi/             # pi agent config, stowed into ~/.pi
-└── scripts/        # repo tooling (not symlinked into profiles)
+└── scripts/        # repo tooling (doctor, drift, resource manager — not symlinked)
 ```
 
 `make install` symlinks `skills/` and `claude/*` into both Claude profiles and `~/.pi`, and stows `pi/` — safe to re-run.
@@ -88,13 +104,14 @@ Plus the shared `CLAUDE.md` (secrets hygiene, semantic-line-break markdown per [
 Prerequisites: `git`, [GNU `stow`](https://www.gnu.org/software/stow/), `jq` (plus `gh` / `python3` / `npx` for the skills that use them).
 
 ```sh
-git clone https://github.com/sanketsudake/harness-configs.git
-cd harness-configs
+git clone https://github.com/sanketsudake/dotfiles.git
+cd dotfiles
 # Before installing:
 #   1. Edit CLAUDE_CONFIG_DIRS in the Makefile (your profiles)
 #   2. Copy the pclaude/wclaude snippets from scripts/claude-multi-account.sh into your shell profile
 #   3. Make claude/CLAUDE.md yours — it's opinionated
-make install      # symlink claude/ + skills/ into profiles, stow pi/ into ~/.pi
+#   4. Review Brewfile, manifests/, and packages/ — they describe one person's machine
+make install      # brew bundle, stow $HOME packages, link claude/ + skills/ into profiles, stow pi/
 make skills-list  # see each skill's source and status
 ```
 
@@ -114,6 +131,44 @@ Everyday targets — `CLAUDE.md` carries the full `<resource>-<action>` referenc
 
 Two gotchas: vendored `skills/` and `pi/extensions/` are overwritten on re-sync — diverge intentionally and note it durably; and use `SUBPATH=`, never `PATH=`, on fetch targets (the latter clobbers the shell `PATH`).
 Plugin installation stays manual per profile — Claude Code has no headless `/plugin install`.
+
+## Machine setup
+
+| Target | Does |
+|--------|------|
+| `install` | `brew-install` + `stow-link` + harness links + `tools-install` |
+| `tools-install` | `go-install` + `npm-install` + `pipx-install` from `manifests/` |
+| `brew-install` / `brew-check` | Apply / verify the Brewfile |
+| `brew-dump` | Regenerate gitignored `Brewfile.dump` to diff against the curated Brewfile |
+| `cask-adopt` | Take over apps installed outside brew (pkg casks prompt for sudo) |
+| `stow-link` / `stow-unlink` | Create / remove the `$HOME` symlinks (idempotent) |
+| `stow-adopt` | Absorb pre-existing real files into the working tree; always review `git diff` after |
+| `macos-apply` | Run `macos/defaults.sh` |
+| `doctor` | Run all health checks |
+| `drift` | Report divergence between recorded config and the live system, both directions |
+| `raycast-export` | Open Raycast's encrypted settings export; save the file privately (never committed) |
+
+### The stow model
+
+Home packages are stowed from `packages/` into `$HOME` with `--dotfiles --no-folding` (stow ≥ 2.4.0, enforced by `doctor`).
+`--dotfiles` maps `dot-zshrc` → `~/.zshrc`, so no hidden files exist in the repo.
+`--no-folding` is a security invariant: it links individual files instead of whole directories, so `~/.config/<tool>` stays a real directory and credential files written beside managed configs (e.g. `gh`'s `hosts.yml`) can never land in the repo.
+Never add packages for credential-bearing dirs (`gcloud`, `1Password`, `op`, `github-copilot`).
+These flags apply to the `$HOME` packages only; the harness targets (`~/.claude-*`, `~/.pi`) link whole directories on purpose.
+
+zsh follows the same drop-in idea: `~/.zshrc` is a thin loader sourcing `~/.config/zsh/*.zsh` in `NN-` prefix order, and machine-local uncommitted overrides go in `~/.config/zsh/90-local.zsh` (gitignored; see `90-local.zsh.example`).
+
+### Adding a new tool config
+
+1. `mkdir -p packages/<tool>/dot-config/<tool>` and copy the non-secret config file(s) in, using `dot-` names for anything dotted.
+2. Add `<tool>` to `HOME_PACKAGES` in the Makefile.
+3. `make stow-adopt`, review `git diff`, then commit.
+
+### Secrets policy
+
+Nothing outside `packages/` is ever stowed into `$HOME`, and no package references a credential-bearing file.
+`.gitignore` blocks secret-like filenames as a second layer, and `make doctor` fails on secret-pattern filenames, credential-looking content in tracked files, or a `~/.config` dir that has become a symlink.
+`stow-adopt` imports live machine files into tracked paths, so always review `git diff` before committing after it.
 
 ## License
 

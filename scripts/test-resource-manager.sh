@@ -10,8 +10,14 @@ git clone --quiet "$REPO_ROOT" "$tmp/repo"
 # Test the tooling as it is on disk (uncommitted edits included), not the last commit.
 cp "$REPO_ROOT"/scripts/*.sh "$REPO_ROOT"/scripts/*.py "$tmp/repo/scripts/"
 cp "$REPO_ROOT/Makefile" "$tmp/repo/Makefile"
+cp "$REPO_ROOT/sources.toml" "$tmp/repo/sources.toml"
 cd "$tmp/repo"
-git -c user.email=ci@example.invalid -c user.name=ci commit -qam "working-tree tooling" || true
+git add scripts Makefile sources.toml
+git -c user.email=ci@example.invalid -c user.name=ci commit -qm "working-tree tooling" || true
+# Absorb catalog-wording drift the working-tree tooling may carry, so the
+# final clean-tree assertion checks only the round-trip's own effects.
+make -s skills-catalog >/dev/null 2>&1 || true
+git -c user.email=ci@example.invalid -c user.name=ci commit -qam "working-tree catalog" || true
 
 # Hermetic upstream: a local git repo holding one small skill, so the test
 # never depends on a third party's default branch (a rename there must not red CI).
@@ -39,13 +45,14 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 
 echo "== fetch"
 make -s skills-fetch REPO=$REPO SUBPATH=$SUBPATH NAME=$NAME CATEGORY=ci-smoke
-commit=$(jq -re --arg n "$NAME" '.[]|select(.name==$n)|.commit' skills/vendored.json) || fail "no manifest entry"
+manifest_json() { python3 scripts/toml-manifest.py to-json sources.toml; }
+commit=$(manifest_json | jq -re --arg n "$NAME" '.skill[]|select(.name==$n)|.commit') || fail "no manifest entry"
 [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "manifest commit is not a sha: $commit"
 grep -qx "/skills/$NAME/" .gitignore || fail ".gitignore line missing"
 [[ -f skills/$NAME/SKILL.md ]] || fail "SKILL.md not fetched"
 [[ "$(jq -r .commit skills/$NAME/.source.json)" == "$commit" ]] || fail "sidecar commit != manifest commit"
 [[ -z "$(git status --porcelain -- skills/$NAME)" ]] || fail "fetched dir is not gitignored"
-jq -e --arg n "$NAME" '[.[]|select(.name==$n)]|length==1' skills/vendored.json >/dev/null || fail "duplicate manifest entries"
+manifest_json | jq -e --arg n "$NAME" '[.skill[]|select(.name==$n)]|length==1' >/dev/null || fail "duplicate manifest entries"
 
 echo "== materialize (fresh-clone path)"
 rm -rf "skills/$NAME"
@@ -62,7 +69,7 @@ mkdir -p security/skillspector && echo '{"version":2,"rules":[]}' > "security/sk
 make -s skills-delete NAME=$NAME YES=1
 [[ ! -e "security/skillspector/$NAME.json" ]] || fail "scan baseline survived delete"
 make -s skills-catalog
-jq -e --arg n "$NAME" '[.[]|select(.name==$n)]|length==0' skills/vendored.json >/dev/null || fail "manifest entry survived delete"
+manifest_json | jq -e --arg n "$NAME" '[.skill[]|select(.name==$n)]|length==0' >/dev/null || fail "manifest entry survived delete"
 grep -qx "/skills/$NAME/" .gitignore && fail ".gitignore line survived delete"
 [[ ! -e skills/$NAME ]] || fail "dir survived delete"
 [[ -z "$(git status --porcelain)" ]] || { git status --porcelain; fail "tree not clean after round-trip"; }

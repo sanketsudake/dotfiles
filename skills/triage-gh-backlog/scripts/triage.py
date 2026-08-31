@@ -66,14 +66,48 @@ def below_floor(found: str, floor: str) -> bool:
 # --------------------------------------------------------------------------- #
 # duplicate grouping                                                          #
 # --------------------------------------------------------------------------- #
-def build_dup_groups(threads: list[dict], jaccard_floor: float = 0.7) -> dict[int, dict]:
+def _dup_excluded_numbers(
+    threads: list[dict],
+    exclude_authors: list[str] | None,
+    exclude_title_patterns: list[str] | None,
+) -> set[int]:
+    """Numbers that must never participate in duplicate clustering."""
+    authors = {a.lower() for a in (exclude_authors or [])}
+    pats = [re.compile(p, re.I) for p in (exclude_title_patterns or [])]
+    out: set[int] = set()
+    for t in threads:
+        author = (t.get("author") or "").lower()
+        # match bare and app-suffixed bot logins: dependabot / app/dependabot / dependabot[bot]
+        stripped = author.removeprefix("app/").removesuffix("[bot]")
+        if author in authors or stripped in authors:
+            out.add(t["number"])
+            continue
+        title = t.get("title") or ""
+        if any(p.search(title) for p in pats):
+            out.add(t["number"])
+    return out
+
+
+def build_dup_groups(
+    threads: list[dict],
+    jaccard_floor: float = 0.7,
+    exclude_authors: list[str] | None = None,
+    exclude_title_patterns: list[str] | None = None,
+) -> dict[int, dict]:
     """Return {number: {"canonical": n, "evidence": "ref"|"title", "members":[...]}}.
 
     A group's canonical is its oldest still-relevant thread (lowest number).
     Only OPEN, non-protected members get a dup disposition later; the canonical
     is whichever member is open with the lowest number (fallback: lowest number).
+
+    `exclude_authors` / `exclude_title_patterns` remove threads from duplicate
+    clustering entirely. Machine-generated threads share a title template by
+    construction — every `chore(deps): bump the X group with N updates` from a
+    bot scores near-1.0 Jaccard against every other one — so title overlap
+    carries no duplicate signal for them, only false positives.
     """
     by_num = {t["number"]: t for t in threads}
+    dup_excluded = _dup_excluded_numbers(threads, exclude_authors, exclude_title_patterns)
     parent: dict[int, int] = {}
 
     def find(x: int) -> int:
@@ -100,10 +134,16 @@ def build_dup_groups(threads: list[dict], jaccard_floor: float = 0.7) -> dict[in
         for ref in t["references"]:
             other = by_num.get(ref)
             if other and other["kind"] == t["kind"]:
+                if t["number"] in dup_excluded or ref in dup_excluded:
+                    continue
                 ref_pairs.add(frozenset((t["number"], ref)))
 
     toks = {t["number"]: norm_tokens(t["title"]) for t in threads}
-    nums = [t["number"] for t in threads if len(toks[t["number"]]) >= 4]
+    nums = [
+        t["number"]
+        for t in threads
+        if len(toks[t["number"]]) >= 4 and t["number"] not in dup_excluded
+    ]
     bucket: dict[str, list[int]] = defaultdict(list)
     for n in nums:
         for tok in toks[n]:
@@ -384,8 +424,14 @@ def main() -> None:
 
     # Only triage things that are actionable: open and not already locally closed.
     open_threads = [t for t in threads if t["state"] == "open" and not t["closed_local"]]
-    jac = ctx["cfg"].get("triage", {}).get("dup_title_jaccard", 0.7)
-    dup_map = build_dup_groups(threads, jaccard_floor=jac)  # over all to find canonicals
+    tri_cfg = ctx["cfg"].get("triage", {})
+    jac = tri_cfg.get("dup_title_jaccard", 0.7)
+    dup_map = build_dup_groups(  # over all threads, to find canonicals
+        threads,
+        jaccard_floor=jac,
+        exclude_authors=tri_cfg.get("dup_exclude_authors", []),
+        exclude_title_patterns=tri_cfg.get("dup_exclude_title_patterns", []),
+    )
     keepers = load_keepers(wd)
     if keepers:
         common.info(f"keepers.txt: {len(keepers)} numbers force-kept")

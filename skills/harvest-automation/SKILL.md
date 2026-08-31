@@ -19,7 +19,7 @@ metadata:
 
 # Harvest Automation
 
-> Local skill (`.source.json` has `"repo": null`); replaces the old `retrospect` and `workflow-from-chats` skills.
+> Local skill (its `sources.toml` entry has no `repo`); replaces the old `retrospect` and `workflow-from-chats` skills.
 
 ## Core principle
 
@@ -77,7 +77,7 @@ Delegate to existing skills; do not reimplement their logic.
 
 - Skill — a recurring multi-step workflow with clear triggers.
   Draft a proposal (name, "Use when…" description, trigger, steps, scripts) and hand it to `superpowers:writing-skills` to author and validate under `skills/<name>/`.
-  Mark it local with a `{"repo": null}` `.source.json`.
+  Mark it local with a repo-less `sources.toml` entry (`make skills-category NAME=… CATEGORY=…` creates one).
   Never scaffold skill files by hand.
 - CLAUDE.md — a collaborator-visible project fact (build/test commands, invariants, code locations, "always use X helper").
 - Memory — a user-private preference (terse vs verbose, tool choices, workflow habits).

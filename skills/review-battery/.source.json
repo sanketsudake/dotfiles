@@ -1,5 +1,0 @@
-{
-  "repo": null,
-  "note": "Authored orchestrator; replaces the former review-battery and review-pr-worktree commands and drives the vendored thermos subagents",
-  "category": "pr-review"
-}

@@ -1,21 +1,34 @@
 STOW := stow
-STOW_DIR := $(CURDIR)
 PI_TARGET := $(HOME)/.pi
+
+# sources.toml is read/written via tomllib, so python >= 3.11 is required;
+# prefer the brew python the Brewfile installs over a stale system python3.
+PYTHON ?= python3
+
+# Home stow packages (dotfiles). Flags are a security invariant, not a style
+# choice — see "The stow model" in README.md.
+HOME_STOW_FLAGS := --dir=$(CURDIR)/packages --target=$(HOME) --dotfiles --no-folding --verbose=1
+HOME_PACKAGES := zsh git atuin btop gh bin
+
+BREWFILE := $(CURDIR)/Brewfile
+MANIFESTS := $(CURDIR)/manifests
 
 PI_SKILLS_REPO := https://github.com/badlogic/pi-skills
 PI_SKILLS_CACHE := /tmp/pi-skills
 PI_SKILLS_DIR := $(CURDIR)/skills
 
 CLAUDE_CONFIG_DIRS := $(HOME)/.claude-personal $(HOME)/.claude-work
-SKILL_LINK_TARGETS := $(PI_TARGET) $(CLAUDE_CONFIG_DIRS)
 
-CLAUDE_DIR := $(CURDIR)/claude
-PLUGINS_FILE := $(CLAUDE_DIR)/plugins.txt
-CLAUDE_MD_FILE := $(CLAUDE_DIR)/CLAUDE.md
-COMMANDS_DIR := $(CLAUDE_DIR)/commands
-RULES_DIR := $(CLAUDE_DIR)/rules
+CLAUDE_DIR := $(CURDIR)/packages/claude
+PLUGINS_FILE := $(MANIFESTS)/claude-plugins.txt
 SCRIPTS_DIR := $(CLAUDE_DIR)/scripts
-AGENTS_DIR := $(CLAUDE_DIR)/agents
+
+# Harness stow packages (claude → each profile, pi → ~/.pi). These stow with
+# directory folding ON — whole-dir symlinks are the point, unlike the
+# --no-folding invariant that protects the $HOME packages.
+HARNESS_STOW := $(STOW) --dir=$(CURDIR)/packages
+CLAUDE_PKG_ENTRIES := CLAUDE.md commands rules scripts agents skills
+PI_PKG_ENTRIES := agent extensions prompts skills README.md
 
 RESOURCE_MANAGER := $(CURDIR)/scripts/resource-manager.sh
 # NVIDIA SkillSpector release the security scan and its baselines were reviewed
@@ -48,10 +61,11 @@ PI_EXTENSIONS := \
 
 SHELL := /bin/bash
 
-.PHONY: install uninstall \
-	skills-link skills-unlink claude-md-link claude-md-unlink \
-	commands-link commands-unlink rules-link rules-unlink scripts-link scripts-unlink \
-	agents-link agents-unlink \
+.PHONY: install uninstall doctor drift python-check \
+	brew-install brew-check brew-dump cask-adopt \
+	go-install npm-install pipx-install tools-install \
+	stow-link stow-unlink stow-adopt macos-apply raycast-export \
+	harness-link harness-unlink \
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
 	skills-fetch skills-materialize skills-list skills-update skills-update-all skills-category skills-delete \
@@ -59,152 +73,110 @@ SHELL := /bin/bash
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
 	agents-doctor preflight lint test
 
-install: skills-materialize skills-link claude-md-link commands-link rules-link scripts-link agents-link
-	mkdir -p $(PI_TARGET)
-	$(STOW) --dir=$(STOW_DIR) --target=$(PI_TARGET) --adopt pi
+install: brew-install stow-link skills-materialize harness-link tools-install
 
-uninstall: skills-unlink claude-md-unlink commands-unlink rules-unlink scripts-unlink agents-unlink
-	$(STOW) --dir=$(STOW_DIR) --target=$(PI_TARGET) --delete pi
+uninstall: stow-unlink harness-unlink
 
-skills-link:
-	mkdir -p $(PI_SKILLS_DIR)
-	for target in $(SKILL_LINK_TARGETS); do \
-		mkdir -p $$target; \
-		link=$$target/skills; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(PI_SKILLS_DIR) $$link; \
-		echo "linked: $$link -> $(PI_SKILLS_DIR)"; \
+brew-install:
+	brew bundle --file=$(BREWFILE)
+
+brew-check:
+	brew bundle check --file=$(BREWFILE)
+
+# Regenerate Brewfile.dump (gitignored) to diff against the curated Brewfile;
+# never overwrites Brewfile itself.
+brew-dump:
+	brew bundle dump --file=$(CURDIR)/Brewfile.dump --describe --force
+	@echo "wrote Brewfile.dump — diff against Brewfile to re-curate"
+
+# Take over apps that were installed outside brew (pkg-based casks prompt for sudo).
+cask-adopt:
+	brew install --cask --adopt 1password claude devin-desktop google-chrome \
+		openvpn-connect tailscale-app wispr-flow
+
+tools-install: go-install npm-install pipx-install
+
+# Installs each module from manifests/go-tools.txt; lines without @version get @latest.
+go-install:
+	@command -v go >/dev/null || { echo "go not found — run: make brew-install"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/go-tools.txt | while read -r mod; do \
+		case "$$mod" in *@*) ;; *) mod="$$mod@latest" ;; esac; \
+		echo "go install $$mod"; \
+		go install "$$mod"; \
 	done
 
-skills-unlink:
-	for target in $(SKILL_LINK_TARGETS); do \
-		link=$$target/skills; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(PI_SKILLS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
+npm-install:
+	@command -v npm >/dev/null || { echo "npm not found — run: nvm install --lts"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g
+
+pipx-install:
+	@command -v pipx >/dev/null || { echo "pipx not found — run: make brew-install"; exit 1; }
+	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/pipx-tools.txt | while read -r pkg; do \
+		pipx install "$$pkg"; \
 	done
 
-claude-md-link:
-	@test -f $(CLAUDE_MD_FILE) || { echo "missing: $(CLAUDE_MD_FILE)"; exit 1; }
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/CLAUDE.md; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -f $$link ]; then \
-			backup=$$link.bak.$$(date +%Y%m%d%H%M%S); \
-			mv $$link $$backup; \
-			echo "backed up: $$link -> $$backup"; \
-		fi; \
-		ln -s $(CLAUDE_MD_FILE) $$link; \
-		echo "linked: $$link -> $(CLAUDE_MD_FILE)"; \
-	done
+stow-link:
+	$(STOW) $(HOME_STOW_FLAGS) --restow $(HOME_PACKAGES)
 
-claude-md-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/CLAUDE.md; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(CLAUDE_MD_FILE)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
+stow-unlink:
+	$(STOW) $(HOME_STOW_FLAGS) --delete $(HOME_PACKAGES)
 
-commands-link:
-	mkdir -p $(COMMANDS_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/commands; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(COMMANDS_DIR) $$link; \
-		echo "linked: $$link -> $(COMMANDS_DIR)"; \
-	done
+# Absorb pre-existing real files at target paths into the repo working tree.
+stow-adopt:
+	$(STOW) $(HOME_STOW_FLAGS) --adopt $(HOME_PACKAGES)
+	@echo ""
+	@echo "== adopted; repo state now =="
+	@git status --short
+	@echo ""
+	@echo "!! REVIEW 'git diff' BEFORE COMMITTING — adopt replaces repo files with the live ones !!"
 
-commands-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/commands; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(COMMANDS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
+macos-apply:
+	bash $(CURDIR)/macos/defaults.sh
 
-rules-link:
-	mkdir -p $(RULES_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/rules; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(RULES_DIR) $$link; \
-		echo "linked: $$link -> $(RULES_DIR)"; \
-	done
+doctor:
+	bash $(CURDIR)/scripts/doctor.sh
 
-rules-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/rules; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(RULES_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
+drift:
+	bash $(CURDIR)/scripts/drift.sh
 
-scripts-link:
-	mkdir -p $(SCRIPTS_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/scripts; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(SCRIPTS_DIR) $$link; \
-		echo "linked: $$link -> $(SCRIPTS_DIR)"; \
-	done
+# Raycast keeps settings in an encrypted local DB (extension configs can hold
+# API tokens), so its own encrypted export is the backup mechanism — never this
+# repo (*.rayconfig is gitignored). Opens the export dialog; save the file to a
+# private location (iCloud Drive / 1Password). Restore on a new Mac via
+# Raycast Settings -> Advanced -> Import.
+raycast-export:
+	open "raycast://extensions/raycast/raycast/export-settings-data"
 
-scripts-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/scripts; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(SCRIPTS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
+# Stow the claude package into each profile and the pi package into ~/.pi.
+# Pre-clean removes only SYMLINKS at the managed names (stale links from the
+# pre-stow era, or dangling ones after a repo move — including per-file links
+# inside real target subdirs); a real file or dir is left
+# for stow to conflict on — move it aside yourself (timestamped backup), and do
+# not reach for --adopt on the profile dirs.
+harness-link:
+	@for d in $(CLAUDE_CONFIG_DIRS); do \
+		mkdir -p $$d; \
+		for entry in $(CLAUDE_PKG_ENTRIES); do \
+			if [ -L $$d/$$entry ]; then rm $$d/$$entry; fi; \
+		done; \
+		find $$d -maxdepth 2 -type l ! -exec test -e {} \; -delete; \
+		$(HARNESS_STOW) --target=$$d --restow claude; \
+		echo "stowed: claude -> $$d"; \
 	done
+	@mkdir -p $(PI_TARGET)
+	@for entry in $(PI_PKG_ENTRIES); do \
+		if [ -L $(PI_TARGET)/$$entry ]; then rm $(PI_TARGET)/$$entry; fi; \
+	done
+	@find $(PI_TARGET) -maxdepth 2 -type l ! -exec test -e {} \; -delete
+	@$(HARNESS_STOW) --target=$(PI_TARGET) --adopt pi
+	@echo "stowed: pi -> $(PI_TARGET)"
 
-agents-link:
-	mkdir -p $(AGENTS_DIR)
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$target; \
-		link=$$target/agents; \
-		if [ -L $$link ]; then \
-			rm $$link; \
-		elif [ -d $$link ]; then \
-			rmdir $$link 2>/dev/null || { echo "skip: $$link is a non-empty directory"; continue; }; \
-		fi; \
-		ln -s $(AGENTS_DIR) $$link; \
-		echo "linked: $$link -> $(AGENTS_DIR)"; \
+harness-unlink:
+	@for d in $(CLAUDE_CONFIG_DIRS); do \
+		$(HARNESS_STOW) --target=$$d --delete claude && echo "unstowed: claude -> $$d"; \
 	done
-
-agents-unlink:
-	for target in $(CLAUDE_CONFIG_DIRS); do \
-		link=$$target/agents; \
-		if [ -L $$link ] && [ "$$(readlink $$link)" = "$(AGENTS_DIR)" ]; then \
-			rm $$link; \
-			echo "unlinked: $$link"; \
-		fi; \
-	done
+	@$(HARNESS_STOW) --target=$(PI_TARGET) --delete pi
+	@echo "unstowed: pi -> $(PI_TARGET)"
 
 plugins-check:
 	@test -f $(PLUGINS_FILE) || { echo "missing: $(PLUGINS_FILE)"; exit 1; }
@@ -285,9 +257,9 @@ extensions-sync:
 # Front-end onto the vercel-labs `skills` CLI (npx skills, the skills.sh
 # ecosystem). skills-find discovers; skills-add fetches via the CLI and vendors
 # the result into skills/ through resource-manager.sh, so each lands with a
-# .source.json and stays manageable by skills-list / skills-update / skills-delete.
+# sources.toml entry and stays manageable by skills-list / skills-update / skills-delete.
 # The CLI is used only as a resolver/fetcher — it never installs per-agent, so
-# the two Claude profiles and claude/agents/ subagents are unaffected.
+# the two Claude profiles and packages/claude/agents/ subagents are unaffected.
 # Set GITHUB_TOKEN (or have `gh` logged in) to avoid anonymous rate limits.
 
 skills-find:
@@ -304,8 +276,8 @@ skills-add:
 		$(if $(FORCE),--force)
 
 # --- Source management (scripts/resource-manager.sh) -----------------------
-# Fetch one skill (dir under skills/) or agent (.md under claude/agents/) from
-# any repo/subpath, tracking its source in a .source.json sidecar so it can be
+# Fetch one skill (dir under skills/) or agent (.md under packages/claude/agents/) from
+# any repo/subpath, tracking its source in the sources.toml manifest so it can be
 # listed, updated, and deleted.
 
 skills-fetch:
@@ -319,7 +291,7 @@ skills-fetch:
 		$(if $(FORCE),--force)
 
 # Reconstruct vendored skills' working files from the pinned commits in
-# skills/vendored.json (their files are gitignored, not committed). Idempotent —
+# sources.toml (their files are gitignored, not committed). Idempotent —
 # skips any skill already present at the right commit. Run by `make install`;
 # NAME=<skill> materializes one, FORCE=1 re-fetches even if present.
 skills-materialize:
@@ -360,11 +332,11 @@ suites-catalog:
 context-budget:
 	@$(RESOURCE_MANAGER) --kind skill budget $(if $(CHECK),--check) $(if $(TOP),--top $(TOP))
 
-# Aggregate the usage telemetry (claude/scripts/usage-log-hook.py) of every
+# Aggregate the usage telemetry (packages/claude/scripts/usage-log-hook.py) of every
 # profile: subagent spend by agent type × model, per-day cache-hit ratio.
 # SINCE=N limits to the last N days (default 30).
 usage-report:
-	@python3 $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) $(foreach d,$(CLAUDE_CONFIG_DIRS),--log "$(d)/usage.jsonl")
+	@$(PYTHON) $(SCRIPTS_DIR)/usage-report.py $(if $(SINCE),--since $(SINCE)) $(foreach d,$(CLAUDE_CONFIG_DIRS),--log "$(d)/usage.jsonl")
 
 # Security-scan skills with NVIDIA SkillSpector (scripts/skills-scan.py):
 # every skill by default, NAME=x for one, LLM=1 adds the semantic pass via the
@@ -374,7 +346,7 @@ usage-report:
 # skills-fetch / skills-update run the same scan on the staged skill before
 # installing it (SKILLS_SCAN=0 skips).
 skills-scan:
-	@python3 $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
+	@$(PYTHON) $(CURDIR)/scripts/skills-scan.py $(if $(NAME),--name "$(NAME)") $(if $(LLM),--llm) $(if $(SHOW),--show-suppressed) $(if $(REPORT),--report "$(REPORT)") $(if $(FAIL_AT),--fail-at $(FAIL_AT)) $(if $(QUIET),--quiet)
 
 # Install (or move to) the pinned SkillSpector release with uv.
 skillspector-install:
@@ -419,13 +391,17 @@ agents-doctor:
 # catalog, suites, and the context budget) plus a syntax pass over every script.
 # The project commit-gate hook (scripts/precommit-gate-hook.sh) and CI run this
 # same target; a new check goes here and nowhere else.
-preflight: skills-doctor agents-doctor lint
+preflight: python-check skills-doctor agents-doctor lint
+
+python-check:
+	@$(PYTHON) -c 'import tomllib' 2>/dev/null \
+		|| { echo "python3 >= 3.11 with tomllib is required (brew install python)"; exit 1; }
 
 lint:
-	@for f in scripts/*.sh claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
-	@python3 -m py_compile scripts/*.py claude/scripts/*.py
+	@for f in scripts/*.sh packages/claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
+	@$(PYTHON) -m py_compile scripts/*.py packages/claude/scripts/*.py
 
 # The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
 test:
 	@set -e; for t in scripts/test-*.sh; do echo "== $$t"; bash "$$t"; done; \
-	for t in scripts/test-*.py; do echo "== $$t"; python3 "$$t"; done
+	for t in scripts/test-*.py; do echo "== $$t"; $(PYTHON) "$$t"; done
