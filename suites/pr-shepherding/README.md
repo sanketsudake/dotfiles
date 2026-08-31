@@ -49,7 +49,7 @@ Each step is the literal phrase you say to your agent (Claude Code, pi, or any h
 | Skill | Purpose |
 |-------|---------|
 | [`make-pr-easy-to-review`](https://github.com/cursor/plugins/tree/bdf7aa355337897f167153e05069aca505dae17c/cursor-team-kit/skills/make-pr-easy-to-review) | Prepare PRs for review by cleaning noisy history, improving PR descriptions, and adding reviewer guidance without changing code behavior. |
-| [`deslop`](https://github.com/cursor/plugins/tree/bdf7aa355337897f167153e05069aca505dae17c/cursor-team-kit/skills/deslop) | Remove AI-generated code slop and clean up code style |
+| [`deslop`](https://github.com/cursor/plugins/tree/fd878692de15a3069c21c8f429eb0b9f2fe178fa/cursor-team-kit/skills/deslop) | Remove AI-generated code slop and clean up code style |
 | [`resolve-bot-review-threads`](../../skills/resolve-bot-review-threads/SKILL.md) | Clears bot/Copilot review threads on a PR — fixes the issues, marks threads resolved via GraphQL, and re-requests the bot until the PR is clean. |
 | [`watch-ci`](../../skills/watch-ci/SKILL.md) | Watches a PR's CI checks to terminal state in the background and turns each transition into a notification, instead of a foreground polling loop. |
 | [`debug-ci`](../../skills/debug-ci/SKILL.md) | Triages and root-causes a failing GitHub Actions CI run on a PR by separating real regressions from pre-existing noise and escalating log fetches cheapest-fi... |
