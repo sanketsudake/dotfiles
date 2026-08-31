@@ -117,8 +117,8 @@ fi
 for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOME/.pi/skills"; do
   r="$(resolve "$t")"
   case "$r" in
-    "$REPO_DIR"/packages/*) ok "$t -> repo" ;;
-    *) bad "$t does not resolve into $REPO_DIR/packages — run: make harness-link" ;;
+    "$REPO_DIR"/*) ok "$t -> repo" ;;
+    *) bad "$t does not resolve into $REPO_DIR — run: make harness-link" ;;
   esac
 done
 
