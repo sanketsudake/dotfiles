@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v16
       - run: nix flake check
-      # Pure eval type-checks the whole darwin + home-manager module tree;
-      # no macOS runner needed.
-      - run: nix eval .#darwinConfigurations.Sankets-MacBook-Air.system.drvPath
+      # Pure eval type-checks every host's darwin + home-manager module tree;
+      # no macOS runner needed, and new hosts are covered automatically.
+      - run: nix eval .#darwinConfigurations --apply 'cfgs: builtins.mapAttrs (_: c: c.system.drvPath) cfgs'
       - run: nix run nixpkgs#statix -- check nix/

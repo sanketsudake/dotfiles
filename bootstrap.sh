@@ -7,15 +7,14 @@
 #   curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/main/bootstrap.sh -o /tmp/bootstrap.sh
 #   bash /tmp/bootstrap.sh
 #
-# The flake pins one host config (see NIX_HOST in the Makefile). On a machine
-# with a different LocalHostName, add a darwinConfigurations entry for it (or
-# rename the machine) before bootstrapping.
+# The host name selects the darwinConfigurations entry; on a new machine, add
+# an entry for its LocalHostName in flake.nix (mkDarwinHost) before running.
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/personal/dotfiles}"
 DOTFILES_SSH="git@github.com:sanketsudake/dotfiles.git"
 DOTFILES_HTTPS="https://github.com/sanketsudake/dotfiles.git"
-NIX_HOST="Sankets-MacBook-Air"
+NIX_HOST="$(scutil --get LocalHostName)"
 
 step() { printf '\n==> %s\n' "$*"; }
 
