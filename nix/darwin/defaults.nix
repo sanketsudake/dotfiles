@@ -52,11 +52,17 @@
     # Tap to click (built-in + bluetooth trackpads).
     trackpad.Clicking = true;
 
-    # No dedicated nix-darwin group for desktopservices: don't litter network
-    # shares and USB volumes with .DS_Store files.
-    CustomUserPreferences."com.apple.desktopservices" = {
-      DSDontWriteNetworkStores = true;
-      DSDontWriteUSBStores = true;
+    CustomUserPreferences = {
+      # No dedicated nix-darwin group for desktopservices: don't litter network
+      # shares and USB volumes with .DS_Store files.
+      "com.apple.desktopservices" = {
+        DSDontWriteNetworkStores = true;
+        DSDontWriteUSBStores = true;
+      };
+      # Itsycal (installed from nixpkgs): the one deliberate setting.
+      "com.mowglii.ItsycalApp" = {
+        ShowEventDays = 7;
+      };
     };
   };
 }

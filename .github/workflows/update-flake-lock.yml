@@ -1,0 +1,24 @@
+# Weekly flake.lock bump as a PR; the checks workflow (flake check + darwin
+# eval) validates it. Note: PRs opened with the default GITHUB_TOKEN do not
+# trigger workflows — close/reopen the PR (or push to its branch) to run CI.
+name: update-flake-lock
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/update-flake-lock@v25
+        with:
+          pr-title: "flake.lock: weekly input bump"
+          commit-msg: "flake.lock: weekly input bump"

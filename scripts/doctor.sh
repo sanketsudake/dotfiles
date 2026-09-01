@@ -116,6 +116,18 @@ else
   bad "credential-looking content in tracked files:"$'\n'"$content_leaks"
 fi
 
+echo "== raycast backup =="
+# Raycast config is an encrypted DB — the export (make raycast-export) is the
+# only backup; keep the .rayconfig with private backups, never in the repo.
+latest_ray="$(ls -t "$HOME/Documents"/*.rayconfig 2>/dev/null | head -1)"
+if [ -z "$latest_ray" ]; then
+  warn "no Raycast settings export in ~/Documents — run: make raycast-export"
+elif [ -n "$(find "$latest_ray" -mtime +90 2>/dev/null)" ]; then
+  warn "Raycast export is older than 90 days ($(basename "$latest_ray")) — run: make raycast-export"
+else
+  ok "Raycast export present ($(basename "$latest_ray"))"
+fi
+
 echo "== broken symlinks =="
 broken="$(find "$HOME" -maxdepth 3 -type l ! -exec test -e {} \; -print 2>/dev/null || true)"
 if [ -z "$broken" ]; then
