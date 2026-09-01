@@ -40,5 +40,11 @@
     glow
     dust
     lazygit
+
+    # --- media/docs (batch 2) ---
+    ffmpeg
+    pandoc
+    poppler
+    qpdf
   ];
 }

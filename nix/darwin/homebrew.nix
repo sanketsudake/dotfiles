@@ -30,10 +30,6 @@
       "mas" # Mac App Store CLI (for the masApps below)
 
       # --- shell & everyday tools ---
-      "ffmpeg"
-      "pandoc"
-      "poppler"
-      "qpdf" # pdfunlock()
 
       # --- modern CLI ---
 
