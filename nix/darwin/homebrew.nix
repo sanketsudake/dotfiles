@@ -22,27 +22,8 @@
     ];
 
     brews = [
-      # --- AI-harness prereqs ---
       "mas" # Mac App Store CLI (for the masApps below)
-
-      # --- shell & everyday tools ---
-
-      # --- modern CLI ---
-
-      # --- languages & build ---
-
-      # --- build deps (ad-hoc installs, adopted at the cleanup flip) ---
-      "clang-format"
-      "cmake"
-      "gcc"
-      "librsvg"
-      "ninja"
-      "pango"
-
-      # --- containers & kubernetes ---
-
-      # --- cloud & misc ---
-      "herdr"
+      "herdr" # agent multiplexer; brew bottle, no clean nix/npm/go path
     ];
 
     casks = [
