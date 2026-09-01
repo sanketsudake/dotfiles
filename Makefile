@@ -71,7 +71,7 @@ SHELL := /bin/bash
 BASH := $(shell [ -x /etc/profiles/per-user/$$USER/bin/bash ] && echo /etc/profiles/per-user/$$USER/bin/bash || echo bash)
 
 .PHONY: install uninstall doctor drift python-check \
-	nix-build nix-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update \
+	nix-build nix-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update nix-gc \
 	brew-install brew-check brew-dump cask-adopt \
 	go-install npm-install pipx-install tools-install \
 	macos-apply raycast-export \
@@ -107,8 +107,15 @@ nix-rollback:
 	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST) --rollback
 
 # Lockfile bump — review `git diff flake.lock` like a Brewfile re-curation.
+# (CI also opens a weekly bump PR: .github/workflows/update-flake-lock.yml.)
 nix-update:
 	$(NIX) flake update
+
+# Prune generations older than 30 days and dedupe the store. Run with the
+# monthly nix-update ritual; system generations are root-owned, hence sudo.
+nix-gc:
+	sudo $(NIX)-collect-garbage --delete-older-than 30d
+	$(NIX) store optimise
 
 brew-install:
 	@echo "brew packages are declared in nix/darwin/homebrew.nix — run: make nix-switch"
