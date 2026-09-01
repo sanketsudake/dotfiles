@@ -52,8 +52,6 @@
       "poppler"
       "qpdf" # pdfunlock()
       "git-lfs"
-      "zsh-autosuggestions" # ghost-text next-command suggestion from history
-      "zsh-syntax-highlighting" # invalid commands go red before you hit enter
 
       # --- modern CLI ---
       "fzf" # fuzzy pickers + Ctrl-T/Alt-C (Ctrl-R stays with atuin)
