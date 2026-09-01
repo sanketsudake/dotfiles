@@ -46,5 +46,24 @@
     pandoc
     poppler
     qpdf
+
+    # --- Go & build (batch 3) ---
+    # rust stays in brew for now (rustup vs nixpkgs decision deferred);
+    # nvm/node stays in brew (skill-vendoring tooling depends on it);
+    # comby stays in brew (broken in nixpkgs on darwin).
+    go
+    golangci-lint
+    gomplate
+    goreleaser
+    mage
+    protobuf
+    jdk
+    maven
+    sbt
+    libpq
+    uv
+    pipx
+    virtualenv
+    python313
   ];
 }

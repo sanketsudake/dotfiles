@@ -26,7 +26,6 @@
     brews = [
       # --- AI-harness prereqs (stow, jq, gh, node-via-nvm, python) ---
       "nvm" # provides node/npx for skill-vendoring tooling
-      "python@3.13"
       "mas" # Mac App Store CLI (for the masApps below)
 
       # --- shell & everyday tools ---
@@ -34,21 +33,8 @@
       # --- modern CLI ---
 
       # --- languages & build ---
-      "go"
-      "golangci-lint"
-      "gomplate"
-      "goreleaser"
-      "mage"
       "rust"
-      "openjdk"
-      "maven"
-      "sbt"
-      "protobuf"
-      "pipx"
-      "uv"
-      "virtualenv"
-      "libpq"
-      "comby"
+      "comby" # broken in nixpkgs on darwin — stays in brew
 
       # --- containers & kubernetes ---
       "colima"

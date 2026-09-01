@@ -1,9 +1,11 @@
 STOW := stow
 PI_TARGET := $(HOME)/.pi
 
-# sources.toml is read/written via tomllib, so python >= 3.11 is required;
-# prefer the brew python homebrew.nix installs over a stale system python3.
-PYTHON ?= python3
+# sources.toml is read/written via tomllib, so python >= 3.11 is required.
+# Absolute nix-profile path (python313 in nix/home/packages.nix): hooks and CI
+# invoke make without the interactive shell's PATH. Falls back to PATH python3
+# where the profile doesn't exist (e.g. Linux CI).
+PYTHON ?= $(shell [ -x /etc/profiles/per-user/$$USER/bin/python3 ] && echo /etc/profiles/per-user/$$USER/bin/python3 || echo python3)
 
 # $HOME dotfile packages, now linked per-file by home-manager (nix/home/).
 # packages/ stays the source of truth for content; this list drives
