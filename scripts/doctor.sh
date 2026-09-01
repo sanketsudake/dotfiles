@@ -5,6 +5,9 @@ set -uo pipefail
 # Prefer the nix per-user profile (hooks and CI invoke this without the
 # interactive shell's PATH); no-op where the profile is absent.
 [ -d "/etc/profiles/per-user/$USER/bin" ] && PATH="/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:$PATH"
+# npm globals live in a writable prefix (node is in the read-only store).
+export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-globals}"
+PATH="$HOME/.npm-globals/bin:$PATH"
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAIL=0
@@ -21,17 +24,6 @@ resolve() {
 
 echo "== tools =="
 if command -v brew >/dev/null; then ok "brew $(brew --version | head -1 | awk '{print $2}')"; else bad "brew not found"; fi
-if command -v stow >/dev/null; then
-  stow_ver="$(stow --version | head -1 | awk '{print $NF}')"
-  IFS=. read -r maj min _ <<< "$stow_ver"
-  if [ "${maj:-0}" -gt 2 ] 2>/dev/null || { [ "${maj:-0}" -eq 2 ] && [ "${min:-0}" -ge 4 ]; } 2>/dev/null; then
-    ok "stow $stow_ver"
-  else
-    bad "stow $stow_ver too old or unparseable — need >= 2.4.0 for --dotfiles dir handling"
-  fi
-else
-  bad "stow not found"
-fi
 # npx is only needed for the optional skills-find/vendor targets.
 if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: nvm install --lts (needed only for skill vendoring)"; fi
 
@@ -142,7 +134,7 @@ for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOM
   r="$(resolve "$t")"
   case "$r" in
     "$REPO_DIR"/*) ok "$t -> repo" ;;
-    *) bad "$t does not resolve into $REPO_DIR — run: make harness-link" ;;
+    *) bad "$t does not resolve into $REPO_DIR — run: make nix-switch" ;;
   esac
 done
 

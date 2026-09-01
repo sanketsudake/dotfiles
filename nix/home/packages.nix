@@ -19,7 +19,6 @@
     wget
 
     # --- AI-harness prereqs ---
-    stow
     jq
     gh
 
@@ -48,9 +47,7 @@
     qpdf
 
     # --- Go & build (batch 3) ---
-    # rust stays in brew for now (rustup vs nixpkgs decision deferred);
-    # nvm/node stays in brew (skill-vendoring tooling depends on it);
-    # comby stays in brew (broken in nixpkgs on darwin).
+    # comby was dropped entirely (broken in nixpkgs on darwin, unused).
     go
     golangci-lint
     gomplate
@@ -65,6 +62,8 @@
     pipx
     virtualenv
     python313
+    rustup # toolchains live in ~/.rustup; run `rustup default stable` once
+    nodejs # replaces nvm; npm -g installs go to ~/.npm-globals (NPM_CONFIG_PREFIX)
 
     # --- containers & kubernetes + cloud (batch 4) ---
     colima

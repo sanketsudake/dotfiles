@@ -2,3 +2,4 @@
 @readwise/cli
 @tobilu/qmd
 corepack
+agent-browser

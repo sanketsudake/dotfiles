@@ -1,4 +1,3 @@
-STOW := stow
 PI_TARGET := $(HOME)/.pi
 
 # sources.toml is read/written via tomllib, so python >= 3.11 is required.
@@ -31,10 +30,9 @@ CLAUDE_DIR := $(CURDIR)/packages/claude
 PLUGINS_FILE := $(MANIFESTS)/claude-plugins.txt
 SCRIPTS_DIR := $(CLAUDE_DIR)/scripts
 
-# Harness stow packages (claude → each profile, pi → ~/.pi). These stow with
-# directory folding ON — whole-dir symlinks are the point, unlike the
-# --no-folding invariant that protects the $HOME packages.
-HARNESS_STOW := $(STOW) --dir=$(CURDIR)/packages
+# Harness links (claude → each profile, pi → ~/.pi) are home-manager
+# out-of-store symlinks — see nix/home/harness.nix; the entry lists below
+# still drive doctor's checks.
 CLAUDE_PKG_ENTRIES := CLAUDE.md commands rules scripts agents skills
 PI_PKG_ENTRIES := agent extensions prompts skills README.md
 
@@ -85,13 +83,13 @@ BASH := $(shell [ -x /etc/profiles/per-user/$$USER/bin/bash ] && echo /etc/profi
 	agents-fetch agents-list agents-update agents-update-all agents-category agents-delete \
 	agents-doctor preflight lint test
 
-install: nix-switch skills-materialize harness-link tools-install
+install: nix-switch skills-materialize tools-install
 
-uninstall: harness-unlink
+uninstall:
+	@echo "the declared system is removed by darwin-uninstaller; see nix-darwin docs"
 
 # Nix (nix-darwin + home-manager). nix-build previews without activating;
-# nix-switch is the apply verb. See "Nix migration plan" — phases land
-# incrementally, stow keeps serving unmigrated packages.
+# nix-switch is the apply verb for the whole declared system.
 nix-build:
 	$(DARWIN_REBUILD) build --flake $(CURDIR)#$(NIX_HOST)
 
@@ -174,36 +172,12 @@ drift:
 raycast-export:
 	open "raycast://extensions/raycast/raycast/export-settings-data"
 
-# Stow the claude package into each profile and the pi package into ~/.pi.
-# Pre-clean removes only SYMLINKS at the managed names (stale links from the
-# pre-stow era, or dangling ones after a repo move — including per-file links
-# inside real target subdirs); a real file or dir is left
-# for stow to conflict on — move it aside yourself (timestamped backup), and do
-# not reach for --adopt on the profile dirs.
+# Harness links are created by home-manager (nix/home/harness.nix).
 harness-link:
-	@for d in $(CLAUDE_CONFIG_DIRS); do \
-		mkdir -p $$d; \
-		for entry in $(CLAUDE_PKG_ENTRIES); do \
-			if [ -L $$d/$$entry ]; then rm $$d/$$entry; fi; \
-		done; \
-		find $$d -maxdepth 2 -type l ! -exec test -e {} \; -delete; \
-		$(HARNESS_STOW) --target=$$d --restow claude; \
-		echo "stowed: claude -> $$d"; \
-	done
-	@mkdir -p $(PI_TARGET)
-	@for entry in $(PI_PKG_ENTRIES); do \
-		if [ -L $(PI_TARGET)/$$entry ]; then rm $(PI_TARGET)/$$entry; fi; \
-	done
-	@find $(PI_TARGET) -maxdepth 2 -type l ! -exec test -e {} \; -delete
-	@$(HARNESS_STOW) --target=$(PI_TARGET) --adopt pi
-	@echo "stowed: pi -> $(PI_TARGET)"
+	@echo "harness links are managed by home-manager — run: make nix-switch"
 
 harness-unlink:
-	@for d in $(CLAUDE_CONFIG_DIRS); do \
-		$(HARNESS_STOW) --target=$$d --delete claude && echo "unstowed: claude -> $$d"; \
-	done
-	@$(HARNESS_STOW) --target=$(PI_TARGET) --delete pi
-	@echo "unstowed: pi -> $(PI_TARGET)"
+	@echo "remove nix/home/harness.nix from nix/home/default.nix and run: make nix-switch"
 
 plugins-check:
 	@test -f $(PLUGINS_FILE) || { echo "missing: $(PLUGINS_FILE)"; exit 1; }

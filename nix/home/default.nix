@@ -10,5 +10,6 @@
     ./bin.nix
     ./zsh.nix
     ./packages.nix
+    ./harness.nix
   ];
 }

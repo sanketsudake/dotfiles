@@ -3,7 +3,7 @@
 # Re-curation flow: `make brew-dump` writes Brewfile.dump (gitignored); diff it
 # against the generated brewfile (make brew-check prints its path) and promote
 # keepers by hand. `go`/`npm` entries from the dump stay excluded (managed by
-# go install / nvm, not brew).
+# go install / npm, not brew).
 # cleanup = "none" until Phase 7: activation only installs, never removes.
 {
   homebrew = {
@@ -18,13 +18,11 @@
     };
 
     taps = [
-      { name = "openclaw/tap"; trusted = true; }
       "sanketsudake/tap"
     ];
 
     brews = [
-      # --- AI-harness prereqs (stow, jq, gh, node-via-nvm, python) ---
-      "nvm" # provides node/npx for skill-vendoring tooling
+      # --- AI-harness prereqs ---
       "mas" # Mac App Store CLI (for the masApps below)
 
       # --- shell & everyday tools ---
@@ -32,8 +30,6 @@
       # --- modern CLI ---
 
       # --- languages & build ---
-      "rust"
-      "comby" # broken in nixpkgs on darwin — stays in brew
 
       # --- build deps (ad-hoc installs, adopted at the cleanup flip) ---
       "clang-format"
@@ -46,9 +42,7 @@
       # --- containers & kubernetes ---
 
       # --- cloud & misc ---
-      "agent-browser"
       "herdr"
-      "openclaw/tap/gitcrawl"
     ];
 
     casks = [

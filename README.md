@@ -59,11 +59,11 @@ dotfiles/
 │   ├── README.md   #   generated catalog — start here
 │   └── .security/  #   SkillSpector baselines (accepted findings, with reasons)
 ├── suites/         # curated skill-suite landing pages
-├── pi/             # pi agent config, stowed into ~/.pi
+├── pi/             # pi agent config, linked into ~/.pi
 └── scripts/        # repo tooling (doctor, drift, resource manager — not symlinked)
 ```
 
-`make install` symlinks `skills/` and `claude/*` into both Claude profiles and `~/.pi`, and stows `pi/` — safe to re-run.
+`make install` links `skills/` and `claude/*` into both Claude profiles and `pi/` into `~/.pi` (home-manager out-of-store symlinks) — safe to re-run.
 Because everything is symlinked, one edit here applies to every profile and both harnesses at once.
 
 ## What's inside
@@ -102,7 +102,7 @@ Plus the shared `CLAUDE.md` (secrets hygiene, semantic-line-break markdown per [
 
 ## Adopt it
 
-Prerequisites: `git`, [GNU `stow`](https://www.gnu.org/software/stow/), `jq` (plus `gh` / `python3` / `npx` for the skills that use them).
+Prerequisites: `git`, `jq` (plus `gh` / `python3` / `npx` for the skills that use them).
 
 ```sh
 git clone https://github.com/sanketsudake/dotfiles.git
@@ -112,7 +112,7 @@ cd dotfiles
 #   2. Copy the pclaude/wclaude snippets from scripts/claude-multi-account.sh into your shell profile
 #   3. Make claude/CLAUDE.md yours — it's opinionated
 #   4. Review nix/, manifests/, and packages/ — they describe one person's machine
-make install      # nix-switch (packages + dotfiles + defaults), link claude/ + skills/ into profiles, stow pi/
+make install      # nix-switch (packages + dotfiles + defaults + harness links) + skills-materialize + tools
 make skills-list  # see each skill's source and status
 ```
 
@@ -124,7 +124,7 @@ Everyday targets — `CLAUDE.md` carries the full `<resource>-<action>` referenc
 
 | Target | Does |
 |--------|------|
-| `install` / `uninstall` | Link/stow everything into the profiles, or reverse it. |
+| `install` / `uninstall` | Apply the declared system and links, or reverse it. |
 | `skills-find` / `skills-add` | Discover skills on [skills.sh](https://www.skills.sh/) and vendor them. |
 | `skills-catalog` / `skills-doctor` | Regenerate the catalog / validate every skill and its freshness. |
 | `skills-update[-all]` | Re-fetch vendored skills whose upstream moved. |
@@ -170,10 +170,12 @@ Two rules with no exceptions:
 flakes only see git-tracked files, so `git add` new `.nix` files before building;
 and never let home-manager own a directory that holds mutable files.
 
-### The stow model (harness only)
+### Harness links
 
-The harness targets (`~/.claude-*`, `~/.pi`) are still stowed from `packages/` and link whole directories on purpose —
-they need mutable, materialized content (vendored skills) that the immutable nix store cannot serve.
+The harness targets (`~/.claude-*`, `~/.pi`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
+the linked content stays mutable, so vendored skills materialize in place and repo edits apply live.
+`~/.pi/agent` and `~/.pi/extensions` link per-file on purpose: pi writes state beside them,
+and a whole-dir link would let a tool write into the repo.
 
 zsh keeps its drop-in idea: `~/.zshrc` is a thin loader sourcing `~/.config/zsh/*.zsh` in `NN-` prefix order,
 and machine-local uncommitted overrides go in `~/.config/zsh/90-local.zsh`

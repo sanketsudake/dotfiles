@@ -29,3 +29,6 @@ github.com/favadi/protoc-go-inject-tag
 sigs.k8s.io/controller-runtime/tools/setup-envtest
 github.com/grafana/dashboard-linter
 github.com/darccio/diffty/cmd/diffty
+
+# personal tools (was brew taps)
+github.com/openclaw/gitcrawl/cmd/gitcrawl
