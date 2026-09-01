@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drift report: recorded configuration (Brewfile, manifests/, macos/defaults.sh)
+# Drift report: recorded configuration (nix/darwin/homebrew.nix, manifests/, macos/defaults.sh)
 # vs the live system, in both directions. Prints the reconcile command for every
 # finding. Exit 1 if any drift; Spotlight-lagged mas entries are warnings only.
 set -uo pipefail
@@ -26,10 +26,11 @@ normalize_bundle() {
 }
 
 echo "== brew (formulae, casks, taps, mas, vscode) =="
+BREWFILE="$("$REPO_DIR/scripts/nix-brewfile.sh")"
 dump="$(mktemp)"
 trap 'rm -f "$dump"' EXIT
 if brew bundle dump --file="$dump" --force >/dev/null 2>&1; then
-  declared="$(normalize_bundle "$REPO_DIR/Brewfile")"
+  declared="$(normalize_bundle "$BREWFILE")"
   installed="$(normalize_bundle "$dump")"
   missing="$(comm -23 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed"))"
   extra="$(comm -13 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed"))"
@@ -41,7 +42,7 @@ if brew bundle dump --file="$dump" --force >/dev/null 2>&1; then
       [ -z "$row" ] && continue
       kind="${row%% *}"; name="${row#* }"
       if [ "$kind" = "mas" ]; then
-        app_line="$(grep -E "^mas \"[^\"]+\", id: .*$" "$REPO_DIR/Brewfile" | grep -F "$name" || true)"
+        app_line="$(grep -E "^mas \"[^\"]+\", id: .*$" "$BREWFILE" | grep -F "$name" || true)"
         app_name="$(printf '%s' "$app_line" | sed -E 's/^mas "([^"]+)".*/\1/')"
         if [ -n "$app_name" ] && [ -d "/Applications/$app_name.app" ]; then
           warn "mas $app_name unmet only per Spotlight index; app present on disk"
@@ -56,9 +57,9 @@ if brew bundle dump --file="$dump" --force >/dev/null 2>&1; then
     drift "declared but not installed — run: make brew-install"$'\n'"$(printf '%s\n' "$missing" | sed 's/^/    /')"
   fi
   if [ -n "$extra" ]; then
-    drift "installed but not in Brewfile — add there, or brew uninstall / brew untap:"$'\n'"$(printf '%s\n' "$extra" | sed 's/^/    /')"
+    drift "installed but not declared in nix/darwin/homebrew.nix — add there, or brew uninstall / brew untap:"$'\n'"$(printf '%s\n' "$extra" | sed 's/^/    /')"
   fi
-  [ -z "$missing" ] && [ -z "$extra" ] && ok "Brewfile matches installed state"
+  [ -z "$missing" ] && [ -z "$extra" ] && ok "homebrew.nix matches installed state"
 else
   drift "brew bundle dump failed — is brew healthy?"
 fi
