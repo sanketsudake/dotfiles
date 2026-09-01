@@ -6,18 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 One repo for the whole machine:
 
-- **macOS dotfiles** — stow packages under `packages/` (targeted at `$HOME`), a curated `Brewfile`, tool manifests under `manifests/`, `bootstrap.sh` for new Macs, and `macos/defaults.sh`.
+- **macOS system** — a nix-darwin + home-manager flake (`flake.nix`, `nix/`): `nix/darwin/` declares macOS defaults and every Homebrew formula/cask/mas/vscode entry, `nix/home/` declares dotfile links and CLI packages. Dotfile sources live under `packages/` (stow-style `dot-` names, linked per-file by home-manager); tool manifests under `manifests/`; `bootstrap.sh` for new Macs; `macos/defaults.sh` is Helium-browser-only.
 - **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is stowed into `~/.pi` via GNU stow.
 - **Claude Code** — a shared global `CLAUDE.md`, `skills/`, `commands/`, `rules/`, `scripts/`, and `agents/` are symlinked into `~/.claude-personal/` and `~/.claude-work/`.
 
 There is no application to build/test/lint.
-The `Makefile` is the primary interface; targets follow `<resource>-<action>` naming (`brew-install`, `stow-link`, `skills-fetch`).
+The `Makefile` is the primary interface; targets follow `<resource>-<action>` naming (`nix-switch`, `skills-fetch`).
+`make nix-switch` is the apply verb for the declared system (build-only preview: `make nix-build`; rollback: `make nix-rollback`).
+Two hard nix rules: flakes only see git-tracked files (`git add` new `.nix` files before building), and home-manager must never own a directory holding mutable files (manage files individually).
 
 ## Makefile targets
 
 All targets follow a `<resource>-<action>` naming convention (e.g. `skills-link`, `skills-sync`), except the `install`/`uninstall` aggregates.
 
-- `make install` — runs `brew-install`, `stow-link` (the `$HOME` packages), `skills-materialize` (reconstructs the gitignored vendored skill dirs from `sources.toml`), `harness-link` (stows the `claude` package into both profiles and the `pi` package into `~/.pi`), then `tools-install`.
+- `make install` — runs `nix-switch` (packages, dotfile links, macOS defaults in one generation), `skills-materialize` (reconstructs the gitignored vendored skill dirs from `sources.toml`), `harness-link` (stows the `claude` package into both profiles and the `pi` package into `~/.pi`), then `tools-install`.
   Safe to re-run; `harness-link` removes stale symlinks at the managed names, and a real file at a target must be moved aside by hand (never `--adopt` on the profile dirs).
   Materialization needs network on a fresh clone; offline, already-present vendored skills are left as-is and missing ones are reported as skipped.
 - `make uninstall` — reverses the above.
@@ -205,10 +207,10 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 
 ## Dotfiles conventions
 
-- Home stow flags are fixed at `--dotfiles --no-folding` and must not be changed; both are security invariants, explained in README.md § "The stow model".
-  They apply only to the `$HOME` packages (`HOME_PACKAGES` in the Makefile); the harness links (`~/.claude-*`, `~/.pi`) are whole-directory symlinks on purpose.
+- `$HOME` dotfiles are linked per-file by home-manager (`nix/home/*.nix` pointing at `packages/` sources) — the per-file discipline is a security invariant, explained in README.md § "The nix model"; never point `home.file` at a whole directory.
+  The harness links (`~/.claude-*`, `~/.pi`) are whole-directory stow symlinks on purpose.
 - File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`); requires stow ≥ 2.4.0.
 - Never add packages for credential-bearing dirs: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`.
-- `Brewfile` is the curated package list; `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only.
+- `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`.
 - `bootstrap.sh` is the new-Mac entry point; keep it idempotent, check-then-act.
 - To add a new tool config, follow the numbered recipe in README.md § "Adding a new tool config"; it is the canonical version.
