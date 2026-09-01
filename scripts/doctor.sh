@@ -2,6 +2,10 @@
 # Health checks for the dotfiles setup. Exit non-zero if anything is wrong.
 set -uo pipefail
 
+# Prefer the nix per-user profile (hooks and CI invoke this without the
+# interactive shell's PATH); no-op where the profile is absent.
+[ -d "/etc/profiles/per-user/$USER/bin" ] && PATH="/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:$PATH"
+
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAIL=0
 

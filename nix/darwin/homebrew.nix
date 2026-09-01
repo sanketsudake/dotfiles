@@ -18,9 +18,6 @@
     };
 
     taps = [
-      { name = "jesseduffield/lazydocker"; trusted = true; }
-      { name = "loft-sh/tap"; trusted = true; }
-      { name = "minio/stable"; trusted = true; }
       { name = "openclaw/tap"; trusted = true; }
       "sanketsudake/tap"
     ];
@@ -86,7 +83,6 @@
     masApps = {
       "1Password for Safari" = 1569813296;
       "Numbers" = 361304891;
-      "Okta Verify" = 490179405;
     };
 
     vscode = [

@@ -89,7 +89,6 @@
     viddy # modern watch with diff highlighting + time travel
     kubeconform # fast k8s manifest schema validation
     lazydocker
-    vcluster
     minio-client
     cloudflared
     hugo
