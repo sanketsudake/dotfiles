@@ -65,5 +65,33 @@
     pipx
     virtualenv
     python313
+
+    # --- containers & kubernetes + cloud (batch 4) ---
+    colima
+    docker-client # brew's "docker" formula is the client too; engine runs in colima
+    docker-buildx
+    cosign
+    kubernetes-helm
+    k9s
+    kind
+    ko
+    kustomize
+    skaffold
+    skopeo
+    stern
+    k6
+    mkcert
+    kubectx # kubectx + kubens; fuzzy pickers with fzf installed
+    kubecolor # colorized kubectl output (aliased to kubectl)
+    dive # layer-by-layer container image explorer
+    trivy # CVE/misconfig scanner for images, IaC, clusters
+    dyff # YAML-aware structural diff (helm/k8s manifests)
+    viddy # modern watch with diff highlighting + time travel
+    kubeconform # fast k8s manifest schema validation
+    lazydocker
+    vcluster
+    minio-client
+    cloudflared
+    hugo
   ];
 }

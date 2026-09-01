@@ -37,34 +37,8 @@
       "comby" # broken in nixpkgs on darwin — stays in brew
 
       # --- containers & kubernetes ---
-      "colima"
-      "docker"
-      "docker-buildx"
-      "cosign"
-      "helm"
-      "k9s"
-      "kind"
-      "ko"
-      "kustomize"
-      "skaffold"
-      "skopeo"
-      "stern"
-      "k6"
-      "mkcert"
-      "kubectx" # kubectx + kubens; fuzzy pickers with fzf installed
-      "kubecolor" # colorized kubectl output (aliased to kubectl)
-      "dive" # layer-by-layer container image explorer
-      "trivy" # CVE/misconfig scanner for images, IaC, clusters
-      "dyff" # YAML-aware structural diff (helm/k8s manifests)
-      "viddy" # modern watch with diff highlighting + time travel
-      "kubeconform" # fast k8s manifest schema validation
-      "jesseduffield/lazydocker/lazydocker"
-      "loft-sh/tap/vcluster"
-      "minio/stable/mc"
 
       # --- cloud & misc ---
-      "cloudflared"
-      "hugo"
       "agent-browser"
       "herdr"
       "openclaw/tap/gitcrawl"
