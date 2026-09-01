@@ -92,6 +92,11 @@
     cloudflared
     hugo
 
+    # --- GUI apps (small tools where nixpkgs update lag is harmless;
+    # the rest stay casks for timely self-updates) ---
+    itsycal
+    raycast # launcher + clipboard history + window snapping + extensions
+
     # --- go tools (was manifests/go-tools.txt; the unpackaged rest stays
     # there via make go-install) ---
     delve

@@ -40,9 +40,7 @@
       "devin-cli"
       "ghostty"
       "helium-browser" # Chromium-based; to replace google-chrome eventually
-      "itsycal"
       "obsidian"
-      "raycast" # launcher + clipboard history + window snapping + extensions
       "slack"
       "visual-studio-code"
       { name = "sanketsudake/tap/cc-proxy"; trusted = true; }

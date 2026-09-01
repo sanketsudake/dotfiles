@@ -10,6 +10,13 @@
 
   nixpkgs.hostPlatform = "aarch64-darwin";
 
+  # Unfree packages allowed by name only — add here deliberately.
+  nixpkgs.config.allowUnfreePredicate =
+    pkg:
+    builtins.elem (pkg.pname or pkg.name) [
+      "raycast"
+    ];
+
   # Determinate Nix manages the nix installation itself.
   # Delete this line if switching to the official installer.
   nix.enable = false;
