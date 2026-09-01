@@ -68,6 +68,9 @@ PI_EXTENSIONS := \
 	subagent
 
 SHELL := /bin/bash
+# Modern bash for the repo's scripts: /bin/bash is 3.2 (parser bugs bite
+# drift.sh); prefer the nix profile bash, fall back to PATH bash (Linux CI).
+BASH := $(shell [ -x /etc/profiles/per-user/$$USER/bin/bash ] && echo /etc/profiles/per-user/$$USER/bin/bash || echo bash)
 
 .PHONY: install uninstall doctor drift python-check \
 	nix-build nix-switch nix-check nix-fmt nix-rollback nix-update \
@@ -155,13 +158,13 @@ pipx-install:
 	@echo "!! REVIEW 'git diff' BEFORE COMMITTING — adopt replaces repo files with the live ones !!"
 
 macos-apply:
-	bash $(CURDIR)/macos/defaults.sh
+	$(BASH) $(CURDIR)/macos/defaults.sh
 
 doctor:
-	bash $(CURDIR)/scripts/doctor.sh
+	$(BASH) $(CURDIR)/scripts/doctor.sh
 
 drift:
-	bash $(CURDIR)/scripts/drift.sh
+	$(BASH) $(CURDIR)/scripts/drift.sh
 
 # Raycast keeps settings in an encrypted local DB (extension configs can hold
 # API tokens), so its own encrypted export is the backup mechanism — never this
@@ -422,10 +425,10 @@ python-check:
 		|| { echo "python3 >= 3.11 with tomllib is required (brew install python)"; exit 1; }
 
 lint:
-	@for f in scripts/*.sh packages/claude/scripts/*.sh; do bash -n "$$f" || exit 1; done
+	@for f in scripts/*.sh packages/claude/scripts/*.sh; do $(BASH) -n "$$f" || exit 1; done
 	@$(PYTHON) -m py_compile scripts/*.py packages/claude/scripts/*.py
 
 # The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
 test:
-	@set -e; for t in scripts/test-*.sh; do echo "== $$t"; bash "$$t"; done; \
+	@set -e; for t in scripts/test-*.sh; do echo "== $$t"; $(BASH) "$$t"; done; \
 	for t in scripts/test-*.py; do echo "== $$t"; $(PYTHON) "$$t"; done

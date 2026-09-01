@@ -68,7 +68,8 @@ echo "== go tools (manifests/go-tools.txt vs ~/go/bin) =="
 declared_bins="$(manifest_entries "$REPO_DIR/manifests/go-tools.txt" | while read -r mod; do
   mod="${mod%@*}"
   bin="${mod##*/}"
-  case "$bin" in v[0-9]*) mod="${mod%/*}"; bin="${mod##*/}" ;; esac
+  # if-form, not case: macOS /bin/bash 3.2 can't parse case inside $( ).
+  if [[ "$bin" == v[0-9]* ]]; then mod="${mod%/*}"; bin="${mod##*/}"; fi
   printf '%s\n' "$bin"
 done | sort -u)"
 installed_bins="$(ls "$HOME/go/bin" 2>/dev/null | sort -u || true)"

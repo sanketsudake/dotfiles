@@ -10,7 +10,9 @@
     enable = true;
 
     onActivation = {
-      cleanup = "none";
+      # Removing an entry here uninstalls it on the next switch; promote any
+      # ad-hoc `brew install` into this file before it gets swept.
+      cleanup = "uninstall";
       autoUpdate = false;
       upgrade = false;
     };
@@ -35,6 +37,14 @@
       # --- languages & build ---
       "rust"
       "comby" # broken in nixpkgs on darwin — stays in brew
+
+      # --- build deps (ad-hoc installs, adopted at the cleanup flip) ---
+      "clang-format"
+      "cmake"
+      "gcc"
+      "librsvg"
+      "ninja"
+      "pango"
 
       # --- containers & kubernetes ---
 
@@ -69,6 +79,7 @@
       { name = "sanketsudake/tap/cc-proxy"; trusted = true; }
       { name = "sanketsudake/tap/chrome-cdp"; trusted = true; }
       { name = "sanketsudake/tap/portless"; trusted = true; }
+      { name = "sanketsudake/tap/cines"; trusted = true; }
     ];
 
     # App Store apps (need App Store sign-in on a new Mac).
