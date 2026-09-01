@@ -93,5 +93,18 @@
     minio-client
     cloudflared
     hugo
+
+    # --- go tools (was manifests/go-tools.txt; the unpackaged rest stays
+    # there via make go-install) ---
+    delve
+    gopls
+    gotools # goimports, stringer, deadcode, ...
+    gotestsum
+    go-mockery
+    go-tools # staticcheck
+    govulncheck
+    go-licenses
+    protoc-gen-go
+    protoc-gen-go-grpc
   ];
 }
