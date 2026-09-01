@@ -9,5 +9,6 @@
     ./gh.nix
     ./bin.nix
     ./zsh.nix
+    ./packages.nix
   ];
 }

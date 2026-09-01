@@ -24,47 +24,18 @@
     ];
 
     brews = [
-      # --- core CLI ---
-      "bash"
-      "coreutils"
-      "findutils"
-      "gnu-sed"
-      "grep"
-      "make"
-      "moreutils"
-      "ripgrep"
-      "tree"
-      "wget"
-
       # --- AI-harness prereqs (stow, jq, gh, node-via-nvm, python) ---
-      "stow" # dotfiles + harness symlink manager (needs >= 2.4.0)
-      "jq"
-      "gh"
       "nvm" # provides node/npx for skill-vendoring tooling
       "python@3.13"
       "mas" # Mac App Store CLI (for the masApps below)
 
       # --- shell & everyday tools ---
-      "atuin"
-      "btop"
       "ffmpeg"
       "pandoc"
       "poppler"
       "qpdf" # pdfunlock()
-      "git-lfs"
 
       # --- modern CLI ---
-      "fzf" # fuzzy pickers + Ctrl-T/Alt-C (Ctrl-R stays with atuin)
-      "zoxide" # frecency-ranked cd (z <dir>)
-      "eza" # ls with git status column (ll alias)
-      "bat" # syntax-highlighted cat with git gutter
-      "fd" # gitignore-aware find
-      "git-delta" # readable side-by-side git diffs (wired in gitconfig)
-      "yq" # jq for YAML/TOML/XML
-      "jless" # interactive JSON pager
-      "glow" # markdown renderer/pager for the terminal
-      "dust" # visual du
-      "lazygit" # git TUI (same author as lazydocker)
 
       # --- languages & build ---
       "go"
