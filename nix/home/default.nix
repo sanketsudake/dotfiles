@@ -8,5 +8,6 @@
     ./btop.nix
     ./gh.nix
     ./bin.nix
+    ./zsh.nix
   ];
 }
