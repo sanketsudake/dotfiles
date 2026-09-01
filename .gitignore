@@ -8,8 +8,8 @@ hosts.yml
 *token*
 *credential*
 
-# Machine-local zsh overrides (see packages/zsh/dot-config/zsh/90-local.zsh.example).
-packages/zsh/dot-config/zsh/90-local.zsh
+# Machine-local zsh overrides live at ~/.config/zsh/90-local.zsh as a plain
+# untracked file (see 90-local.zsh.example) — nothing in the repo tree.
 
 # Generated dump for Brewfile re-curation (make brew-dump); never committed.
 Brewfile.dump
@@ -75,3 +75,6 @@ skills/*/package-lock.json
 /skills/xlsx/
 /skills/youtube-transcript/
 # <<< vendored skills
+
+# nix build output symlink
+result

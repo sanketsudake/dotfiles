@@ -6,19 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 One repo for the whole machine:
 
-- **macOS dotfiles** — stow packages under `packages/` (targeted at `$HOME`), a curated `Brewfile`, tool manifests under `manifests/`, `bootstrap.sh` for new Macs, and `macos/defaults.sh`.
-- **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is stowed into `~/.pi` via GNU stow.
+- **macOS system** — a nix-darwin + home-manager flake (`flake.nix`, `nix/`): `nix/darwin/` declares macOS defaults and every Homebrew formula/cask/mas/vscode entry, `nix/home/` declares dotfile links and CLI packages. Dotfile sources live under `packages/` (stow-style `dot-` names, linked per-file by home-manager); tool manifests under `manifests/`; `bootstrap.sh` for new Macs; `macos/defaults.sh` is Helium-browser-only.
+- **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is linked into `~/.pi` by home-manager (`nix/home/harness.nix`).
 - **Claude Code** — a shared global `CLAUDE.md`, `skills/`, `commands/`, `rules/`, `scripts/`, and `agents/` are symlinked into `~/.claude-personal/` and `~/.claude-work/`.
 
 There is no application to build/test/lint.
-The `Makefile` is the primary interface; targets follow `<resource>-<action>` naming (`brew-install`, `stow-link`, `skills-fetch`).
+The `Makefile` is the primary interface; targets follow `<resource>-<action>` naming (`nix-switch`, `skills-fetch`).
+`make nix-switch` is the apply verb for the declared system (build-only preview: `make nix-build`; rollback: `make nix-rollback`).
+Two hard nix rules: flakes only see git-tracked files (`git add` new `.nix` files before building), and home-manager must never own a directory holding mutable files (manage files individually).
 
 ## Makefile targets
 
 All targets follow a `<resource>-<action>` naming convention (e.g. `skills-link`, `skills-sync`), except the `install`/`uninstall` aggregates.
 
-- `make install` — runs `brew-install`, `stow-link` (the `$HOME` packages), `skills-materialize` (reconstructs the gitignored vendored skill dirs from `sources.toml`), `harness-link` (stows the `claude` package into both profiles and the `pi` package into `~/.pi`), then `tools-install`.
-  Safe to re-run; `harness-link` removes stale symlinks at the managed names, and a real file at a target must be moved aside by hand (never `--adopt` on the profile dirs).
+- `make install` — runs `nix-switch` (packages, dotfile links, harness links, macOS defaults in one generation), `skills-materialize` (reconstructs the gitignored vendored skill dirs from `sources.toml`), then `tools-install`.
+  Safe to re-run. Harness links (`~/.claude-*`, `~/.pi`) are home-manager out-of-store symlinks defined in `nix/home/harness.nix`; a real file at a managed name must be moved aside by hand.
   Materialization needs network on a fresh clone; offline, already-present vendored skills are left as-is and missing ones are reported as skipped.
 - `make uninstall` — reverses the above.
 - `make skills-sync` — clones/pulls `github.com/badlogic/pi-skills` into `/tmp/pi-skills` and copies each skill dir into `./skills/`.
@@ -152,14 +154,14 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
 - **`packages/claude/CLAUDE.md` is the shared global user CLAUDE.md**, not this file.
   It gets symlinked to `~/.claude-personal/CLAUDE.md` and `~/.claude-work/CLAUDE.md` by `claude-md-link`.
   Keep it minimal and profile-agnostic.
-- **`packages/pi/` is stowed with `--adopt`.**
-  On first `make install`, stow moves any pre-existing files in `~/.pi` into this repo, replacing them with symlinks.
+- **`packages/pi/` is linked per-file into `~/.pi`** by `nix/home/harness.nix` (`agent/`, `extensions/` per-file; `prompts`, `skills` whole-dir).
+  Entry names come from the package dirs at eval time, so a vendored addition is picked up by the next `make nix-switch`.
   That means `packages/pi/agent/settings.json`, `packages/pi/extensions/*.ts`, and `packages/pi/prompts/` are the live files the agent reads — edits here take effect immediately in `~/.pi/...`.
   
 - **`packages/pi/extensions/subagent/` is a directory extension** (listed without `.ts` suffix in `PI_EXTENSIONS`); the rest are single-file TS extensions.
   Adding a new upstream extension requires editing `PI_EXTENSIONS` in the Makefile.
 - **`skills/` is the single source of truth** for skills across pi and both Claude profiles.
-  The `claude` and `pi` stow packages each carry a committed `skills -> ../../skills` symlink, so `harness-link` exposes the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`.
+  The `claude` and `pi` packages each carry a committed `skills -> ../../skills` symlink, so the harness links expose the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`.
   What's *committed* under it, though, is only the authored skill dirs (their source records live in `sources.toml`); vendored skill dirs are gitignored and materialized into place (see the manifest model above), so the symlinked tree the tools read is authored-committed + vendored-materialized.
 - **`packages/claude/commands/`, `packages/claude/rules/`, `packages/claude/scripts/`, and `packages/claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `packages/pi/extensions/subagent/agents/`).
@@ -205,10 +207,10 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 
 ## Dotfiles conventions
 
-- Home stow flags are fixed at `--dotfiles --no-folding` and must not be changed; both are security invariants, explained in README.md § "The stow model".
-  They apply only to the `$HOME` packages (`HOME_PACKAGES` in the Makefile); the harness links (`~/.claude-*`, `~/.pi`) are whole-directory symlinks on purpose.
-- File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`); requires stow ≥ 2.4.0.
+- `$HOME` dotfiles are linked per-file by home-manager (`nix/home/*.nix` pointing at `packages/` sources) — the per-file discipline is a security invariant, explained in README.md § "The nix model"; never point `home.file` at a whole directory.
+  The harness links (`~/.claude-*`, `~/.pi`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent` and `~/.pi/extensions` link per-file because pi writes state beside them.
+- File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`), mapped by the `home.file` entries in `nix/home/`.
 - Never add packages for credential-bearing dirs: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`.
-- `Brewfile` is the curated package list; `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only.
+- `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`.
 - `bootstrap.sh` is the new-Mac entry point; keep it idempotent, check-then-act.
 - To add a new tool config, follow the numbered recipe in README.md § "Adding a new tool config"; it is the canonical version.

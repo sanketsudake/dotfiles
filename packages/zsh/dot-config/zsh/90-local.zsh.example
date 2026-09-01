@@ -1,4 +1,5 @@
-# Machine-local overrides — copy to 90-local.zsh (gitignored) on this machine only.
+# Machine-local overrides — copy to ~/.config/zsh/90-local.zsh on this machine
+# only (a plain untracked file; home-manager leaves it alone).
 # Put anything here that must not be committed: secrets, work-specific exports,
 # host-specific paths.
 #

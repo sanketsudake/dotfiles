@@ -2,6 +2,13 @@
 # Health checks for the dotfiles setup. Exit non-zero if anything is wrong.
 set -uo pipefail
 
+# Prefer the nix per-user profile (hooks and CI invoke this without the
+# interactive shell's PATH); no-op where the profile is absent.
+[ -d "/etc/profiles/per-user/$USER/bin" ] && PATH="/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:$PATH"
+# npm globals live in a writable prefix (node is in the read-only store).
+export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-globals}"
+PATH="$HOME/.npm-globals/bin:$PATH"
+
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAIL=0
 
@@ -17,17 +24,6 @@ resolve() {
 
 echo "== tools =="
 if command -v brew >/dev/null; then ok "brew $(brew --version | head -1 | awk '{print $2}')"; else bad "brew not found"; fi
-if command -v stow >/dev/null; then
-  stow_ver="$(stow --version | head -1 | awk '{print $NF}')"
-  IFS=. read -r maj min _ <<< "$stow_ver"
-  if [ "${maj:-0}" -gt 2 ] 2>/dev/null || { [ "${maj:-0}" -eq 2 ] && [ "${min:-0}" -ge 4 ]; } 2>/dev/null; then
-    ok "stow $stow_ver"
-  else
-    bad "stow $stow_ver too old or unparseable — need >= 2.4.0 for --dotfiles dir handling"
-  fi
-else
-  bad "stow not found"
-fi
 # npx is only needed for the optional skills-find/vendor targets.
 if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: nvm install --lts (needed only for skill vendoring)"; fi
 
@@ -38,12 +34,13 @@ else
 fi
 
 echo "== brew bundle =="
-if brew bundle check --file="$REPO_DIR/Brewfile" >/dev/null 2>&1; then
-  ok "Brewfile satisfied"
+BREWFILE="$("$REPO_DIR/scripts/nix-brewfile.sh")"
+if brew bundle check --file="$BREWFILE" >/dev/null 2>&1; then
+  ok "homebrew.nix satisfied"
 else
   # mas relies on the Spotlight index, which can lag or go stale; if the only
   # unmet entries are App Store apps that exist on disk, that's a warning.
-  unmet="$(brew bundle check --verbose --file="$REPO_DIR/Brewfile" 2>&1 | grep '^→' || true)"
+  unmet="$(brew bundle check --verbose --file="$BREWFILE" 2>&1 | grep '^→' || true)"
   non_mas="$(printf '%s\n' "$unmet" | grep -v '^→ App ' || true)"
   missing_apps=""
   while IFS= read -r line; do
@@ -51,22 +48,41 @@ else
     [ -d "/Applications/$app.app" ] || missing_apps="$missing_apps $app"
   done < <(printf '%s\n' "$unmet" | grep '^→ App ' || true)
   if [ -z "$non_mas" ] && [ -z "$missing_apps" ]; then
-    warn "Brewfile mas entries unmet only per Spotlight index; all apps present on disk"
+    warn "homebrew.nix mas entries unmet only per Spotlight index; all apps present on disk"
   else
-    bad "Brewfile unsatisfied — run: make brew-install"$'\n'"$unmet"
+    bad "homebrew.nix unsatisfied — run: make nix-switch"$'\n'"$unmet"
   fi
 fi
 
+echo "== nix =="
+if [ -x /nix/var/nix/profiles/default/bin/nix ]; then
+  ok "nix $(/nix/var/nix/profiles/default/bin/nix --version | awk '{print $NF}')"
+else
+  bad "nix not installed — run bootstrap.sh"
+fi
+if [ -x /run/current-system/sw/bin/darwin-rebuild ]; then
+  gen="$(readlink /nix/var/nix/profiles/system | sed 's/[^0-9]*//g')"
+  ok "darwin-rebuild present (system generation $gen)"
+else
+  bad "no active nix-darwin system — run: make nix-switch"
+fi
+hm_backups="$(find "$HOME" -maxdepth 3 -name '*.hm-backup' 2>/dev/null || true)"
+if [ -z "$hm_backups" ]; then
+  ok "no *.hm-backup files (home-manager clobbered nothing)"
+else
+  warn "home-manager moved real files aside — review and delete:"$'\n'"$(printf '%s\n' "$hm_backups" | sed 's/^/    /')"
+fi
+
 echo "== symlinks =="
-# Target list is derived from packages/ (managed-targets.sh), so new packages
-# are health-checked automatically.
+# Target list is derived from packages/ (managed-targets.sh), so new files
+# are health-checked automatically. home-manager links point into the store.
 while IFS= read -r target; do
   path="$HOME/$target"
   resolved="$(resolve "$path")"
-  if [ -L "$path" ] && [[ "$resolved" == "$REPO_DIR/packages/"* ]]; then
+  if [ -L "$path" ] && [[ "$resolved" == /nix/store/* ]]; then
     ok "$target"
   else
-    bad "$target is not a symlink into packages/ — run: make stow-link"
+    bad "$target is not a home-manager symlink into /nix/store — run: make nix-switch"
   fi
 done < <("$REPO_DIR/scripts/managed-targets.sh")
 
@@ -118,7 +134,7 @@ for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOM
   r="$(resolve "$t")"
   case "$r" in
     "$REPO_DIR"/*) ok "$t -> repo" ;;
-    *) bad "$t does not resolve into $REPO_DIR — run: make harness-link" ;;
+    *) bad "$t does not resolve into $REPO_DIR — run: make nix-switch" ;;
   esac
 done
 

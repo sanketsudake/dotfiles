@@ -1,37 +1,27 @@
 # Go tools installed to ~/go/bin via `make go-install` (go install <module>@latest).
 # Lines may pin a version with module@vX.Y.Z; default is @latest.
 # Curated deliberately — accidental `go install ./...` artifacts are not tracked.
+# Tools packaged in nixpkgs live in nix/home/packages.nix instead; only the
+# unpackaged tail is installed from here.
 
 # debugging & language server
-github.com/go-delve/delve/cmd/dlv
-golang.org/x/tools/gopls
 
 # code generation & scaffolding
-golang.org/x/tools/cmd/goimports
-golang.org/x/tools/cmd/stringer
 github.com/josharian/impl
 github.com/cweill/gotests/gotests
-github.com/vektra/mockery/v3
 
 # testing
-gotest.tools/gotestsum
 chipaca.com/goctest
 github.com/t-yuki/gocover-cobertura
 
 # analysis & linting
-honnef.co/go/tools/cmd/staticcheck
-golang.org/x/tools/cmd/deadcode
-golang.org/x/vuln/cmd/govulncheck
 github.com/ashanbrown/makezero/v2
 chipaca.com/gofomash
 
 # supply chain & licensing
-github.com/google/go-licenses
 github.com/slsa-framework/slsa-verifier/v2/cli/slsa-verifier
 
 # protobuf
-google.golang.org/protobuf/cmd/protoc-gen-go
-google.golang.org/grpc/cmd/protoc-gen-go-grpc
 github.com/ckaznocha/protoc-gen-lint
 github.com/favadi/protoc-go-inject-tag
 
@@ -39,3 +29,6 @@ github.com/favadi/protoc-go-inject-tag
 sigs.k8s.io/controller-runtime/tools/setup-envtest
 github.com/grafana/dashboard-linter
 github.com/darccio/diffty/cmd/diffty
+
+# personal tools (was brew taps)
+github.com/openclaw/gitcrawl/cmd/gitcrawl
