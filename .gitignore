@@ -75,3 +75,6 @@ skills/*/package-lock.json
 /skills/xlsx/
 /skills/youtube-transcript/
 # <<< vendored skills
+
+# nix build output symlink
+result

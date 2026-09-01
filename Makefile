@@ -11,6 +11,7 @@ HOME_STOW_FLAGS := --dir=$(CURDIR)/packages --target=$(HOME) --dotfiles --no-fol
 HOME_PACKAGES := zsh git atuin btop gh bin
 
 BREWFILE := $(CURDIR)/Brewfile
+NIX_HOST := Sankets-MacBook-Air
 MANIFESTS := $(CURDIR)/manifests
 
 PI_SKILLS_REPO := https://github.com/badlogic/pi-skills
@@ -62,6 +63,7 @@ PI_EXTENSIONS := \
 SHELL := /bin/bash
 
 .PHONY: install uninstall doctor drift python-check \
+	nix-build nix-switch nix-check nix-fmt nix-rollback nix-update \
 	brew-install brew-check brew-dump cask-adopt \
 	go-install npm-install pipx-install tools-install \
 	stow-link stow-unlink stow-adopt macos-apply raycast-export \
@@ -76,6 +78,29 @@ SHELL := /bin/bash
 install: brew-install stow-link skills-materialize harness-link tools-install
 
 uninstall: stow-unlink harness-unlink
+
+# Nix (nix-darwin + home-manager). nix-build previews without activating;
+# nix-switch is the apply verb. See "Nix migration plan" — phases land
+# incrementally, stow keeps serving unmigrated packages.
+nix-build:
+	darwin-rebuild build --flake $(CURDIR)#$(NIX_HOST)
+
+nix-switch:
+	sudo darwin-rebuild switch --flake $(CURDIR)#$(NIX_HOST)
+
+nix-check:
+	nix flake check $(CURDIR)
+	nix run nixpkgs#statix -- check $(CURDIR)/nix
+
+nix-fmt:
+	nix fmt
+
+nix-rollback:
+	sudo darwin-rebuild switch --flake $(CURDIR)#$(NIX_HOST) --rollback
+
+# Lockfile bump — review `git diff flake.lock` like a Brewfile re-curation.
+nix-update:
+	nix flake update
 
 brew-install:
 	brew bundle --file=$(BREWFILE)
