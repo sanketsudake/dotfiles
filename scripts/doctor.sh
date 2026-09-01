@@ -59,15 +59,15 @@ else
 fi
 
 echo "== symlinks =="
-# Target list is derived from packages/ (managed-targets.sh), so new packages
-# are health-checked automatically.
+# Target list is derived from packages/ (managed-targets.sh), so new files
+# are health-checked automatically. home-manager links point into the store.
 while IFS= read -r target; do
   path="$HOME/$target"
   resolved="$(resolve "$path")"
-  if [ -L "$path" ] && [[ "$resolved" == "$REPO_DIR/packages/"* ]]; then
+  if [ -L "$path" ] && [[ "$resolved" == /nix/store/* ]]; then
     ok "$target"
   else
-    bad "$target is not a symlink into packages/ — run: make stow-link"
+    bad "$target is not a home-manager symlink into /nix/store — run: make nix-switch"
   fi
 done < <("$REPO_DIR/scripts/managed-targets.sh")
 

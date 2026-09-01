@@ -53,10 +53,7 @@ fi
 cd "$DOTFILES_DIR"
 echo "ok: $DOTFILES_DIR"
 
-step "Brew packages (brew bundle)"
-make brew-install
-
-step "Stow links"
+step "Dotfile links (home-manager; brew packages ride the same switch)"
 # Deterministic: move any pre-existing real file at a managed path aside, then
 # link. End state is always the repo's configs live, originals preserved.
 backup_dir="$HOME/.dotfiles-backup-$(date +%s)"
@@ -68,10 +65,10 @@ while IFS= read -r rel; do
     echo "moved aside: ~/$rel -> $backup_dir/$rel"
   fi
 done < <(scripts/managed-targets.sh)
-make stow-link
+make nix-switch
 if [ -d "$backup_dir" ]; then
   echo "!! Pre-existing files were moved to $backup_dir — port anything you need"
-  echo "!! into ~/.config/zsh/90-local.zsh (gitignored), then delete the backup."
+  echo "!! into ~/.config/zsh/90-local.zsh (untracked local file), then delete the backup."
 fi
 
 step "AI harness (claude profiles + pi)"
