@@ -130,16 +130,21 @@ tools-install: go-install npm-install pipx-install
 
 # Installs each module from manifests/go-tools.txt; lines without @version get @latest.
 go-install:
-	@command -v go >/dev/null || { echo "go not found — run: make brew-install"; exit 1; }
+	@command -v go >/dev/null || { echo "go not found — run: make nix-switch"; exit 1; }
 	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/go-tools.txt | while read -r mod; do \
 		case "$$mod" in *@*) ;; *) mod="$$mod@latest" ;; esac; \
 		echo "go install $$mod"; \
 		go install "$$mod"; \
 	done
 
+# Warn-and-skip when npm is absent (fresh machine before nvm install --lts),
+# so tools-install still reaches pipx-install.
 npm-install:
-	@command -v npm >/dev/null || { echo "npm not found — run: nvm install --lts"; exit 1; }
-	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g
+	@if command -v npm >/dev/null; then \
+		grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g; \
+	else \
+		echo "warn: npm not found — run 'nvm install --lts' then 'make npm-install'"; \
+	fi
 
 pipx-install:
 	@command -v pipx >/dev/null || { echo "pipx not found — run: make brew-install"; exit 1; }
