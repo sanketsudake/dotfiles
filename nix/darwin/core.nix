@@ -5,6 +5,9 @@
   # Required by homebrew.* and user-scoped system.defaults.
   system.primaryUser = "sanketsudake";
 
+  # home-manager derives home.homeDirectory from this.
+  users.users.sanketsudake.home = "/Users/sanketsudake";
+
   nixpkgs.hostPlatform = "aarch64-darwin";
 
   # Determinate Nix manages the nix installation itself.
