@@ -37,3 +37,15 @@ jobs:
         run: make skills-materialize
       - name: scan every skill against the reviewed baselines
         run: make skills-scan QUIET=1
+
+  nix:
+    name: nix (flake check, darwin eval, statix)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - run: nix flake check
+      # Pure eval type-checks the whole darwin + home-manager module tree;
+      # no macOS runner needed.
+      - run: nix eval .#darwinConfigurations.Sankets-MacBook-Air.system.drvPath
+      - run: nix run nixpkgs#statix -- check nix/

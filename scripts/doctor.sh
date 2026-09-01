@@ -58,6 +58,25 @@ else
   fi
 fi
 
+echo "== nix =="
+if [ -x /nix/var/nix/profiles/default/bin/nix ]; then
+  ok "nix $(/nix/var/nix/profiles/default/bin/nix --version | awk '{print $NF}')"
+else
+  bad "nix not installed — run bootstrap.sh"
+fi
+if [ -x /run/current-system/sw/bin/darwin-rebuild ]; then
+  gen="$(readlink /nix/var/nix/profiles/system | sed 's/[^0-9]*//g')"
+  ok "darwin-rebuild present (system generation $gen)"
+else
+  bad "no active nix-darwin system — run: make nix-switch"
+fi
+hm_backups="$(find "$HOME" -maxdepth 3 -name '*.hm-backup' 2>/dev/null || true)"
+if [ -z "$hm_backups" ]; then
+  ok "no *.hm-backup files (home-manager clobbered nothing)"
+else
+  warn "home-manager moved real files aside — review and delete:"$'\n'"$(printf '%s\n' "$hm_backups" | sed 's/^/    /')"
+fi
+
 echo "== symlinks =="
 # Target list is derived from packages/ (managed-targets.sh), so new files
 # are health-checked automatically. home-manager links point into the store.

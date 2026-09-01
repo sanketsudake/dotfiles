@@ -73,7 +73,7 @@ SHELL := /bin/bash
 BASH := $(shell [ -x /etc/profiles/per-user/$$USER/bin/bash ] && echo /etc/profiles/per-user/$$USER/bin/bash || echo bash)
 
 .PHONY: install uninstall doctor drift python-check \
-	nix-build nix-switch nix-check nix-fmt nix-rollback nix-update \
+	nix-build nix-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update \
 	brew-install brew-check brew-dump cask-adopt \
 	go-install npm-install pipx-install tools-install \
 	macos-apply raycast-export \
@@ -418,7 +418,12 @@ agents-doctor:
 # catalog, suites, and the context budget) plus a syntax pass over every script.
 # The project commit-gate hook (scripts/precommit-gate-hook.sh) and CI run this
 # same target; a new check goes here and nowhere else.
-preflight: python-check skills-doctor agents-doctor lint
+preflight: python-check skills-doctor agents-doctor lint nix-check-soft
+
+# nix-check when nix is available, warn-and-skip where it isn't (Linux CI's
+# preflight job, machines without nix) — the CI nix job runs it for real.
+nix-check-soft:
+	@if [ -x $(NIX) ]; then $(MAKE) nix-check; else echo "warn: nix not installed — skipping nix-check"; fi
 
 python-check:
 	@$(PYTHON) -c 'import tomllib' 2>/dev/null \
