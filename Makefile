@@ -12,6 +12,10 @@ HOME_PACKAGES := zsh git atuin btop gh bin
 
 BREWFILE := $(CURDIR)/Brewfile
 NIX_HOST := Sankets-MacBook-Air
+# Absolute paths: make's shell (and sudo's secure_path) don't carry the
+# nix profile dirs.
+NIX := /nix/var/nix/profiles/default/bin/nix
+DARWIN_REBUILD := /run/current-system/sw/bin/darwin-rebuild
 MANIFESTS := $(CURDIR)/manifests
 
 PI_SKILLS_REPO := https://github.com/badlogic/pi-skills
@@ -83,24 +87,24 @@ uninstall: stow-unlink harness-unlink
 # nix-switch is the apply verb. See "Nix migration plan" — phases land
 # incrementally, stow keeps serving unmigrated packages.
 nix-build:
-	darwin-rebuild build --flake $(CURDIR)#$(NIX_HOST)
+	$(DARWIN_REBUILD) build --flake $(CURDIR)#$(NIX_HOST)
 
 nix-switch:
-	sudo darwin-rebuild switch --flake $(CURDIR)#$(NIX_HOST)
+	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST)
 
 nix-check:
-	nix flake check $(CURDIR)
-	nix run nixpkgs#statix -- check $(CURDIR)/nix
+	$(NIX) flake check $(CURDIR)
+	$(NIX) run nixpkgs#statix -- check $(CURDIR)/nix
 
 nix-fmt:
-	nix fmt
+	$(NIX) fmt
 
 nix-rollback:
-	sudo darwin-rebuild switch --flake $(CURDIR)#$(NIX_HOST) --rollback
+	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST) --rollback
 
 # Lockfile bump — review `git diff flake.lock` like a Brewfile re-curation.
 nix-update:
-	nix flake update
+	$(NIX) flake update
 
 brew-install:
 	brew bundle --file=$(BREWFILE)

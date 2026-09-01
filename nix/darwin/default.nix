@@ -1,3 +1,6 @@
 {
-  imports = [ ./core.nix ];
+  imports = [
+    ./core.nix
+    ./defaults.nix
+  ];
 }
