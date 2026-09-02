@@ -48,9 +48,11 @@ let
       ".pi/README.md".source = link "packages/pi/README.md";
     };
 
-  # Devin CLI and Copilot CLI both read personal skills from ~/.agents/skills,
-  # so one link serves both — never link their per-tool skills dirs too, or a
-  # skill is discovered twice.
+  # Devin reads personal skills from ~/.agents/skills. Copilot 0.0.417 does not
+  # scan that path yet (its /skills list names ~/.copilot/skills, ~/.claude/skills
+  # and the two project dirs), so it gets its own link to the same tree. The two
+  # links never collide: each CLI reads only its own path, so no skill is
+  # discovered twice.
   agentNames = map (lib.removeSuffix ".md") (
     builtins.attrNames (lib.filterAttrs (n: _: lib.hasSuffix ".md" n) (
       builtins.readDir ../../packages/claude/agents
@@ -74,6 +76,7 @@ let
   # (login state), and both herdr-installed hook scripts, stay local files.
   cliLinks = {
     ".agents/skills".source = link "skills";
+    ".copilot/skills".source = link "skills";
     ".config/devin/config.json".source = link "packages/devin/config.json";
     ".config/devin/AGENTS.md".source = link "packages/agents/AGENTS.md";
     ".copilot/settings.json".source = link "packages/copilot/settings.json";

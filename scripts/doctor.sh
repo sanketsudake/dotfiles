@@ -153,7 +153,8 @@ else
 fi
 for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOME/.pi/skills" \
          "$HOME/.agents/skills" "$HOME/.config/devin/config.json" "$HOME/.config/devin/AGENTS.md" \
-         "$HOME/.copilot/settings.json" "$HOME/.copilot/copilot-instructions.md"; do
+         "$HOME/.copilot/settings.json" "$HOME/.copilot/copilot-instructions.md" \
+         "$HOME/.copilot/skills"; do
   r="$(resolve "$t")"
   case "$r" in
     "$REPO_DIR"/*) ok "$t -> repo" ;;

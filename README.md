@@ -20,7 +20,7 @@ On an existing machine, clone the repo and run `make install`.
 
 - **One source of truth, many harnesses.**
   A single `skills/` tree feeds Claude Code, pi, Devin CLI, and Copilot CLI; edit once, every harness sees it immediately.
-  Devin and Copilot both read `~/.agents/skills`, so one link covers both; the same `agents/*.md` files link into each CLI under the name it expects.
+  Devin reads `~/.agents/skills` and Copilot reads `~/.copilot/skills`; both links point at the same tree, and the same `agents/*.md` files link into each CLI under the name it expects.
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
   `pclaude` / `wclaude` wrappers keep personal and work accounts isolated while sharing the same skills and rules.
 - **Per-resource source tracking.**
@@ -181,7 +181,8 @@ the linked content stays mutable, so vendored skills materialize in place and re
 `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file on purpose: those tools write state beside them,
 and a whole-dir link would let a tool write into the repo.
 
-Devin CLI and Copilot CLI both read personal skills from `~/.agents/skills`, so one link serves both.
+Devin CLI reads personal skills from `~/.agents/skills`; Copilot CLI 0.0.417 scans `~/.copilot/skills` (plus `~/.claude/skills` and the project dirs) and does not look at `~/.agents/skills` yet.
+Each CLI therefore gets its own link to the same `skills/` tree — the paths never collide, so no skill is discovered twice.
 The subagents in `packages/claude/agents/` link into `~/.config/devin/agents/<name>.md` and `~/.copilot/agents/<name>.agent.md` — same file, two names.
 Global always-on rules come from `packages/agents/AGENTS.md`, linked as `~/.config/devin/AGENTS.md` and `~/.copilot/copilot-instructions.md`.
 Of each CLI's own config, only the user-editable file is managed (`~/.config/devin/config.json`, `~/.copilot/settings.json`);
@@ -194,17 +195,17 @@ Of each CLI's own config, only the user-editable file is managed (`~/.config/dev
 | Check | Devin CLI | Copilot CLI |
 | --- | --- | --- |
 | Subagents | `devin doctor` — lists the loaded profiles and warns on unknown frontmatter keys | `copilot --agent <name> -p 'reply OK'` — the run header names the agent |
-| Skills | `devin skills list` — each skill with its `~/personal/dotfiles/skills/...` path | not yet active on this account (see below) |
+| Skills | `devin skills list` — each skill with its `~/personal/dotfiles/skills/...` path | `/skills list` in an interactive session — it prints the dirs it scanned |
 | Global rules | `devin rules list` — `AGENTS [Standard] always-on` | `copilot -s -p '…answer from your instructions only…'` — it answers from `copilot-instructions.md` |
 | Own config | read at `~/.config/devin/config.json` (`--config` overrides it) | `/settings` in an interactive session |
 
-Copilot loads its skills dir behind an account feature flag.
-To read the flag: `copilot --log-level debug --log-dir /tmp/cop -p 'hi'`, then `grep SKILLS_INSTRUCTIONS /tmp/cop/*.log`.
-On this account it is `false` today, so the `~/.agents/skills` link is in place but idle;
-the 0.0.417 binary already carries the path, and Devin reads the same link now.
-The same debug log is the ground truth for the other two:
-it warns per agent file on an unknown frontmatter key (`effort` is Claude-only, and both CLIs ignore it),
-and Copilot maps `model: haiku` to `claude-haiku-4.5`.
+Copilot has no `skill` subcommand and no non-interactive readback,
+so `/skills list` inside a session is the check that counts —
+its "No skills found" message names the dirs it scanned, which is how the `~/.copilot/skills` link was found to be necessary.
+Do not trust the `~/.agents/skills` path from the GitHub docs alone; the running binary is the authority.
+For the rest, `copilot --log-level debug --log-dir /tmp/cop -p 'hi'` is the ground truth:
+the log warns per agent file on an unknown frontmatter key (`effort` is Claude-only, and both CLIs ignore it),
+and records that `model: haiku` maps to `claude-haiku-4.5`.
 
 zsh keeps its drop-in idea: `~/.zshrc` is a thin loader sourcing `~/.config/zsh/*.zsh` in `NN-` prefix order,
 and machine-local uncommitted overrides go in `~/.config/zsh/90-local.zsh`
