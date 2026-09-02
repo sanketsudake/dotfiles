@@ -47,5 +47,8 @@ jobs:
       - run: nix flake check
       # Pure eval type-checks every host's darwin + home-manager module tree;
       # no macOS runner needed, and new hosts are covered automatically.
-      - run: nix eval .#darwinConfigurations --apply 'cfgs: builtins.mapAttrs (_: c: c.system.drvPath) cfgs'
+      # Block scalar on purpose: an inline `run:` value that holds `: ` is not
+      # valid YAML, and GitHub answers an unparsable workflow with a 0-job run.
+      - run: |
+          nix eval .#darwinConfigurations --apply 'cfgs: builtins.mapAttrs (_: c: c.system.drvPath) cfgs'
       - run: nix run nixpkgs#statix -- check nix/
