@@ -1,6 +1,6 @@
 # dotfiles
 
-One repo for the whole machine: a Nix-declared macOS setup (nix-darwin + home-manager flake, Homebrew for casks, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) and [pi](https://github.com/badlogic/pi-mono) profiles.
+One repo for the whole machine: a Nix-declared macOS setup (nix-darwin + home-manager flake, Homebrew for casks, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) profiles, [pi](https://github.com/badlogic/pi-mono), [Devin CLI](https://docs.devin.ai/cli/), and [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
 
 A personal repo, published so others can borrow the architecture.
 Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#adopt-it)).
@@ -19,7 +19,8 @@ On an existing machine, clone the repo and run `make install`.
 ## Ideas worth stealing
 
 - **One source of truth, many harnesses.**
-  A single `skills/` tree feeds Claude Code *and* pi; edit once, every harness sees it immediately.
+  A single `skills/` tree feeds Claude Code, pi, Devin CLI, and Copilot CLI; edit once, every harness sees it immediately.
+  Devin and Copilot both read `~/.agents/skills`, so one link covers both; the same `agents/*.md` files link into each CLI under the name it expects.
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
   `pclaude` / `wclaude` wrappers keep personal and work accounts isolated while sharing the same skills and rules.
 - **Per-resource source tracking.**
@@ -48,6 +49,9 @@ dotfiles/
 ├── manifests/      # non-brew tools: go-tools.txt, npm-globals.txt, pipx-tools.txt
 ├── macos/          # deliberately-changed macOS defaults (make macos-apply)
 ├── packages/       # dotfile sources for $HOME (zsh, git, atuin, btop, gh, bin), linked by home-manager
+│   ├── agents/     #   AGENTS.md — global rules shared by Devin CLI + Copilot CLI
+│   ├── devin/      #   Devin CLI config.json
+│   └── copilot/    #   Copilot CLI settings.json
 ├── claude/         # Claude Code config, symlinked into both profiles
 │   ├── CLAUDE.md   #   shared global user instructions
 │   ├── commands/   #   slash commands
@@ -63,7 +67,7 @@ dotfiles/
 └── scripts/        # repo tooling (doctor, drift, resource manager — not symlinked)
 ```
 
-`make install` links `skills/` and `claude/*` into both Claude profiles and `pi/` into `~/.pi` (home-manager out-of-store symlinks) — safe to re-run.
+`make install` links `skills/` and `claude/*` into both Claude profiles, `pi/` into `~/.pi`, and the shared skills, agents, and configs into Devin CLI and Copilot CLI (home-manager out-of-store symlinks) — safe to re-run.
 Because everything is symlinked, one edit here applies to every profile and both harnesses at once.
 
 ## What's inside
@@ -161,7 +165,7 @@ Dotfile sources stay in `packages/` with their `dot-` names;
 home-manager links each file individually into `$HOME`,
 so `~/.config/<tool>` stays a real directory and credential files written beside managed configs
 (e.g. `gh`'s `hosts.yml`) can never land in the repo — the old `--no-folding` invariant, kept.
-Never declare files from credential-bearing dirs (`gcloud`, `1Password`, `op`, `github-copilot`).
+Never declare files from credential-bearing dirs (`gcloud`, `1Password`, `op`, `github-copilot`) or credential-bearing files (`gh/hosts.yml`, `~/.copilot/config.json`).
 Every switch is a numbered generation; `make nix-rollback` returns to the previous one.
 Homebrew remains for casks/taps/mas (declared in `nix/darwin/homebrew.nix`, applied by the same switch,
 `cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first).
@@ -172,10 +176,35 @@ and never let home-manager own a directory that holds mutable files.
 
 ### Harness links
 
-The harness targets (`~/.claude-*`, `~/.pi`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
+The harness targets (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
 the linked content stays mutable, so vendored skills materialize in place and repo edits apply live.
-`~/.pi/agent` and `~/.pi/extensions` link per-file on purpose: pi writes state beside them,
+`~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file on purpose: those tools write state beside them,
 and a whole-dir link would let a tool write into the repo.
+
+Devin CLI and Copilot CLI both read personal skills from `~/.agents/skills`, so one link serves both.
+The subagents in `packages/claude/agents/` link into `~/.config/devin/agents/<name>.md` and `~/.copilot/agents/<name>.agent.md` — same file, two names.
+Global always-on rules come from `packages/agents/AGENTS.md`, linked as `~/.config/devin/AGENTS.md` and `~/.copilot/copilot-instructions.md`.
+Of each CLI's own config, only the user-editable file is managed (`~/.config/devin/config.json`, `~/.copilot/settings.json`);
+`~/.copilot/config.json` holds login state and the two `herdr-agent-state.sh` hook scripts are installed by herdr, so all three stay local files.
+
+#### Verifying what each CLI actually loaded
+
+`make doctor` checks that the links resolve into the repo; these commands check that the tools *use* them.
+
+| Check | Devin CLI | Copilot CLI |
+| --- | --- | --- |
+| Subagents | `devin doctor` — lists the loaded profiles and warns on unknown frontmatter keys | `copilot --agent <name> -p 'reply OK'` — the run header names the agent |
+| Skills | `devin skills list` — each skill with its `~/personal/dotfiles/skills/...` path | not yet active on this account (see below) |
+| Global rules | `devin rules list` — `AGENTS [Standard] always-on` | `copilot -s -p '…answer from your instructions only…'` — it answers from `copilot-instructions.md` |
+| Own config | read at `~/.config/devin/config.json` (`--config` overrides it) | `/settings` in an interactive session |
+
+Copilot loads its skills dir behind an account feature flag.
+To read the flag: `copilot --log-level debug --log-dir /tmp/cop -p 'hi'`, then `grep SKILLS_INSTRUCTIONS /tmp/cop/*.log`.
+On this account it is `false` today, so the `~/.agents/skills` link is in place but idle;
+the 0.0.417 binary already carries the path, and Devin reads the same link now.
+The same debug log is the ground truth for the other two:
+it warns per agent file on an unknown frontmatter key (`effort` is Claude-only, and both CLIs ignore it),
+and Copilot maps `model: haiku` to `claude-haiku-4.5`.
 
 zsh keeps its drop-in idea: `~/.zshrc` is a thin loader sourcing `~/.config/zsh/*.zsh` in `NN-` prefix order,
 and machine-local uncommitted overrides go in `~/.config/zsh/90-local.zsh`

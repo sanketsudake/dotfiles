@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "bash": "bash \"$HOME/.copilot/hooks/herdr-agent-state.sh\"",
+        "timeoutSec": 10,
+        "type": "command"
+      }
+    ]
+  },
+  "renderMarkdown": true,
+  "theme": "auto"
+}

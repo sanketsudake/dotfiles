@@ -8,6 +8,7 @@ One repo for the whole machine:
 
 - **macOS system** — a nix-darwin + home-manager flake (`flake.nix`, `nix/`): `nix/darwin/` declares macOS defaults and every Homebrew formula/cask/mas/vscode entry, `nix/home/` declares dotfile links and CLI packages. Dotfile sources live under `packages/` (stow-style `dot-` names, linked per-file by home-manager); tool manifests under `manifests/`; `bootstrap.sh` for new Macs; `macos/defaults.sh` is Helium-browser-only.
 - **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is linked into `~/.pi` by home-manager (`nix/home/harness.nix`).
+- **Devin CLI and GitHub Copilot CLI** — each CLI's user-editable config lives under `packages/devin/` and `packages/copilot/`, its global rules in the shared `packages/agents/AGENTS.md`, and both read the repo's `skills/` tree through one `~/.agents/skills` link (`nix/home/harness.nix`).
 - **Claude Code** — a shared global `CLAUDE.md`, `skills/`, `commands/`, `rules/`, `scripts/`, and `agents/` are symlinked into `~/.claude-personal/` and `~/.claude-work/`.
 
 There is no application to build/test/lint.
@@ -158,10 +159,19 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
   Entry names come from the package dirs at eval time, so a vendored addition is picked up by the next `make nix-switch`.
   That means `packages/pi/agent/settings.json`, `packages/pi/extensions/*.ts`, and `packages/pi/prompts/` are the live files the agent reads — edits here take effect immediately in `~/.pi/...`.
   
+- **Devin CLI and Copilot CLI share the repo's skills and agents** (`nix/home/harness.nix`).
+  `~/.agents/skills` is the one personal-skills path both CLIs read, so it links to `skills/` and their per-tool skills dirs are deliberately left unlinked (a second link would make every skill discovered twice).
+  Every `packages/claude/agents/*.md` links into `~/.config/devin/agents/<name>.md` (Devin takes the Claude agent format as-is) and `~/.copilot/agents/<name>.agent.md` (Copilot needs that suffix) — one source file, two names, derived from the dir at eval time like the pi links.
+  Of each CLI's own config only the user-editable file is managed: `~/.config/devin/config.json` and `~/.copilot/settings.json`.
+  Both are live out-of-store links, so a write by the tool (Devin records `shell.setup_complete`; herdr rewrites its hook block on reinstall) lands in the repo as a visible `git diff`, or replaces the link with a real file if the tool writes by temp+rename (`make doctor` flags that) — review either rather than reverting blindly.
+  **Never manage** `~/.copilot/config.json` (login state) or either `herdr-agent-state.sh` (herdr-installed, its header says a reinstall overwrites it).
+  To check what each CLI really loaded (not just that the link exists), see README.md § "Verifying what each CLI actually loaded": `devin doctor` / `devin skills list` / `devin rules list`, and for Copilot a `--log-level debug` run.
+  Copilot's skills dir is gated by the account feature flag `SKILLS_INSTRUCTIONS`, `false` today — the `~/.agents/skills` link is in place but idle on that side; Devin reads it now.
+  `packages/agents/AGENTS.md` is the shared global rules file for these two CLIs (linked as `~/.config/devin/AGENTS.md` and `~/.copilot/copilot-instructions.md`); keep it harness-neutral — `packages/claude/CLAUDE.md` stays Claude-only because it uses `$CLAUDE_CONFIG_DIR` paths.
 - **`packages/pi/extensions/subagent/` is a directory extension** (listed without `.ts` suffix in `PI_EXTENSIONS`); the rest are single-file TS extensions.
   Adding a new upstream extension requires editing `PI_EXTENSIONS` in the Makefile.
-- **`skills/` is the single source of truth** for skills across pi and both Claude profiles.
-  The `claude` and `pi` packages each carry a committed `skills -> ../../skills` symlink, so the harness links expose the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`.
+- **`skills/` is the single source of truth** for skills across pi, both Claude profiles, Devin CLI, and Copilot CLI.
+  The `claude` and `pi` packages each carry a committed `skills -> ../../skills` symlink, so the harness links expose the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`; `~/.agents/skills` links straight to `skills/` and serves Devin and Copilot.
   What's *committed* under it, though, is only the authored skill dirs (their source records live in `sources.toml`); vendored skill dirs are gitignored and materialized into place (see the manifest model above), so the symlinked tree the tools read is authored-committed + vendored-materialized.
 - **`packages/claude/commands/`, `packages/claude/rules/`, `packages/claude/scripts/`, and `packages/claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `packages/pi/extensions/subagent/agents/`).
@@ -208,9 +218,9 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 ## Dotfiles conventions
 
 - `$HOME` dotfiles are linked per-file by home-manager (`nix/home/*.nix` pointing at `packages/` sources) — the per-file discipline is a security invariant, explained in README.md § "The nix model"; never point `home.file` at a whole directory.
-  The harness links (`~/.claude-*`, `~/.pi`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent` and `~/.pi/extensions` link per-file because pi writes state beside them.
+  The harness links (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file because those tools write state beside them.
 - File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`), mapped by the `home.file` entries in `nix/home/`.
-- Never add packages for credential-bearing dirs: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`.
+- Never add packages for credential-bearing dirs or files: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`, `~/.copilot/config.json`.
 - `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`.
 - `bootstrap.sh` is the new-Mac entry point; keep it idempotent, check-then-act.
 - To add a new tool config, follow the numbered recipe in README.md § "Adding a new tool config"; it is the canonical version.
