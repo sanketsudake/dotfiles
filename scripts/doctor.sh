@@ -87,7 +87,7 @@ while IFS= read -r target; do
 done < <("$REPO_DIR/scripts/managed-targets.sh")
 
 echo "== secret safety =="
-for dir in .config/gh .config/git .config/zsh; do
+for dir in .config/gh .config/git .config/zsh .config/devin .copilot; do
   if [ -d "$HOME/$dir" ] && [ ! -L "$HOME/$dir" ]; then
     ok "~/$dir is a real directory"
   else
@@ -100,6 +100,15 @@ elif [ -L "$HOME/.config/gh/hosts.yml" ]; then
   bad "gh hosts.yml is a symlink — tokens may be inside the repo"
 else
   ok "gh hosts.yml absent (run gh auth login)"
+fi
+# ~/.copilot/config.json is Copilot's login state (loggedInUsers); it must
+# never become a link into the repo. Same rule as gh's hosts.yml above.
+if [ -e "$HOME/.copilot/config.json" ] && [ ! -L "$HOME/.copilot/config.json" ]; then
+  ok "copilot config.json is a plain local file"
+elif [ -L "$HOME/.copilot/config.json" ]; then
+  bad "copilot config.json is a symlink — login state may be inside the repo"
+else
+  ok "copilot config.json absent (run copilot then /login)"
 fi
 leaks="$(cd "$REPO_DIR" && git ls-files | grep -Ei 'hosts\.yml|\.env($|\.)|\.pem$|\.key$|token|credential' || true)"
 if [ -z "$leaks" ]; then
@@ -142,7 +151,9 @@ if [ -r "$REPO_DIR/scripts/claude-multi-account.sh" ]; then
 else
   bad "claude-multi-account.sh missing"
 fi
-for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOME/.pi/skills"; do
+for t in "$HOME/.claude-personal/CLAUDE.md" "$HOME/.claude-work/CLAUDE.md" "$HOME/.pi/skills" \
+         "$HOME/.agents/skills" "$HOME/.config/devin/config.json" "$HOME/.config/devin/AGENTS.md" \
+         "$HOME/.copilot/settings.json" "$HOME/.copilot/copilot-instructions.md"; do
   r="$(resolve "$t")"
   case "$r" in
     "$REPO_DIR"/*) ok "$t -> repo" ;;
