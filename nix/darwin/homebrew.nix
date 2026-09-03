@@ -43,6 +43,7 @@
       "obsidian"
       "slack"
       "visual-studio-code"
+      "zoom"
       { name = "sanketsudake/tap/cc-proxy"; trusted = true; }
       { name = "sanketsudake/tap/chrome-cdp"; trusted = true; }
       { name = "sanketsudake/tap/portless"; trusted = true; }
