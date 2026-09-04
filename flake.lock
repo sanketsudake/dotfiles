@@ -1,5 +1,65 @@
 {
   "nodes": {
+    "cc-proxy": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788524026,
+        "narHash": "sha256-+nEGq8aRq42oPAQ+zx9b7Ly2GAuAsENY/lr6D2TTjZY=",
+        "owner": "sanketsudake",
+        "repo": "cc-proxy",
+        "rev": "8db5cfa1bebdbfc4a7ba8e5738f24433e15475af",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sanketsudake",
+        "repo": "cc-proxy",
+        "type": "github"
+      }
+    },
+    "chrome-cdp-cli": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788524095,
+        "narHash": "sha256-NrzN9Ma9CI9Gu82NoIw49udTOlgkOT2kePDwwXgUG9s=",
+        "owner": "sanketsudake",
+        "repo": "chrome-cdp-cli",
+        "rev": "54d7701b02c21ef448e74857a4b8eb16477f804a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sanketsudake",
+        "repo": "chrome-cdp-cli",
+        "type": "github"
+      }
+    },
+    "go-portless": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788526242,
+        "narHash": "sha256-Z8SXogzfDMTPKEQu2GS4kMUhJvHYewL6RFr1BLx2PkQ=",
+        "owner": "sanketsudake",
+        "repo": "go-portless",
+        "rev": "2a5905c1318e99f39a7e1e24ee45d8965b43300c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sanketsudake",
+        "repo": "go-portless",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -59,6 +119,9 @@
     },
     "root": {
       "inputs": {
+        "cc-proxy": "cc-proxy",
+        "chrome-cdp-cli": "chrome-cdp-cli",
+        "go-portless": "go-portless",
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs"

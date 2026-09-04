@@ -11,6 +11,22 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Own CLIs, packaged as flakes in their own repos (they used to come from
+    # the sanketsudake/tap Homebrew casks). Each follows this flake's nixpkgs
+    # so there is exactly one nixpkgs in the closure.
+    cc-proxy = {
+      url = "github:sanketsudake/cc-proxy";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    chrome-cdp-cli = {
+      url = "github:sanketsudake/chrome-cdp-cli";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    go-portless = {
+      url = "github:sanketsudake/go-portless";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -29,6 +45,7 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
+                extraSpecialArgs = { inherit inputs; };
                 backupFileExtension = "hm-backup";
                 users.sanketsudake = import ./nix/home;
               };
