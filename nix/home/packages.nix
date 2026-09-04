@@ -1,8 +1,22 @@
 # CLI packages from nixpkgs (was homebrew brews), migrated in batches —
 # see the Nix migration plan. Grouped to mirror the old Brewfile sections.
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
+let
+  system = pkgs.stdenv.hostPlatform.system;
+in
 {
-  home.packages = with pkgs; [
+  # Own CLIs, built from the flake each repo now exposes. They used to be
+  # sanketsudake/tap Homebrew casks (goreleaser-published binaries); nix builds
+  # them from the pinned source instead. The inputs track each repo's default
+  # branch, not its release tags, so `nix flake update <input>` moves to main
+  # HEAD — which may sit ahead of the last tag. Pinning an input to a tag
+  # becomes possible once a release carries flake.nix.
+  home.packages = [
+    inputs.cc-proxy.packages.${system}.default
+    inputs.chrome-cdp-cli.packages.${system}.default
+    inputs.go-portless.packages.${system}.default
+  ]
+  ++ (with pkgs; [
     # --- core CLI (batch 1) ---
     # GNU tools install unprefixed here (brew kept them g-prefixed/off-PATH
     # except grep/make), so sed/find/ls flip to GNU-by-default — deliberate,
@@ -109,5 +123,5 @@
     go-licenses
     protoc-gen-go
     protoc-gen-go-grpc
-  ];
+  ]);
 }

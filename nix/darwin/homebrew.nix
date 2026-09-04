@@ -44,10 +44,15 @@
       "slack"
       "visual-studio-code"
       "zoom"
-      { name = "sanketsudake/tap/cc-proxy"; trusted = true; }
-      { name = "sanketsudake/tap/chrome-cdp"; trusted = true; }
-      { name = "sanketsudake/tap/portless"; trusted = true; }
-      { name = "sanketsudake/tap/cines"; trusted = true; }
+      # cc-proxy, chrome-cdp and portless moved to nix — each repo exposes a
+      # flake, wired as an input in flake.nix and installed from
+      # nix/home/packages.nix. cines stays a cask: it is a Qt .app from a
+      # universal DMG, and nix on darwin would land it in
+      # ~/Applications/Home Manager Apps, which Spotlight indexes poorly.
+      {
+        name = "sanketsudake/tap/cines";
+        trusted = true;
+      }
     ];
 
     # App Store apps (need App Store sign-in on a new Mac).
