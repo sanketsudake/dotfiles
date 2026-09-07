@@ -95,6 +95,7 @@ in
     k6
     mkcert
     kubectx # kubectx + kubens; fuzzy pickers with fzf installed
+    kubectl # the client itself; kubecolor shells out to it, so it is required
     kubecolor # colorized kubectl output (aliased to kubectl)
     dive # layer-by-layer container image explorer
     trivy # CVE/misconfig scanner for images, IaC, clusters
