@@ -35,6 +35,7 @@
       "wispr-flow"
 
       "1password-cli"
+      "balenaetcher" # flash OS images to USB/SD
       "claude-code@latest"
       "copilot-cli"
       "devin-cli"
