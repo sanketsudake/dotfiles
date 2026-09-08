@@ -1,0 +1,143 @@
+---
+name: polish-demo-recording
+description: >-
+  Turns a raw narrated screen recording (macOS screen capture, Slack or Loom
+  export, any VFR .mov/.mp4 with the presenter's own voice) into a customer-ready
+  product demo with ffmpeg only: measured audio clean-up and loudness, browser
+  chrome replaced by a branded strip, chapter cards placed in real pauses,
+  fast-forwarded waits, eased zooms, lower-third callouts, a ducked music bed,
+  captions and an .srt. Use when the user says "beautify / polish / clean up
+  this recording", "make this demo presentable", "remove the noise from my
+  voice", "add title cards and music", "the video flickers at the transitions",
+  or hands over a screen recording to share with a customer. Not for generating
+  narration (the presenter records it) or for cutting a teaser from finished footage.
+license: Apache-2.0
+compatibility: macOS on Apple Silicon (mlx-whisper), ffmpeg 6+, ffprobe, uv; fonts default to Arial under /System/Library/Fonts
+metadata:
+  author: sanketsudake
+  version: "1.0"
+---
+
+# Polish a demo recording
+
+The presenter records the flow in their own voice;
+this skill does the editing.
+Every choice is measured, not eyeballed, because the agent cannot watch or listen:
+loudness in LUFS, noise floor in dB RMS, gaps from word timestamps, frames by direct seeks.
+The original file is never modified; deliverables are new files next to it.
+
+Scripts live in `{baseDir}/scripts/`; the reasoning behind each ffmpeg parameter is in `{baseDir}/references/ffmpeg-recipes.md`.
+Read that file before changing a filter value.
+
+## Inputs to ask for, or assume
+
+- The recording path. macOS names carry U+202F (narrow no-break space) before "PM", so a typed path does not match; pass it from a glob. `probe.sh` refuses a missing path and copies the file to `src.mov` so nothing downstream has to quote it.
+- Product name, one-line tagline, footer (company), accent colour. Default to what the UI shows.
+- Music: a track the user supplies, or none. Never generate narration with TTS; synthetic voices read as robotic and get rejected.
+- Output name. Default `<name>-polished.mp4` beside the original, plus `-no-music`, `-captions` and `.srt`.
+
+## Workflow
+
+Work in a scratch directory; keep `plan.json`, `timeline.json`, `overlays*.ass` and `voice.wav` so a revision is a re-render, not a redo.
+
+### 1. Measure the source
+
+```bash
+{baseDir}/scripts/probe.sh "<raw>" <workdir>
+```
+
+Read the output and the three PNGs it writes.
+Decide from numbers:
+
+| Reading | Meaning | Action |
+| --- | --- | --- |
+| `r_frame_rate=300/1` or similar | variable frame rate | the `master` stage forces 30 fps; never cut the raw file directly |
+| L minus R is `-inf` | dual mono mic | the voice chain collapses to mono |
+| noise floor vs speech RMS gap < 25 dB | audible hiss or room tone | keep the default denoiser (`--nr 12 --nlm 2`) |
+| `chrome-top.png` shows tabs and an address bar | browser chrome in frame | measure its height in px (64 on Chrome/Helium at 1080p) and set `chrome_top` |
+| silences > 4 s | waiting on the UI | fast-forward candidates, not cuts |
+
+### 2. Transcribe with word timestamps
+
+```bash
+ffmpeg -i src.mov -vn -ac 1 -ar 16000 audio16k.wav
+uvx --from mlx-whisper==0.4.3 mlx_whisper audio16k.wav --model mlx-community/whisper-large-v3-turbo \
+  --word-timestamps True --output-format json --output-dir whisper --language en
+```
+
+Whisper gives clean sentences and word times but drops most "uh"s;
+the `transcribe` skill (parakeet) hears fillers but only in 15 s chunks.
+Use whisper for placement and captions, parakeet only to count fillers.
+
+### 3. Process the voice
+
+```bash
+{baseDir}/scripts/voice-chain.sh src.mov voice.wav [--window a:b] [--dip a:b]
+```
+
+The script prints the result loudness (target I −16 LUFS, TP −1.5 dBFS) and the speech RMS.
+Confirm the floor moved: measure a 0.6 s silent core of a gap before and after with `astats`, not the whole whisper gap; breath and consonant edges are broadband, survive the denoiser, and read louder after make-up gain.
+A passing vehicle or a bump is a low rumble below 600 Hz;
+locate it with `showspectrumpic` on the window and hand the window to `--window` (steep high-pass and extra denoise only there), plus `--dip` on a silent gap that still carries it.
+Do not pitch-shift; EQ and compression make the voice fuller without artefacts.
+
+### 4. Write the edit plan
+
+```bash
+cp {baseDir}/assets/example-plan.json plan.json          # then set raw, voice_wav, whisper, brand, src_start/src_end
+uv run --with "pillow>=10" {baseDir}/scripts/build_demo.py plan.json gaps   # narration gaps with a suggested treatment
+```
+
+Fill the rest of `plan.json` from the gap list and the transcript:
+
+- **Chapters** only where the narration changes topic *and* there is a pause; `cut` at gap start + 0.2 s, `resume` at gap end − 0.5 s. Two to three seconds per card; six cards is plenty for seven minutes. A short or densely narrated clip may offer one usable pause or none: one card or zero is the right answer, never a card inside speech.
+- **Speed-ups** for every gap > 2.4 s where the screen is loading or the presenter is waiting: ×3, or ×4 with a badge when > 4 s. Fast-forward beats a hard cut because the motion stays continuous.
+- **Zooms** at ≤ 1.3× on two to four high-value moments (a code dialog, a response, a budget field). Check the frame at the zoom start first so the target is already on screen.
+- **Callouts** are value statements, one per feature, ≤ 60 characters, timed to the word that introduces the feature.
+- **Labels** change the header strip's chapter name without a card.
+- **Caption fixes** for product names the recognizer mangled.
+
+### 5. Build
+
+```bash
+uv run --with "pillow>=10" {baseDir}/scripts/build_demo.py plan.json           # all stages
+uv run --with "pillow>=10" {baseDir}/scripts/build_demo.py plan.json ass final # after editing only overlays or music
+```
+
+Stages: `master` (crop chrome, pad the strip, 30 fps, mux voice) → `cards` → `segs` → `concat` (runs joined with `-c copy`, then one xfade/acrossfade chain across card boundaries, fade from and to black) → `ass` → `final` → `verify`.
+Delete `seg/NNN.mp4` for a segment whose source range changed; unchanged segments are reused.
+
+### 6. Verify before delivering
+
+`verify` prints stream durations (video and audio within 50 ms), integrated loudness and true peak, and writes `verify.png`: direct-seek frames at every card, callout, badge, zoom and dissolve midpoint.
+Read the image.
+Zooms at ≤ 1.3× are subtle by design, so each zoom gets a before/after pair cropped 1:1 around the target; judge the zoom on that pair, not on the full frame.
+Reject the build if any callout is clipped, a header label sits on a card, a zoom pair shows the wrong region, or the strip is missing.
+When a music bed is used, measure it on its own: render the ducked stem alone and check about −21 LUFS on cards and −30 to −41 LUFS under speech (see the recipes file).
+
+### 7. Deliver
+
+Copy the variants next to the original with the name the user asked for, hand the main file to the user in the conversation, and tell the user what to listen for, because you could only measure:
+sibilance from the de-esser, a gated feel between words, music breathing in pauses, thinness in any `--window` region.
+
+## Common mistakes
+
+- Cutting the raw VFR file: A/V drift and xfade misalignment. Always build from the normalized master.
+- Timing overlays against source seconds after cutting: every callout drifts. `TimeMap` in `build_demo.py` maps source → output time, including the dissolve overlaps.
+- `select=eq(n,…)` contact sheets on the concatenated output come out time-shifted. Verify with direct `-ss` seeks only.
+- `afftdn` alone: gaps sit at −31 dB after make-up gain. `anlmdn` after it is what keeps them low.
+- Zooming the whole frame: the branded strip stretches. `zoom_vf` crops the strip off, zooms the content and pads it back.
+- A zoompan on a text card at 30 fps shimmers and reads as flicker. Cards are static; dissolves supply the motion.
+- `WrapStyle: 2` (needed so lower-thirds never wrap) also disables caption wrapping: captions are pre-broken into two 42-character lines from word timestamps.
+- Shell traps on macOS: `sed -i ''` fails under GNU sed from nix; `$VAR:l` in a zsh string lowercases the variable; BSD `grep -E` does not know `\s`. Put ffmpeg chains in a script file.
+- Auto-removing "uh"s at word boundaries: on a screen recording the jump cuts look broken. Cut only stutters and fillers that sit in pauses; offer a voice-only re-record of weak chapters instead.
+
+## Quick reference
+
+| Task | Where |
+| --- | --- |
+| Measure a raw file | `{baseDir}/scripts/probe.sh` |
+| Clean and normalize the voice | `{baseDir}/scripts/voice-chain.sh` |
+| Plan, build, verify | `{baseDir}/scripts/build_demo.py <plan.json> [stages]` |
+| Example plan | `{baseDir}/assets/example-plan.json` |
+| Why each parameter | `{baseDir}/references/ffmpeg-recipes.md` |

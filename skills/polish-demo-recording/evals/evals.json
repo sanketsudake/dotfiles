@@ -1,0 +1,19 @@
+{
+  "skill_name": "polish-demo-recording",
+  "evals": [
+    {
+      "id": "polish-raw-mov",
+      "name": "Polish a raw macOS screen recording for a customer",
+      "prompt": "Here is my demo recording ~/Documents/Screen Recording 2026-09-08 at 5.21.57 PM.mov. Keep the original, make a copy that looks and sounds good enough to send to a customer.",
+      "expected_output": "Runs scripts/probe.sh first and reads the numbers (VFR, dual mono, noise floor, chrome height from chrome-top.png), transcribes with word timestamps, processes the voice with scripts/voice-chain.sh and confirms loudness and floor, writes a plan.json with chapters in real pauses, speed-ups for waits and a few callouts, builds with build_demo.py, reads verify.png before delivering, and places the variants next to the original. Does not narrate with TTS, does not cut the raw VFR file directly, does not pitch-shift.",
+      "files": []
+    },
+    {
+      "id": "remove-rumble-window",
+      "name": "Remove a passing-vehicle rumble at a known time",
+      "prompt": "There is bike noise from 3:02 to 3:05 in the polished video, can you remove it?",
+      "expected_output": "Maps the output time back to source seconds through timeline.json, inspects the band with showspectrumpic/astats, re-runs voice-chain.sh with --window (and --dip on a silent gap), re-muxes the master, deletes only the affected seg/*.mp4 files, rebuilds concat/ass/final, and reports the before/after band level in dB.",
+      "files": []
+    }
+  ]
+}
