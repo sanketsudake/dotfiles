@@ -112,3 +112,10 @@ Use `-ss <t> -i final.mp4 -frames:v 1` per frame.
 Typical counts for a 7-minute ad-lib read: "uh" about 30, sentence-initial "So" about 30, a handful of "yeah", two or three stutters.
 Whisper dropped 30 of the 33 "uh"s, so it cannot drive automatic removal; a forced aligner (WhisperX) can.
 Cut only stutters and fillers inside pauses; the rest needs a re-record.
+
+## Self-test fixture
+
+`scripts/fixture/make-fixture.sh` renders 24 s of `testsrc2` with a synthetic narration:
+a 220 Hz tone under 4 Hz amplitude modulation, gated into four bursts so the transcript in `fixture/whisper.json` has three real gaps (1.5, 3 and 5 s).
+The voice chain lands it at −16.0 LUFS (measured); the assert allows ±1.5 LU.
+`selftest.sh --golden check` diffs the timeline, both ASS files, the .srt and the ffmpeg argv log against `fixture/golden-v1/`; identical argv means identical output, so encoder nondeterminism never enters the comparison.

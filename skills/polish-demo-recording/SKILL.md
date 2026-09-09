@@ -141,3 +141,4 @@ sibilance from the de-esser, a gated feel between words, music breathing in paus
 | Plan, build, verify | `{baseDir}/scripts/build_demo.py <plan.json> [stages]` |
 | Example plan | `{baseDir}/assets/example-plan.json` |
 | Why each parameter | `{baseDir}/references/ffmpeg-recipes.md` |
+| Self-test on a synthetic clip (no recording, no ASR) | `{baseDir}/scripts/selftest.sh` |
