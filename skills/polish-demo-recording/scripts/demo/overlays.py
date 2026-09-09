@@ -10,10 +10,10 @@ def load_words(ctx):
     return [(w['start'], w['end'], w['word'].strip()) for s in d['segments'] for w in s.get('words', [])]
 
 
-def gaps(ctx):
-    """Print every narration gap of 1.2 s or more with a suggested treatment (card, speed-up)."""
+def gaps(ctx, boundaries):
+    """Print every narration gap of 1.2 s or more with a suggested treatment (card, speed-up), plus clip boundaries."""
+    rows = [(b, f'{b:9.2f} {b:9.2f}   0.0  clip boundary') for b in boundaries]
     words = load_words(ctx)
-    print(f'{"gap start":>9} {"gap end":>9} {"len":>5}  suggestion   next words')
     for i in range(1, len(words)):
         g = words[i][0] - words[i - 1][1]
         if g < 1.2:
@@ -23,7 +23,10 @@ def gaps(ctx):
         if g > 2.4:
             sug = (sug + ' speedup x' + ('4' if g > 4 else '3')).strip()
         nxt = ' '.join(w for _, _, w in words[i:i + 6])
-        print(f'{a:9.2f} {b:9.2f} {g:5.1f}  {sug:12s} {nxt}')
+        rows.append((a, f'{a:9.2f} {b:9.2f} {g:5.1f}  {sug:12s} {nxt}'))
+    print(f'{"gap start":>9} {"gap end":>9} {"len":>5}  suggestion   next words')
+    for _, text in sorted(rows):
+        print(text)
 
 
 def ts(t):

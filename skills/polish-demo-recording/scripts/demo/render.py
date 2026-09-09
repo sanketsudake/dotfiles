@@ -5,6 +5,7 @@ See ../../references/ffmpeg-recipes.md for why each parameter is what it is.
 import os
 from PIL import Image, ImageDraw, ImageFont
 from demo.ffmpeg import AENC, dur, ff, venc
+from demo.sources import prepare
 from demo.timeline import build_pieces
 
 
@@ -47,7 +48,7 @@ def master_vf(ctx):
 
 
 def master(ctx):
-    raw = ctx.sources[0]['path']
+    raw = prepare(ctx)
     voice = ctx.voice_wav
     ff('-i', raw, '-vf', master_vf(ctx), '-an', '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p', 'master_v.mp4')
     ff('-i', 'master_v.mp4', '-i', voice, '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)

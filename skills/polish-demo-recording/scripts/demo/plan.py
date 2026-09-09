@@ -11,9 +11,9 @@ from demo.fonts import resolve as resolve_fonts
 
 SCHEMA_VERSION = 2
 TOP_KEYS = {
-    'schema_version', 'workdir', 'sources', 'voice_wav', 'transcript', 'video', 'brand', 'range', 'first_label',
-    'chapters', 'labels', 'speedups', 'zooms', 'callouts', 'callout_dur', 'caption_fixes', 'captions', 'music',
-    'timing', 'out_prefix',
+    'schema_version', 'workdir', 'sources', 'voice', 'voice_wav', 'transcript', 'video', 'brand', 'range',
+    'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'callouts', 'callout_dur', 'caption_fixes',
+    'captions', 'music', 'timing', 'out_prefix',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
 
@@ -67,10 +67,21 @@ def validate(plan, base_dir):
                 continue
             exists(s['path'], f'sources[{i}].path')
             for k in ('start', 'end'):
-                if k in s:
-                    e.append(f'sources[{i}].{k}: not supported until phase 2b')
-        if len(srcs) > 1:
-            e.append('sources: more than one clip is not supported until phase 2b')
+                if k in s and not _num(s[k]):
+                    e.append(f'sources[{i}].{k}: must be a number')
+            if _num(s.get('start')) and _num(s.get('end')) and s['end'] <= s['start']:
+                e.append(f'sources[{i}]: end must be greater than start')
+    voice = plan.get('voice', 'embedded')
+    if voice == 'none':
+        if plan.get('transcript') is not None:
+            e.append('transcript: must be null when voice is "none"')
+    elif isinstance(voice, dict):
+        need(voice, 'voice', ['path'])
+        exists(voice.get('path'), 'voice.path')
+        if 'offset' in voice and not _num(voice['offset']):
+            e.append('voice.offset: must be a number (seconds; the master time at which the track starts, negative when the track starts early)')
+    elif voice != 'embedded':
+        e.append('voice: must be "embedded", "none", or {"path": ..., "offset": ...}')
     brand = plan.get('brand')
     if not isinstance(brand, dict) or not brand.get('name'):
         e.append('brand.name: required')
@@ -210,6 +221,9 @@ class Ctx:
     out: str
     sources: list
     voice_wav: str
+    voice_mode: str
+    voice_path: str
+    voice_offset: float
     transcript: str
     first_label: str
     chapters: list
@@ -226,10 +240,14 @@ def build(plan, work):
     """Normalize a validated v2 plan into a Ctx (defaults applied, ops as tuples)."""
     brand = plan['brand']
     video = plan.get('video', {})
+    if 'width' not in video or 'height' not in video:
+        from demo.sources import probe  # local import: sources imports ffmpeg only, but keep plan.py free of a module-level cycle
+        info = probe(plan['sources'][0]['path'])
+        video = dict(video, width=video.get('width', info['width']), height=video.get('height', info['height']))
+    height = int(video['height'])
     strip = video.get('strip', {})
     mode = strip.get('mode', 'crop')
     chrome_top = int(video.get('chrome_top', 0))
-    height = plan.get('video', {}).get('height', 1080)
     if mode == 'crop':
         strip_h = chrome_top
     elif mode == 'pad':
@@ -240,6 +258,13 @@ def build(plan, work):
     accent = hexrgb(brand.get('accent', '#3b5bfd'))
     timing = plan.get('timing', {})
     callout_dur = float(plan.get('callout_dur', 5.0))
+    voice = plan.get('voice', 'embedded')
+    if voice == 'none':
+        voice_mode, voice_path, voice_offset = 'none', None, 0.0
+    elif isinstance(voice, dict):
+        voice_mode, voice_path, voice_offset = 'file', voice['path'], float(voice.get('offset', 0.0))
+    else:
+        voice_mode, voice_path, voice_offset = 'embedded', None, 0.0
     return Ctx(
         plan=plan,
         work=work,
@@ -272,6 +297,9 @@ def build(plan, work):
         out=plan['out_prefix'],
         sources=list(plan['sources']),
         voice_wav=plan.get('voice_wav', 'voice.wav'),
+        voice_mode=voice_mode,
+        voice_path=voice_path,
+        voice_offset=voice_offset,
         transcript=plan.get('transcript'),
         first_label=plan.get('first_label', 'Welcome'),
         chapters=list(plan.get('chapters', [])),
