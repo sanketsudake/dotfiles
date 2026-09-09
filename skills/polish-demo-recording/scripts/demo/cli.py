@@ -14,7 +14,7 @@ See ../references/ffmpeg-recipes.md for why each parameter is what it is.
 """
 import json
 import sys
-from demo import overlays, plan, render, sources, timeline, verify
+from demo import exports, overlays, plan, render, sources, timeline, verify
 
 DEFAULT_STAGES = ['master', 'cards', 'segs', 'concat', 'ass', 'final']
 
@@ -57,7 +57,8 @@ def main(argv=None):
         open('overlays.ass', 'w').write(overlays.build_ass(ctx, tl, tm))
         if ctx.transcript:
             open('overlays_cc.ass', 'w').write(overlays.build_ass(ctx, tl, tm, captions=True))
-            overlays.write_srt(ctx, tm)
+            if 'srt' in ctx.exports['formats']:
+                overlays.write_srt(ctx, tm)
         print('overlays + srt ok' if ctx.transcript else 'overlays ok (no transcript, no captions)')
     if 'final' in stages:
         music = ctx.music
@@ -66,6 +67,7 @@ def main(argv=None):
             render.final(ctx, f'{ctx.out}-captions.mp4', 'overlays_cc.ass', music)
         if music:
             render.final(ctx, f'{ctx.out}-no-music.mp4', 'overlays.ass', None)
+        exports.run(ctx, tl, tm)
     if 'verify' in stages:
         verify.verify(ctx, tl, tm)
     return 0

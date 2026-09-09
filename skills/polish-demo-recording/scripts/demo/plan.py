@@ -14,7 +14,7 @@ SCHEMA_VERSION = 2
 TOP_KEYS = {
     'schema_version', 'workdir', 'sources', 'voice', 'voice_wav', 'transcript', 'video', 'brand', 'range',
     'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'cuts', 'holds', 'callouts', 'callout_dur',
-    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions', 'bumpers', 'loudness',
+    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions', 'bumpers', 'loudness', 'exports',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
 THEMES = {
@@ -236,6 +236,26 @@ def validate(plan, base_dir):
         e.append('loudness: must be {"target": -14|-16|-23}')
     elif 'target' in loud and loud['target'] not in (-14, -16, -23):
         e.append(f'loudness.target: must be -14, -16 or -23, got {loud["target"]!r}')
+    ex = plan.get('exports', {})
+    if not isinstance(ex, dict):
+        e.append('exports: must be an object')
+        ex = {}
+    for k in set(ex) - {'height', 'preview', 'formats'}:
+        e.append(f'exports.{k}: unknown key')
+    if ex.get('height') is not None:
+        num_range(ex['height'], 'exports.height', 240, 2160)
+        if _num(ex['height']) and int(ex['height']) % 2:
+            e.append(f'exports.height: must be even (yuv420p needs an even frame height), got {ex["height"]}')
+    if ex.get('preview') is not None:
+        pv = ex['preview']
+        if not isinstance(pv, dict):
+            e.append('exports.preview: must be {"from": s, "to": s} in output seconds')
+        else:
+            need(pv, 'exports.preview', ['from', 'to'])
+            span(pv, 'exports.preview')
+    fmts = ex.get('formats', ['srt'])
+    if not isinstance(fmts, list) or any(f not in ('srt', 'vtt', 'txt', 'chapters') for f in fmts):
+        e.append('exports.formats: must be a list drawn from srt, vtt, txt, chapters')
     if 'transcript' in plan and plan['transcript'] is not None:
         exists(plan['transcript'], 'transcript')
     return e
@@ -296,11 +316,13 @@ class Ctx:
     music: dict
     cap_max_frac: float
     loudness_target: float
+    exports: dict
 
 
 def build(plan, work):
     """Normalize a validated v2 plan into a Ctx (defaults applied, ops as tuples)."""
     brand = plan['brand']
+    ex = plan.get('exports', {}) if isinstance(plan.get('exports', {}), dict) else {}
     video = plan.get('video', {})
     if 'width' not in video or 'height' not in video:
         from demo.sources import probe  # local import: sources imports ffmpeg only, but keep plan.py free of a module-level cycle
@@ -389,6 +411,7 @@ def build(plan, work):
         music=plan.get('music'),
         cap_max_frac=float(plan.get('captions', {}).get('max_width_frac', 0.8)),
         loudness_target=float(plan.get('loudness', {}).get('target', -16)),
+        exports={'height': ex.get('height'), 'preview': ex.get('preview'), 'formats': list(ex.get('formats', ['srt']))},
     )
 
 

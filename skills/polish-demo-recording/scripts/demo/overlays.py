@@ -222,6 +222,19 @@ def load_captions(ctx):
     return out
 
 
+def cues(ctx, tm):
+    """Caption cues in output time: (start, end, lines). Cues inside a cut, or shorter than 0.3 s after mapping, are dropped."""
+    out = []
+    for a, b, cl in load_captions(ctx):
+        if tm.in_cut(a):
+            continue
+        o1, o2 = tm.out(a), tm.out_clamped(b)
+        if o1 is None or o2 - o1 < 0.3:
+            continue
+        out.append((o1, o2, cl))
+    return out
+
+
 def write_srt(ctx, tm):
     n, lines = 0, []
 
@@ -231,13 +244,7 @@ def write_srt(ctx, tm):
         s = t % 60
         return f'{h:02d}:{m:02d}:{int(s):02d},{int((s % 1) * 1000):03d}'
 
-    for a, b, cl in load_captions(ctx):
-        if tm.in_cut(a):
-            print(f'warning: caption "{" ".join(cl)[:40]}" at {a:.2f}s starts inside a cut; dropped', flush=True)
-            continue
-        o1, o2 = tm.out(a), tm.out_clamped(b)
-        if o1 is None or o2 - o1 < 0.3:
-            continue
+    for o1, o2, cl in cues(ctx, tm):
         n += 1
         lines.append(f'{n}\n{st(o1)} --> {st(o2)}\n' + '\n'.join(cl) + '\n\n')
     open(f'{ctx.out}.srt', 'w').write(''.join(lines))
