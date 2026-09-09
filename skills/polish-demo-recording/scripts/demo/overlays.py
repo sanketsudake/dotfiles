@@ -130,8 +130,25 @@ def clean(ctx, text):
     return text.strip()
 
 
+def wrap(ctx, text):
+    """Greedy word wrap at the caption font, limited to cap_max_frac of the frame width (so any script wraps correctly)."""
+    max_px = ctx.cap_max_frac * ctx.W
+    size = fs(ctx, 40)
+    lines, line = [], ''
+    for tok in text.split():
+        cand = (line + ' ' + tok).strip()
+        if line and tw(cand, ctx.fr, size) > max_px:
+            lines.append(line)
+            line = tok
+        else:
+            line = cand
+    if line:
+        lines.append(line)
+    return lines
+
+
 def load_captions(ctx):
-    """Cues from word timestamps: max 2 lines x 42 chars, break on pauses > 0.8 s, sentence ends, or 7 s."""
+    """Cues from word timestamps: max 2 lines, each within cap_max_frac of the frame width at the caption font, break on pauses > 0.8 s, sentence ends, or 7 s."""
     words = load_words(ctx)
     cues, cur = [], []
 
@@ -142,15 +159,7 @@ def load_captions(ctx):
         if len(text) < 3:
             cur.clear()
             return
-        lines, line = [], ''
-        for tok in text.split():
-            if line and len(line) + 1 + len(tok) > 42:
-                lines.append(line)
-                line = tok
-            else:
-                line = (line + ' ' + tok).strip()
-        if line:
-            lines.append(line)
+        lines = wrap(ctx, text)
         cues.append((cur[0][0], cur[-1][1], lines))
         cur.clear()
 
@@ -169,15 +178,7 @@ def load_captions(ctx):
         if words_n < 3 and merged and a - merged[-1][1] < 2.5:
             pa, pb, pl = merged[-1]
             text = ' '.join(pl) + ' ' + ' '.join(lines)
-            nl, line = [], ''
-            for tok in text.split():
-                if line and len(line) + 1 + len(tok) > 42:
-                    nl.append(line)
-                    line = tok
-                else:
-                    line = (line + ' ' + tok).strip()
-            if line:
-                nl.append(line)
+            nl = wrap(ctx, text)
             merged[-1] = (pa, b, nl)
         else:
             merged.append((a, b, lines))
@@ -186,28 +187,10 @@ def load_captions(ctx):
         if cues and sum(len(l.split()) for l in cues[-1][2]) < 3 and a - cues[-1][1] < 2.5:
             pa, pb, pl = cues.pop()
             text = ' '.join(pl) + ' ' + ' '.join(lines)
-            nl, line = [], ''
-            for tok in text.split():
-                if line and len(line) + 1 + len(tok) > 42:
-                    nl.append(line)
-                    line = tok
-                else:
-                    line = (line + ' ' + tok).strip()
-            if line:
-                nl.append(line)
+            nl = wrap(ctx, text)
             cues.append((pa, b, nl))
         else:
             cues.append((a, b, lines))
-
-    def wrap(text):
-        nl, line = [], ''
-        for tok in text.split():
-            if line and len(line) + 1 + len(tok) > 42:
-                nl.append(line)
-                line = tok
-            else:
-                line = (line + ' ' + tok).strip()
-        return nl + ([line] if line else [])
 
     def split(a, b, lines):
         """A cue longer than two lines is halved by word count (never by chopping a trailing line off)."""
@@ -216,7 +199,7 @@ def load_captions(ctx):
         ws = ' '.join(lines).split()
         h = len(ws) // 2
         m = a + (b - a) * h / len(ws)
-        return split(a, m, wrap(' '.join(ws[:h]))) + split(m, b, wrap(' '.join(ws[h:])))
+        return split(a, m, wrap(ctx, ' '.join(ws[:h]))) + split(m, b, wrap(ctx, ' '.join(ws[h:])))
 
     out = []
     for a, b, lines in cues:
