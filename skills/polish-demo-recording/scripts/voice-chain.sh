@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Process the narration of a screen recording into a broadcast-level stereo WAV.
-# usage: voice-chain.sh <src.mov> <out.wav> [--offset s] [--window a:b ...] [--nr 12] [--nlm 2] [--no-nlm]
+# usage: voice-chain.sh <src.mov> <out.wav> [--target -14|-16|-23] [--offset s] [--window a:b ...] [--nr 12] [--nlm 2] [--no-nlm]
+#   --target       integrated loudness target in LUFS: -14 YouTube and streaming, -16 podcast (default), -23 EBU R128 broadcast.
+#                  True peak stays -1.5 dBFS for every target.
 #   --offset s     shift the track before every other filter: positive s prepends s seconds of silence
 #                  (the track starts late), negative trims -s seconds from the head (the track starts early).
 #                  Measure it with voice-offset.py on a separately recorded track.
@@ -8,14 +10,15 @@
 #                  repeat for several windows. Use for a passing vehicle or a bump on the desk.
 #   --dip a:b      shaped -16 dB gain dip between a and b (a pure-silence gap that still carries noise).
 # Chain: mono | high-pass 90 Hz | afftdn (spectral) | anlmdn (non-local means) | de-esser | 3:1 compressor
-#        | EQ (-2 dB @250, +2.5 dB @3.2k, +1 dB @120) | two-pass loudnorm -16 LUFS / -1.5 TP | limiter | stereo.
+#        | EQ (-2 dB @250, +2.5 dB @3.2k, +1 dB @120) | two-pass loudnorm target LUFS / -1.5 TP | limiter | stereo.
 # Measured on a MacBook screen recording: gaps -52 -> -46 dB RMS while speech rose -31 -> -18.5 dB RMS.
 # afftdn alone leaves gaps at -31 dB after make-up gain; anlmdn is what keeps them low.
 set -euo pipefail
 src="${1:?src}"; out="${2:?out.wav}"; shift 2
-NR=12; NLM=2; OFFSET=0; WIN=(); DIP=()
+NR=12; NLM=2; OFFSET=0; TARGET=-16; WIN=(); DIP=()
 while [ $# -gt 0 ]; do
   case "$1" in
+    --target) TARGET="$2"; shift 2;;
     --offset) OFFSET="$2"; shift 2;;
     --window) WIN+=("$2"); shift 2;;
     --dip) DIP+=("$2"); shift 2;;
@@ -48,9 +51,9 @@ done
 chain="$chain,deesser=i=0.25,acompressor=threshold=-26dB:ratio=3:attack=5:release=120:makeup=2"
 chain="$chain,equalizer=f=250:t=q:w=1.2:g=-2,equalizer=f=3200:t=q:w=1:g=2.5,equalizer=f=120:t=q:w=1:g=1"
 echo "pass 1: measure" >&2
-json=$(ffmpeg -hide_banner -nostats -i "$src" -af "${chain},loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json" -f null - 2>&1 | sed -n '/^{/,/^}/p')
+json=$(ffmpeg -hide_banner -nostats -i "$src" -af "${chain},loudnorm=I=${TARGET}:TP=-1.5:LRA=11:print_format=json" -f null - 2>&1 | sed -n '/^{/,/^}/p')
 read -r I TP LRA TH OFF < <(python3 -c "import json,sys;d=json.loads(sys.stdin.read());print(d['input_i'],d['input_tp'],d['input_lra'],d['input_thresh'],d['target_offset'])" <<<"$json")
-ln="loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${I}:measured_TP=${TP}:measured_LRA=${LRA}:measured_thresh=${TH}:offset=${OFF}:linear=true"
+ln="loudnorm=I=${TARGET}:TP=-1.5:LRA=11:measured_I=${I}:measured_TP=${TP}:measured_LRA=${LRA}:measured_thresh=${TH}:offset=${OFF}:linear=true"
 echo "pass 2: render (input ${I} LUFS)" >&2
 ffmpeg -hide_banner -loglevel error -y -i "$src" -af "${chain},${ln},aresample=48000,alimiter=limit=0.89:level=false,aformat=channel_layouts=stereo" -c:a pcm_s16le "$out"
 echo "== result" >&2

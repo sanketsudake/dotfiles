@@ -14,7 +14,7 @@ SCHEMA_VERSION = 2
 TOP_KEYS = {
     'schema_version', 'workdir', 'sources', 'voice', 'voice_wav', 'transcript', 'video', 'brand', 'range',
     'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'cuts', 'holds', 'callouts', 'callout_dur',
-    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions', 'bumpers',
+    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions', 'bumpers', 'loudness',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
 THEMES = {
@@ -231,6 +231,11 @@ def validate(plan, base_dir):
     for k in ('card_dur', 'open_dur', 'end_dur', 'xfade'):
         if k in plan.get('timing', {}):
             num_range(plan['timing'][k], f'timing.{k}', 0.1, 30)
+    loud = plan.get('loudness', {})
+    if not isinstance(loud, dict):
+        e.append('loudness: must be {"target": -14|-16|-23}')
+    elif 'target' in loud and loud['target'] not in (-14, -16, -23):
+        e.append(f'loudness.target: must be -14, -16 or -23, got {loud["target"]!r}')
     if 'transcript' in plan and plan['transcript'] is not None:
         exists(plan['transcript'], 'transcript')
     return e
@@ -290,6 +295,7 @@ class Ctx:
     caption_fixes: list
     music: dict
     cap_max_frac: float
+    loudness_target: float
 
 
 def build(plan, work):
@@ -382,6 +388,7 @@ def build(plan, work):
         caption_fixes=[(f['find'], f['replace']) for f in plan.get('caption_fixes', [])],
         music=plan.get('music'),
         cap_max_frac=float(plan.get('captions', {}).get('max_width_frac', 0.8)),
+        loudness_target=float(plan.get('loudness', {}).get('target', -16)),
     )
 
 

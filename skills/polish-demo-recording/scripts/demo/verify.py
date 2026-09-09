@@ -14,6 +14,12 @@ def verify(ctx, tl, tm):
     print(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,duration,r_frame_rate', '-of', 'csv=p=0', name]).decode())
     out = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', name, '-af', 'ebur128=peak=true', '-f', 'null', '-'], capture_output=True, text=True).stderr
     print('\n'.join(l for l in out.splitlines() if re.match(r'^\s+(I|LRA|Peak):', l)))
+    m = re.search(r'^\s+I:\s+(-?[\d.]+) LUFS', out, re.M)
+    if m:
+        measured = float(m.group(1))
+        diff = measured - ctx.loudness_target
+        flag = 'ok' if abs(diff) <= 1.0 else f'off by {diff:+.1f} LU'
+        print(('' if abs(diff) <= 1.0 else 'warning: ') + f'loudness: I {measured} LUFS, target {ctx.loudness_target:g} ({flag})')
     times = [(s['out'] + s['len'] / 2, os.path.basename(s['img'])) for s in tl if s['kind'] == 'card']
     times += [(tm.out(t) + 1.0, 'callout') for t, _, _ in ctx.callouts if tm.out(t) is not None]
     times += [(s['out'] + s['len'] / 2, 'badge') for s in tl if s['kind'] == 'src' and s['badge']]

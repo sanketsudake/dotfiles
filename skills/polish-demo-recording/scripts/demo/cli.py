@@ -33,10 +33,11 @@ def main(argv=None):
     if 'prepare' in stages:
         path = sources.prepare(ctx)
         offset = f' --offset {ctx.voice_offset:g}' if ctx.voice_offset else ''
+        target = f' --target {ctx.loudness_target:g}' if ctx.loudness_target != -16 else ''
         if ctx.voice_mode == 'embedded':
-            print(f'voice input: {path}')
+            print(f'voice input: {path}{target}')
         elif ctx.voice_mode == 'file':
-            print(f'voice input: {ctx.voice_path}{offset}')
+            print(f'voice input: {ctx.voice_path}{offset}{target}')
         else:
             print('voice: none (skip voice-chain.sh and transcription)')
         return 0
