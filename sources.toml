@@ -202,6 +202,15 @@ category = "meta"
 note = "Local skill, maintained in this repo"
 
 [[skill]]
+name = "i-have-adhd"
+repo = "https://github.com/ayghri/i-have-adhd"
+subpath = "skills/i-have-adhd"
+ref = "main"
+commit = "24d22f783e57cb73c957848b588c6f651b6f9cd8"
+category = "meta"
+description = "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\"."
+
+[[skill]]
 name = "implement"
 repo = "https://github.com/mattpocock/skills"
 subpath = "skills/engineering/implement"
