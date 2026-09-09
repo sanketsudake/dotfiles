@@ -11,7 +11,8 @@ Keys not listed here are refused (`<key>: unknown key`).
 | --- | --- | --- | --- |
 | `schema_version` | int | required | must be `2` |
 | `workdir` | path | plan's directory | every relative path resolves here |
-| `sources` | list of `{path}` | required | one clip in phase 2a; `start`/`end` trims and several clips arrive in phase 2b |
+| `sources` | list of objects | required | one clip or several, joined in order; see [sources](#sources) |
+| `voice` | `"embedded"` \| `"none"` \| `{path, offset}` | `"embedded"` | `embedded`: `voice-chain.sh` reads the master's own audio (v1 behaviour). `none`: no narration; captions and ducking are skipped, but the `gaps` stage still runs and prints clip boundaries only. `{path, offset}`: a separately recorded track; `offset` (seconds, negative when the track starts early) is measured, never guessed — see `voice-offset.py` in `ffmpeg-recipes.md` |
 | `voice_wav` | path | `voice.wav` | output of `voice-chain.sh` |
 | `transcript` | path or null | null | word-timestamp JSON (`segments[].words[] {start, end, word}`) |
 | `video` | object | `{}` | see [video](#video) |
@@ -30,12 +31,23 @@ Keys not listed here are refused (`<key>: unknown key`).
 | `timing` | object | `{}` | see [timing](#captions-music-timing) |
 | `out_prefix` | string | required | `<out_prefix>.mp4`, `-no-music`, `-captions`, `.srt` |
 
+## sources
+
+Each entry is a clip; entries are normalized (trim, fit to `video.width × video.height`, `fps`) and joined in order with `-c copy`.
+One clip that already matches the frame and carries no `start`/`end` is used as it is, so the phase 1 goldens hold.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `path` | path | required | clip file |
+| `start` | number, seconds | clip start | trims the clip; seconds within that clip, not master seconds |
+| `end` | number, seconds | clip end | trims the clip; must be greater than `start` when both are given |
+
 ## video
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `width` | int, 320..7680 | `1920` | master pixel width |
-| `height` | int, 320..4320 | `1080` | master pixel height |
+| `width` | int, 320..7680 | the first clip's native size (from ffprobe) | master pixel width |
+| `height` | int, 320..4320 | the first clip's native size (from ffprobe) | master pixel height |
 | `fps` | int, 10..120 | `30` | constant frame rate every later stage assumes |
 | `chrome_top` | int, 0..1000 | `0` | rows of browser chrome to crop off the top of the source |
 | `strip` | object | `{}` | see `video.strip` below |

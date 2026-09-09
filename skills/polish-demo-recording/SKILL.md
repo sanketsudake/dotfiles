@@ -12,7 +12,7 @@ description: >-
   or hands over a screen recording to share with a customer. Not for generating
   narration (the presenter records it) or for cutting a teaser from finished footage.
 license: Apache-2.0
-compatibility: "macOS on Apple Silicon (mlx-whisper), ffmpeg 6+, ffprobe, uv; fonts: Arial on macOS, DejaVu Sans or Liberation Sans on Linux, or brand.fonts"
+compatibility: "ffmpeg 6+, ffprobe, uv; macOS or Linux (transcription: mlx-whisper on Apple Silicon, faster-whisper elsewhere); fonts: Arial, DejaVu Sans, Liberation Sans, or brand.fonts"
 metadata:
   author: sanketsudake
   version: "2.0"
@@ -35,6 +35,9 @@ Read that file before changing a filter value.
 - Product name, one-line tagline, footer (company), accent colour. Default to what the UI shows.
 - Music: a track the user supplies, or none. Never generate narration with TTS; synthetic voices read as robotic and get rejected.
 - Output name. Default `<name>-polished.mp4` beside the original, plus `-no-music`, `-captions` and `.srt`.
+- Several clips go in `sources` in order and are joined before anything else; `build_demo.py plan.json prepare` prints the file the voice chain reads.
+- A voice track recorded separately goes in `voice: {path, offset}`, and `offset` is measured with `uv run --with numpy {baseDir}/scripts/voice-offset.py <src> <track.wav> --window a:b`, never guessed.
+- A recording with no narration takes `voice: "none"` and gets no captions and no ducking.
 
 ## Workflow
 
@@ -56,15 +59,16 @@ Decide from numbers:
 | noise floor vs speech RMS gap < 25 dB | audible hiss or room tone | keep the default denoiser (`--nr 12 --nlm 2`) |
 | `chrome-top.png` shows tabs and an address bar | browser chrome in frame | measure its height in px (64 on Chrome/Helium at 1080p) and set `chrome_top` and `video.strip.mode: crop`; a terminal or IDE recording with no chrome takes `strip.mode: pad` to keep the header, or `none` |
 | silences > 4 s | waiting on the UI | fast-forward candidates, not cuts |
+| `pixel_scale: 2` | a 2x Retina capture | `video.width/height` still default to the source's native size, so pixels stay 1:1; set them smaller only to downscale on purpose |
 
 ### 2. Transcribe with word timestamps
 
 ```bash
 ffmpeg -i src.mov -vn -ac 1 -ar 16000 audio16k.wav
-uvx --from mlx-whisper==0.4.3 mlx_whisper audio16k.wav --model mlx-community/whisper-large-v3-turbo \
-  --word-timestamps True --output-format json --output-dir whisper --language en
+{baseDir}/scripts/transcribe.sh audio16k.wav whisper [--language xx]
 ```
 
+`transcribe.sh` picks `mlx-whisper` on Apple Silicon macOS and `faster-whisper` elsewhere (`--backend` overrides), both writing the same word-timestamp JSON shape; omit `--language` to auto-detect.
 Whisper gives clean sentences and word times but drops most "uh"s;
 the `transcribe` skill (parakeet) hears fillers but only in 15 s chunks.
 Use whisper for placement and captions, parakeet only to count fillers.
@@ -72,7 +76,7 @@ Use whisper for placement and captions, parakeet only to count fillers.
 ### 3. Process the voice
 
 ```bash
-{baseDir}/scripts/voice-chain.sh src.mov voice.wav [--window a:b] [--dip a:b]
+{baseDir}/scripts/voice-chain.sh <src> voice.wav [--offset s] [--window a:b] [--dip a:b]
 ```
 
 The script prints the result loudness (target I −16 LUFS, TP −1.5 dBFS) and the speech RMS.
@@ -133,6 +137,7 @@ sibilance from the de-esser, a gated feel between words, music breathing in paus
 - `WrapStyle: 2` (needed so lower-thirds never wrap) also disables caption wrapping: captions are pre-broken into lines by measured pixel width, each within `captions.max_width_frac` (default `0.8`) of the frame width.
 - Shell traps on macOS: `sed -i ''` fails under GNU sed from nix; `$VAR:l` in a zsh string lowercases the variable; BSD `grep -E` does not know `\s`. Put ffmpeg chains in a script file.
 - Auto-removing "uh"s at word boundaries: on a screen recording the jump cuts look broken. Cut only stutters and fillers that sit in pauses; offer a voice-only re-record of weak chapters instead.
+- Guessing `voice.offset`: even 100 ms reads as bad lip sync on a screen recording; measure it.
 
 ## Quick reference
 

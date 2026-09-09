@@ -16,6 +16,20 @@ fps=30,crop=1920:1016:0:64,pad=1920:1080:0:64:color=0x0b1220,format=yuv420p   -c
 - `pad` mode (no chrome to crop): `fps=30,scale=1920:1016:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:64:color=0x0b1220,format=yuv420p` — the content is scaled by `(H − strip) / H`, a few percent, to make room for a strip under a recording that had no browser chrome to begin with.
 - `none` mode: `fps=30,crop=1920:1016:0:64,scale=1920:1080,format=yuv420p` when there is chrome to crop, else just `fps=30,format=yuv420p` — no strip and no header events are emitted.
 
+## Normalize a clip (`demo/sources.py`)
+
+```text
+fps=30,scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0x0b1220,format=yuv420p
+-c:v libx264 -crf 15 -preset fast -pix_fmt yuv420p -c:a pcm_s16le -ar 48000 -ac 2
+```
+
+- `fit_vf`: scale each source into `video.width × video.height` with its aspect kept, letterboxed with the strip colour, so a phone-shot clip and a desktop capture join into one frame without either being cropped.
+- One matching, untrimmed clip skips this filter entirely and is used as it is (`prepare` returns the clip path itself) — that is what keeps the phase 1 goldens byte-identical.
+- Audio becomes PCM (`pcm_s16le`), not AAC: the join in the next step uses `-c copy`, and `-c copy` on a concat demuxer list requires every part to share the exact same codec parameters.
+PCM also has no encoder priming or delay, so the `-c copy` seam lands on an exact sample and the audio is encoded lossily only once, at the master, instead of twice.
+A source with no audio stream gets `anullsrc` muxed in first so every part has an audio track to copy.
+- Sources are then joined in order with the concat demuxer (`-f concat -safe 0`, `-c copy`) into `norm/joined.mov`, the file both the master stage and the voice chain read.
+
 ## Voice chain (`voice-chain.sh`)
 
 | Stage | Setting | Why |
@@ -43,6 +57,17 @@ afftdn=nf=-40:nr=25:tn=1:enable=…, volume='1-0.85*clip(min(t-183.62,184.5-t)/0
 
 The 60–300 Hz band in the silent gap went −17 → −35 dB; speech formants above 300 Hz survive, the voice is slightly thinner for those seconds.
 Find the band with `showspectrumpic=s=1400x500:legend=1:scale=log:stop=8000` on `atrim` of the window.
+
+## Offset of a separate voice track (`voice-offset.py`)
+
+```text
+uv run --with numpy {baseDir}/scripts/voice-offset.py src.mov vo.wav --window 0:15
+offset: -0.350
+```
+
+The two inputs are decoded to mono 16 kHz and cross-correlated by FFT; the lag of the peak is the offset, negative when the track starts early.
+`--window` narrows the reference to a span around a clap or the first word so a long recording locks on one event.
+ffmpeg's `axcorrelate` is not usable here because it emits a correlation signal, not a lag.
 
 ## Segments
 
@@ -121,3 +146,12 @@ Cut only stutters and fillers inside pauses; the rest needs a re-record.
 a 220 Hz tone under 4 Hz amplitude modulation, gated into four bursts so the transcript in `fixture/whisper.json` has three real gaps (1.5, 3 and 5 s).
 The voice chain lands it at −16.0 LUFS (measured); the assert allows ±1.5 LU.
 `selftest.sh --golden check` diffs the timeline, both ASS files, the .srt and the ffmpeg argv log against `fixture/golden-v1/`; identical argv means identical output, so encoder nondeterminism never enters the comparison.
+
+## Self-test variants
+
+`make-fixture.sh` also renders `a.mp4`/`b.mp4` (the fixture split in half, each re-encoded on a keyframe) and `vo.wav` (the fixture's voice track with 0.35 s of silence prepended, so its known offset is −0.35), at the same encode cost as the golden fixture — a few seconds of `libx264 veryfast`, no extra capture.
+`selftest.sh`'s `variant()` helper builds each on a full pipeline run; no golden was captured for these paths in this phase, so structural asserts are the check, not a byte diff:
+
+- `multi`: `sources` is `[a.mp4, b.mp4]`; proves `sources.prepare` joins several clips into one file the master and voice chain both read, and that `gaps` reports the clip boundary.
+- `voice-file`: `voice` is `{path: vo.wav, offset: -0.35}`; proves `voice-chain.sh --offset` trims the track's known lead-in (checked with `silencedetect`: the first burst must land at 0.5 s, matching the embedded-voice fixture) and that `voice-offset.py` recovers the same −0.35 s from `fixture.mp4` and `vo.wav` independently, so the measurement and the fix agree.
+- `no-voice`: `voice` is `"none"` and `transcript` is `null`; proves no captions variant and no `.srt` are written, and that `final` still renders.

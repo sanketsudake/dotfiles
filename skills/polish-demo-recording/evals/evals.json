@@ -14,6 +14,27 @@
       "prompt": "There is bike noise from 3:02 to 3:05 in the polished video, can you remove it?",
       "expected_output": "Maps the output time back to source seconds through timeline.json, inspects the band with showspectrumpic/astats, re-runs voice-chain.sh with --window (and --dip on a silent gap), re-muxes the master, deletes only the affected seg/*.mp4 files, rebuilds concat/ass/final, and reports the before/after band level in dB.",
       "files": []
+    },
+    {
+      "id": "terminal-no-chrome",
+      "name": "Polish a terminal session recording with no browser chrome",
+      "prompt": "This is a recording of me running the CLI in iTerm, ~/Desktop/cli-demo.mov. Make it presentable for the docs page; keep the product header at the top like the other demos.",
+      "expected_output": "Reads probe output, sees no browser chrome, sets video.chrome_top 0 and video.strip.mode pad (not crop) so the header strip stays, keeps the content 1:1 apart from the few-percent pad scale, and verifies the strip in verify.png.",
+      "files": []
+    },
+    {
+      "id": "vertical-phone",
+      "name": "Polish a vertical phone screen recording",
+      "prompt": "Here is a 1080x1920 screen recording from my phone, ~/Downloads/app-walkthrough.mp4, with my narration. Same treatment as the desktop demos please.",
+      "expected_output": "Takes width and height from the probe (1080x1920), leaves video.width/height at the native size, chooses strip.mode pad or none, and checks that cards and lower-thirds lay out at that size in verify.png; no 1920x1080 constant appears in the plan.",
+      "files": []
+    },
+    {
+      "id": "separate-voice-track",
+      "name": "Video with a voice track recorded on a phone",
+      "prompt": "The screen capture is ~/Desktop/demo.mov and the audio is ~/Desktop/demo-voice.wav from my phone mic; I clapped once at the start of both. Sync them and polish it.",
+      "expected_output": "Sets voice to {path, offset}, measures offset with scripts/voice-offset.py on a window around the clap (never guesses), runs voice-chain.sh with --offset after the two positional arguments, and confirms the words in the transcript line up with the picture in verify.png before building.",
+      "files": []
     }
   ]
 }
