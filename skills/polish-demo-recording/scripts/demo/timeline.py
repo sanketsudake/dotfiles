@@ -13,15 +13,22 @@ def build_timeline(ctx):
         ops.append((a + 0.5, b - 0.4, 'speed', (s, badge)))
     for a, b, z, cx, cy in ctx.zooms:
         ops.append((a, b, 'zoom', (z, cx, cy)))
+    for a, b in ctx.cuts:
+        ops.append((a, b, 'cut', None))
+    for at, d in ctx.holds:
+        ops.append((at, at + d, 'hold', d))
     ops.sort()
     for i in range(1, len(ops)):
         assert ops[i][0] >= ops[i - 1][1], f'overlapping ops: {ops[i-1]} {ops[i]}'
     tl = [dict(kind='card', img='cards/open.png', dur=ctx.open_dur)]
     cur = ctx.src_start
 
-    def src(a, b, speed=1, badge=False, zoom=None):
+    def src(a, b, speed=1, badge=False, zoom=None, hold=False):
         if b - a > 0.05:
-            tl.append(dict(kind='src', a=a, b=b, speed=speed, badge=badge, zoom=zoom))
+            seg = dict(kind='src', a=a, b=b, speed=speed, badge=badge, zoom=zoom)
+            if hold:
+                seg['hold'] = True
+            tl.append(seg)
 
     for a, b, kind, p in ops:
         src(cur, a)
@@ -30,6 +37,11 @@ def build_timeline(ctx):
             cur = b
         elif kind == 'speed':
             src(a, b, speed=p[0], badge=p[1])
+            cur = b
+        elif kind == 'cut':
+            cur = b
+        elif kind == 'hold':
+            src(a, b, hold=True)
             cur = b
         else:
             src(a, b, zoom=p)
@@ -60,8 +72,12 @@ def build_pieces(tl):
 class TimeMap:
     """Source seconds to output seconds, including speed-ups and the dissolve overlaps."""
 
-    def __init__(self, tl):
+    def __init__(self, tl, cuts=()):
         self.tl = tl
+        self.cuts = list(cuts)
+
+    def in_cut(self, t):
+        return any(a <= t < b for a, b in self.cuts)
 
     def seg_of(self, t):
         for s in self.tl:

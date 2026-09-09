@@ -17,6 +17,7 @@ def verify(ctx, tl, tm):
     times = [(s['out'] + s['len'] / 2, os.path.basename(s['img'])) for s in tl if s['kind'] == 'card']
     times += [(tm.out(t) + 1.0, 'callout') for t, _, _ in ctx.callouts if tm.out(t) is not None]
     times += [(s['out'] + s['len'] / 2, 'badge') for s in tl if s['kind'] == 'src' and s['badge']]
+    times += [(s['out'] + s['len'] / 2, 'hold') for s in tl if s['kind'] == 'src' and s.get('hold')]
     zooms = [s for s in tl if s['kind'] == 'src' and s['zoom']]
     times += [(s['out'] - ctx.xf / 2, 'dissolve') for s in tl if s['kind'] == 'card' and s['out'] > 0]
     times.sort()

@@ -99,6 +99,7 @@ def build_ass(ctx, tl, tm, captions=False):
     for i, (t, text, dur_) in enumerate(callouts):
         o1 = tm.out(t)
         if o1 is None:
+            print(f'warning: callout "{text}" at {t:.2f}s is inside a cut or a card; dropped', flush=True)
             continue
         seg = tm.seg_of(t)
         nxt = callouts[i + 1][0] if i + 1 < len(callouts) else 1e9
@@ -121,6 +122,9 @@ def build_ass(ctx, tl, tm, captions=False):
             lines.append(ev(5, o1, o2, 'Badge', f'{{\\an5\\pos({(x1+x2)//2},{(y1+y2)//2})}}' + txt))
     if captions:
         for a, b, cl in load_captions(ctx):
+            if tm.in_cut(a):
+                print(f'warning: caption "{" ".join(cl)[:40]}" at {a:.2f}s starts inside a cut; dropped', flush=True)
+                continue
             o1, o2 = tm.out(a), tm.out_clamped(b)
             if o1 is None:
                 o1 = tm.out_clamped(a)
@@ -224,6 +228,9 @@ def write_srt(ctx, tm):
         return f'{h:02d}:{m:02d}:{int(s):02d},{int((s % 1) * 1000):03d}'
 
     for a, b, cl in load_captions(ctx):
+        if tm.in_cut(a):
+            print(f'warning: caption "{" ".join(cl)[:40]}" at {a:.2f}s starts inside a cut; dropped', flush=True)
+            continue
         o1, o2 = tm.out(a), tm.out_clamped(b)
         if o1 is None or o2 - o1 < 0.3:
             continue

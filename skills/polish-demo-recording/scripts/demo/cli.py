@@ -51,7 +51,7 @@ def main(argv=None):
     json.dump(tl, open('timeline.json', 'w'), indent=1)
     if 'concat' in stages:
         render.concat(ctx, tl)
-    tm = timeline.TimeMap(tl)
+    tm = timeline.TimeMap(tl, ctx.cuts)
     if 'ass' in stages:
         open('overlays.ass', 'w').write(overlays.build_ass(ctx, tl, tm))
         if ctx.transcript:

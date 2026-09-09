@@ -12,8 +12,8 @@ from demo.fonts import resolve as resolve_fonts
 SCHEMA_VERSION = 2
 TOP_KEYS = {
     'schema_version', 'workdir', 'sources', 'voice', 'voice_wav', 'transcript', 'video', 'brand', 'range',
-    'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'callouts', 'callout_dur', 'caption_fixes',
-    'captions', 'music', 'timing', 'out_prefix',
+    'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'cuts', 'holds', 'callouts', 'callout_dur',
+    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
 
@@ -158,6 +158,21 @@ def validate(plan, base_dir):
             inside(z['from'], f'zooms[{i}].from')
             inside(z['to'], f'zooms[{i}].to')
             ops.append((z['from'], z['to'], f'zooms[{i}]'))
+    for i, c in items('cuts'):
+        need(c, f'cuts[{i}]', ['from', 'to'])
+        span(c, f'cuts[{i}]')
+        if _num(c.get('from')) and _num(c.get('to')):
+            inside(c['from'], f'cuts[{i}].from')
+            inside(c['to'], f'cuts[{i}].to')
+            ops.append((c['from'], c['to'], f'cuts[{i}]'))
+    for i, h in items('holds'):
+        need(h, f'holds[{i}]', ['at', 'dur'])
+        if 'dur' in h:
+            num_range(h['dur'], f'holds[{i}].dur', 0.2, 30)
+        if _num(h.get('at')) and _num(h.get('dur')):
+            inside(h['at'], f'holds[{i}].at')
+            inside(h['at'] + h['dur'], f'holds[{i}].at+dur')
+            ops.append((h['at'], h['at'] + h['dur'], f'holds[{i}]'))
     for i, c in items('callouts'):
         need(c, f'callouts[{i}]', ['at', 'text'])
         inside(c.get('at'), f'callouts[{i}].at')
@@ -230,6 +245,8 @@ class Ctx:
     labels: list
     speedups: list
     zooms: list
+    cuts: list
+    holds: list
     callouts: list
     caption_fixes: list
     music: dict
@@ -306,6 +323,8 @@ def build(plan, work):
         labels=[(float(l['at']), str(l['text'])) for l in plan.get('labels', [])],
         speedups=[(float(s['from']), float(s['to']), s['factor'], bool(s.get('badge', False))) for s in plan.get('speedups', [])],
         zooms=[(float(z['from']), float(z['to']), z['factor'], z['cx'], z['cy']) for z in plan.get('zooms', [])],
+        cuts=[(float(c['from']), float(c['to'])) for c in plan.get('cuts', [])],
+        holds=[(float(h['at']), float(h['dur'])) for h in plan.get('holds', [])],
         callouts=[(float(c['at']), str(c['text']), float(c.get('dur', callout_dur))) for c in plan.get('callouts', [])],
         caption_fixes=[(f['find'], f['replace']) for f in plan.get('caption_fixes', [])],
         music=plan.get('music'),

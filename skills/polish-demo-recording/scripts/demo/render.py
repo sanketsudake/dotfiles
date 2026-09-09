@@ -140,6 +140,13 @@ def render_segs(ctx, tl, rerender):
             ff('-loop', '1', '-framerate', str(ctx.fps), '-t', str(s['dur']), '-i', s['img'],
                '-f', 'lavfi', '-t', str(s['dur']), '-i', 'anullsrc=r=48000:cl=stereo',
                '-vf', f'scale={ctx.W}:{ctx.H},format=yuv420p', '-t', str(s['dur']), *venc(ctx.fps), *AENC, out)
+        elif s.get('hold'):
+            D = s['b'] - s['a']
+            png = f'seg/{i:03d}-hold.png'
+            ff('-ss', f"{s['a']:.3f}", '-i', ctx.master, '-frames:v', '1', png)
+            ff('-loop', '1', '-framerate', str(ctx.fps), '-t', f'{D:.3f}', '-i', png,
+               '-ss', f"{s['a']:.3f}", '-t', f'{D:.3f}', '-i', ctx.master,
+               '-map', '0:v', '-map', '1:a', '-vf', 'format=yuv420p', '-t', f'{D:.3f}', *venc(ctx.fps), *AENC, out)
         else:
             D = s['b'] - s['a']
             vf = f'fps={ctx.fps}'
