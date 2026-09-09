@@ -85,7 +85,11 @@ def build_ass(ctx, tl, tm, captions=False):
         runs.append(cur)
     if ctx.strip:
         for o1, o2, a in runs:
-            lines.append(ev(2, o1, o2, 'Hdr', f'{{\\an4\\pos({sx(ctx, 40)},{ctx.strip//2})\\1c&H{ctx.accent_ass}&}}{ctx.brand["name"]}{{\\1c&HB8C0CC&\\fs{fs(ctx, 26)}}}   {ctx.brand.get("subtitle", "Product demo")}'))
+            if ctx.logo:
+                hdr = f'{{\\an4\\pos({sx(ctx, 40) + ctx.logo_w + sx(ctx, 16)},{ctx.strip//2})\\1c&HB8C0CC&\\fs{fs(ctx, 26)}}}{ctx.brand.get("subtitle", "Product demo")}'
+            else:
+                hdr = f'{{\\an4\\pos({sx(ctx, 40)},{ctx.strip//2})\\1c&H{ctx.accent_ass}&}}{ctx.brand["name"]}{{\\1c&HB8C0CC&\\fs{fs(ctx, 26)}}}   {ctx.brand.get("subtitle", "Product demo")}'
+            lines.append(ev(2, o1, o2, 'Hdr', hdr))
             for i, (lt, lab) in enumerate(labels):
                 nxt = labels[i + 1][0] if i + 1 < len(labels) else 1e9
                 s1 = max(o1, tm.out_clamped(lt))

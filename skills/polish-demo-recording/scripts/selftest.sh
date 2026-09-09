@@ -146,6 +146,7 @@ PY
 # Strip modes: the master filter for each mode, checked as strings (the fixture only renders crop).
 uv run --with "pillow>=10" python3 - "$HERE" <<'PY'
 import copy, json, sys
+from PIL import Image
 sys.path.insert(0, sys.argv[1])
 from demo import plan, render
 base = json.load(open('plan.json'))
@@ -181,6 +182,22 @@ bad['redactions'] = [{'from': 1, 'to': 4, 'x': 1900, 'y': 0, 'w': 100, 'h': 10}]
 errs = plan.validate(bad, '.')
 assert any('lies outside' in x for x in errs), errs
 print('redactions: ok')
+
+logo_plan = copy.deepcopy(base)
+logo_plan['brand']['logo'] = 'logo.png'
+Image.new('RGBA', (200, 60), (255, 0, 0, 255)).save('logo.png')
+ctx = plan.build(logo_plan, '.')
+assert ctx.logo_w == 160, f'logo_w: got {ctx.logo_w}, want 160'
+got = render.master_vf(ctx)
+want_tail = '[m],movie=logo.png,scale=-1:48[lg];[m][lg]overlay=x=40:y=8,format=yuv420p'
+assert got.endswith(want_tail), f'master_vf with logo:\n  got  {got}\n  want ...{want_tail}'
+
+dark_plan = copy.deepcopy(base)
+dark_plan['brand']['theme'] = 'dark'
+dark_ctx = plan.build(dark_plan, '.')
+assert dark_ctx.bg == (11, 18, 32), f'dark bg: got {dark_ctx.bg}'
+assert dark_ctx.tile_bg == (17, 26, 46), f'dark tile_bg: got {dark_ctx.tile_bg}'
+print('logo + theme: ok')
 PY
 
 # ---- golden capture / check (paths normalised so the files carry no machine-specific prefix)

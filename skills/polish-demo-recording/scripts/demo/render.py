@@ -58,6 +58,11 @@ def master_vf(ctx):
         vf += f',scale={ctx.W}:{ctx.H - ctx.strip}:force_original_aspect_ratio=decrease,pad={ctx.W}:{ctx.H}:(ow-iw)/2:{ctx.strip}:color=0x{ctx.strip_color}'
     elif ctx.strip_mode == 'none' and ctx.chrome_top:
         vf += f',crop={ctx.W}:{ctx.H - ctx.chrome_top}:0:{ctx.chrome_top},scale={ctx.W}:{ctx.H}'
+    strip_part = vf
+    if ctx.logo and ctx.strip:
+        lh = ctx.strip - sy(ctx, 16)
+        logo_part = f",movie={ctx.logo},scale=-1:{lh}[lg];[m][lg]overlay=x={sx(ctx, 40)}:y={sy(ctx, 8)}"
+        vf = strip_part + '[m]' + logo_part
     return vf + redact_vf(ctx) + ',format=yuv420p'
 
 
@@ -75,13 +80,25 @@ def rounded(d, box, r, fill, outline=None, width=2):
     d.rounded_rectangle(box, radius=r, fill=fill, outline=outline, width=width)
 
 
+def paste_logo(ctx, im, x, y, height):
+    """Paste brand.logo at (x, y) scaled to `height` px, keeping alpha. Returns its rendered width."""
+    logo = Image.open(ctx.logo).convert('RGBA')
+    w = round(logo.width * height / logo.height)
+    logo = logo.resize((w, height))
+    im.paste(logo, (x, y), logo)
+    return w
+
+
 def make_cards(ctx):
     os.makedirs('cards', exist_ok=True)
     for i, c in enumerate(ctx.chapters, 1):
         im = Image.new('RGB', (ctx.W, ctx.H), ctx.bg)
         d = ImageDraw.Draw(im)
         d.rectangle([0, 0, sx(ctx, 16), ctx.H], fill=ctx.accent)
-        d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 52)), fill=ctx.accent)
+        if ctx.logo:
+            paste_logo(ctx, im, sx(ctx, 150), sy(ctx, 110), fs(ctx, 52))
+        else:
+            d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 52)), fill=ctx.accent)
         d.text((sx(ctx, 156), sy(ctx, 330)), 'CHAPTER', font=font(ctx.fr, fs(ctx, 40)), fill=ctx.muted)
         d.text((sx(ctx, 150), sy(ctx, 360)), f'{i:02d}', font=font(ctx.fb, fs(ctx, 200)), fill=ctx.light)
         d.text((sx(ctx, 156), sy(ctx, 620)), c['title'], font=font(ctx.fb, fs(ctx, 96)), fill=ctx.ink)
@@ -93,6 +110,8 @@ def make_cards(ctx):
     d = ImageDraw.Draw(im)
     d.rectangle([0, 0, sx(ctx, 16), ctx.H], fill=ctx.accent)
     d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand.get('subtitle', 'Product demo'), font=font(ctx.fr, fs(ctx, 40)), fill=ctx.muted)
+    if ctx.logo:
+        paste_logo(ctx, im, sx(ctx, 150), sy(ctx, 60), fs(ctx, 40))
     d.text((sx(ctx, 146), sy(ctx, 300)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 180)), fill=ctx.accent)
     if ctx.brand.get('tagline'):
         d.text((sx(ctx, 156), sy(ctx, 520)), ctx.brand['tagline'], font=font(ctx.fb, fs(ctx, 58)), fill=ctx.ink)
@@ -103,7 +122,7 @@ def make_cards(ctx):
         x, y, th, gap = sx(ctx, 160), sy(ctx, 760), sy(ctx, 150), sx(ctx, 22)
         tw_ = int((ctx.W - sx(ctx, 320) - gap * (len(tiles) - 1)) / len(tiles))
         for t, s in tiles:
-            rounded(d, [x, y, x + tw_, y + th], sy(ctx, 18), (255, 255, 255), outline=(226, 230, 238), width=sy(ctx, 2))
+            rounded(d, [x, y, x + tw_, y + th], sy(ctx, 18), ctx.tile_bg, outline=ctx.tile_outline, width=sy(ctx, 2))
             d.rectangle([x, y, x + sx(ctx, 6), y + th], fill=ctx.accent)
             d.text((x + sx(ctx, 28), y + sy(ctx, 36)), t, font=font(ctx.fb, fs(ctx, 30)), fill=ctx.ink)
             d.text((x + sx(ctx, 28), y + sy(ctx, 84)), s, font=font(ctx.fr, fs(ctx, 24)), fill=ctx.muted)
@@ -114,7 +133,10 @@ def make_cards(ctx):
     im = Image.new('RGB', (ctx.W, ctx.H), ctx.bg)
     d = ImageDraw.Draw(im)
     d.rectangle([0, 0, sx(ctx, 16), ctx.H], fill=ctx.accent)
-    d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 52)), fill=ctx.accent)
+    if ctx.logo:
+        paste_logo(ctx, im, sx(ctx, 150), sy(ctx, 110), fs(ctx, 52))
+    else:
+        d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 52)), fill=ctx.accent)
     d.text((sx(ctx, 150), sy(ctx, 360)), ctx.brand.get('end_title', 'Thank you'), font=font(ctx.fb, fs(ctx, 150)), fill=ctx.ink)
     d.rectangle([sx(ctx, 160), sy(ctx, 560), sx(ctx, 600), sy(ctx, 570)], fill=ctx.accent)
     for k, line in enumerate(ctx.brand.get('end_lines', [])):
@@ -154,6 +176,8 @@ def render_segs(ctx, tl, rerender):
             ff('-loop', '1', '-framerate', str(ctx.fps), '-t', str(s['dur']), '-i', s['img'],
                '-f', 'lavfi', '-t', str(s['dur']), '-i', 'anullsrc=r=48000:cl=stereo',
                '-vf', f'scale={ctx.W}:{ctx.H},format=yuv420p', '-t', str(s['dur']), *venc(ctx.fps), *AENC, out)
+        elif s['kind'] == 'bumper':
+            ff('-i', s['src'], '-vf', f'fps={ctx.fps},format=yuv420p', *venc(ctx.fps), *AENC, out)
         elif s.get('hold'):
             D = s['b'] - s['a']
             png = f'seg/{i:03d}-hold.png'
@@ -189,7 +213,7 @@ def concat(ctx, tl):
     """Join consecutive source segments with -c copy, then one xfade/acrossfade chain across every card boundary."""
     files = []
     for k, (kind, segs) in enumerate(build_pieces(tl)):
-        if kind == 'card':
+        if kind != 'run':
             files.append(segs[0]['file'])
             continue
         lst = f'seg/run{k:02d}.txt'

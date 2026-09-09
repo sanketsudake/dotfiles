@@ -38,6 +38,33 @@ def _needs_work(ctx):
     return (info['width'], info['height']) != (ctx.W, ctx.H)
 
 
+def normalize_clip(ctx, path, out, seek=(), loudnorm=False):
+    """Encode one clip into the master format: fit into the frame, master fps, PCM stereo audio (silence when the clip has none)."""
+    info = probe(path)
+    inputs = [*seek, '-i', path]
+    maps = []
+    if not info['has_audio']:
+        inputs += ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']
+        maps = ['-map', '0:v', '-map', '1:a', '-shortest']
+    af = ['-af', 'loudnorm=I=-16:TP=-1.5'] if (loudnorm and info['has_audio']) else []
+    vf = f'fps={ctx.fps},{fit_vf(ctx)},format=yuv420p'
+    ff(*inputs, *maps, '-vf', vf, *af, '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+       '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '2', out)
+    return info
+
+
+def bumper(ctx, which):
+    """Normalize bumpers.<which> into bumper/<which>.mov (level-matched); None when not set."""
+    path = ctx.bumpers.get(which)
+    if not path:
+        return None
+    os.makedirs('bumper', exist_ok=True)
+    out = f'bumper/{which}.mov'
+    if not os.path.exists(out):
+        normalize_clip(ctx, path, out, loudnorm=True)
+    return out
+
+
 def prepare(ctx):
     """Return the path the master encodes from. One matching untrimmed clip: the clip itself. Otherwise norm/joined.mov."""
     if not _needs_work(ctx):
@@ -49,20 +76,12 @@ def prepare(ctx):
         parts.append(out)
         if os.path.exists(out):
             continue
-        info = probe(s['path'])
         seek = []
         if 'start' in s:
             seek += ['-ss', f"{float(s['start']):.3f}"]
         if 'end' in s:
             seek += ['-t', f"{float(s['end']) - float(s.get('start', 0.0)):.3f}"]
-        inputs = [*seek, '-i', s['path']]
-        maps = []
-        if not info['has_audio']:
-            inputs += ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']
-            maps = ['-map', '0:v', '-map', '1:a', '-shortest']
-        vf = f'fps={ctx.fps},{fit_vf(ctx)},format=yuv420p'
-        ff(*inputs, *maps, '-vf', vf, '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p',
-           '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '2', out)
+        info = normalize_clip(ctx, s['path'], out, seek=seek)
         print(f'{out} from {s["path"]} ({info["width"]}x{info["height"]}, {dur(out):.2f}s)', flush=True)
     lst = 'norm/joined.txt'
     if not os.path.exists('norm/joined.mov'):

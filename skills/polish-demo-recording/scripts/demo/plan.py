@@ -7,15 +7,20 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from PIL import Image
 from demo.fonts import resolve as resolve_fonts
 
 SCHEMA_VERSION = 2
 TOP_KEYS = {
     'schema_version', 'workdir', 'sources', 'voice', 'voice_wav', 'transcript', 'video', 'brand', 'range',
     'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'cuts', 'holds', 'callouts', 'callout_dur',
-    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions',
+    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions', 'bumpers',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
+THEMES = {
+    'light': {'ink': '#0b1220', 'muted': '#788296', 'card_bg': '#f8fafc', 'light': '#d5d9e2', 'tile_bg': '#ffffff', 'tile_outline': '#e2e6ee'},
+    'dark': {'ink': '#f8fafc', 'muted': '#9aa4b8', 'card_bg': '#0b1220', 'light': '#243046', 'tile_bg': '#111a2e', 'tile_outline': '#2a3650'},
+}
 
 
 def hexrgb(h):
@@ -85,6 +90,20 @@ def validate(plan, base_dir):
     brand = plan.get('brand')
     if not isinstance(brand, dict) or not brand.get('name'):
         e.append('brand.name: required')
+    bump = plan.get('bumpers', {})
+    if not isinstance(bump, dict):
+        e.append('bumpers: must be {"intro": path|null, "outro": path|null}')
+        bump = {}
+    for k in ('intro', 'outro'):
+        if bump.get(k) is not None:
+            exists(bump[k], f'bumpers.{k}')
+    for k in set(bump) - {'intro', 'outro'}:
+        e.append(f'bumpers.{k}: unknown key')
+    if isinstance(brand, dict):  # a non-object brand was already reported above
+        if brand.get('logo') is not None:
+            exists(brand['logo'], 'brand.logo')
+        if brand.get('theme', 'light') not in ('light', 'dark'):
+            e.append(f'brand.theme: must be light or dark, got {brand.get("theme")!r}')
     video = plan.get('video', {})
     if not isinstance(video, dict):
         e.append('video: must be an object')
@@ -239,6 +258,11 @@ class Ctx:
     muted: tuple
     bg: tuple
     light: tuple
+    tile_bg: tuple
+    tile_outline: tuple
+    logo: str
+    logo_w: int
+    bumpers: dict
     accent_ass: str
     src_start: float
     src_end: float
@@ -288,6 +312,14 @@ def build(plan, work):
         strip_h = 0
     face = resolve_fonts(brand.get('fonts'))
     accent = hexrgb(brand.get('accent', '#3b5bfd'))
+    pal = dict(THEMES[brand.get('theme', 'light')])
+    logo = brand.get('logo')
+    if logo and strip_h:
+        w, h = Image.open(logo).size
+        logo_w = round(w * (strip_h - round(16 * height / 1080)) / h)
+    else:
+        logo_w = 0
+    bump = plan.get('bumpers', {})
     timing = plan.get('timing', {})
     callout_dur = float(plan.get('callout_dur', 5.0))
     voice = plan.get('voice', 'embedded')
@@ -314,10 +346,15 @@ def build(plan, work):
         font_family=face.family,
         font_dir=face.dir,
         accent=accent,
-        ink=hexrgb(brand.get('ink', '#0b1220')),
-        muted=hexrgb(brand.get('muted', '#788296')),
-        bg=hexrgb(brand.get('card_bg', '#f8fafc')),
-        light=hexrgb(brand.get('light', '#d5d9e2')),
+        ink=hexrgb(brand.get('ink', pal['ink'])),
+        muted=hexrgb(brand.get('muted', pal['muted'])),
+        bg=hexrgb(brand.get('card_bg', pal['card_bg'])),
+        light=hexrgb(brand.get('light', pal['light'])),
+        tile_bg=hexrgb(brand.get('tile_bg', pal['tile_bg'])),
+        tile_outline=hexrgb(brand.get('tile_outline', pal['tile_outline'])),
+        logo=logo,
+        logo_w=logo_w,
+        bumpers={'intro': bump.get('intro'), 'outro': bump.get('outro')},
         accent_ass='%02X%02X%02X' % (accent[2], accent[1], accent[0]),  # ASS colours are BGR
         src_start=float(plan['range']['start']),
         src_end=float(plan['range']['end']),

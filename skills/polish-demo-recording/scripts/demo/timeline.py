@@ -1,6 +1,7 @@
 """Turn the plan's ops (chapter cards, speed-ups, zooms) into an ordered segment list, group it into
 pieces (source runs and cards), and map source seconds to output seconds after cuts and dissolves."""
 from demo.ffmpeg import dur
+from demo.sources import bumper
 
 
 def build_timeline(ctx):
@@ -20,7 +21,11 @@ def build_timeline(ctx):
     ops.sort()
     for i in range(1, len(ops)):
         assert ops[i][0] >= ops[i - 1][1], f'overlapping ops: {ops[i-1]} {ops[i]}'
-    tl = [dict(kind='card', img='cards/open.png', dur=ctx.open_dur)]
+    tl = []
+    intro = bumper(ctx, 'intro')
+    if intro:
+        tl.append(dict(kind='bumper', src=intro, dur=dur(intro)))
+    tl.append(dict(kind='card', img='cards/open.png', dur=ctx.open_dur))
     cur = ctx.src_start
 
     def src(a, b, speed=1, badge=False, zoom=None, hold=False):
@@ -53,15 +58,18 @@ def build_timeline(ctx):
         assert b <= end, f'op {kind} {a}-{b} lies past the end of the master ({end:.2f}s)'
     src(cur, end)
     tl.append(dict(kind='card', img='cards/end.png', dur=ctx.end_dur))
+    outro = bumper(ctx, 'outro')
+    if outro:
+        tl.append(dict(kind='bumper', src=outro, dur=dur(outro)))
     return tl
 
 
 def build_pieces(tl):
-    """Group consecutive source segments into runs; every card is its own piece."""
+    """Group consecutive source segments into runs; every card or bumper is its own piece."""
     pieces = []
     for s in tl:
-        if s['kind'] == 'card':
-            pieces.append(('card', [s]))
+        if s['kind'] in ('card', 'bumper'):
+            pieces.append((s['kind'], [s]))
         elif pieces and pieces[-1][0] == 'run':
             pieces[-1][1].append(s)
         else:
