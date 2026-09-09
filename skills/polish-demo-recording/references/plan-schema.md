@@ -33,6 +33,8 @@ Keys not listed here are refused (`<key>: unknown key`).
 | `timing` | object | `{}` | see [timing](#captions-music-timing) |
 | `redactions` | list of objects | `[]` | phase 3; blur or box a region for a window, in master time; see [redactions](#redactions) |
 | `bumpers` | `{intro, outro}` | `{}` | phase 3; intro and outro clips; see [bumpers](#bumpers) |
+| `loudness` | `{target}` | `{}` | phase 4; integrated loudness target for `voice-chain.sh`; see [loudness](#loudness) |
+| `exports` | object | `{}` | phase 4; extra deliverables next to the final mix; see [exports](#exports) |
 | `out_prefix` | string | required | `<out_prefix>.mp4`, `-no-music`, `-captions`, `.srt` |
 
 ## sources
@@ -205,6 +207,25 @@ Phase 3.
 
 Cached at `bumper/<intro|outro>.mov`, keyed by the `bumpers` key name, not the file path;
 a changed bumper file keeps its old render until `bumper/` is deleted, like `norm/`.
+
+## loudness
+
+Phase 4.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `target` | `-14` \| `-16` \| `-23` | `-16` | integrated loudness target in LUFS, passed to `voice-chain.sh --target`; true peak stays `-1.5` dBFS for every target; `verify` flags a measured difference over 1 LU as a `warning:` line, not a failure |
+
+## exports
+
+Phase 4.
+`exports` itself is `{}` or an object; any other key is refused.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `height` | int, 240..2160, even | none | writes `<out_prefix>-<height>p.mp4`, the final mix downscaled with `scale=-2:<height>`; must be even because `yuv420p` needs an even frame height |
+| `preview` | `{from, to}` in output seconds | none | writes `<out_prefix>-preview.mp4`, a straight `-ss`/`-t` cut of the final mix, for a chat message or a README |
+| `formats` | list drawn from `srt`, `vtt`, `txt`, `chapters` | `["srt"]` | `srt` (v1) and `vtt`/`txt` need `transcript`; `chapters` writes `<out_prefix>-chapters.txt` (the `MM:SS Title` form YouTube reads) and mp4 chapter metadata muxed into every final variant that exists, timed from the timeline's card positions in output time |
 
 ## captions, music, timing
 

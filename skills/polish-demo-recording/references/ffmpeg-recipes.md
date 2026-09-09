@@ -170,6 +170,35 @@ Typical counts for a 7-minute ad-lib read: "uh" about 30, sentence-initial "So" 
 Whisper dropped 30 of the 33 "uh"s, so it cannot drive automatic removal; a forced aligner (WhisperX) can.
 Cut only stutters and fillers inside pauses; the rest needs a re-record.
 
+## Chapters (`demo/exports.py` `write_chapters`, `mux_chapters`)
+
+```text
+;FFMETADATA1
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=180000
+title=Acme Console
+```
+
+- The first mark is always `(0.0, brand.name)`; every chapter card after it adds a mark at its output-time position with the chapter's title.
+- Muxed into every final variant that exists, with no re-encode: `-i <name> -i chapters.ffmeta -map_metadata 1 -map_chapters 1 -c copy -movflags +faststart`.
+- `<out_prefix>-chapters.txt` carries the same marks as `MM:SS Title` lines, the form YouTube reads from a video description.
+YouTube only renders chapters on the player from that list when there are at least three and each is 10 s or longer.
+A two-card demo still gets the list file, just no chapters on the YouTube player.
+
+## Downscale and preview (`demo/exports.py` `downscale`, `preview`)
+
+```text
+downscale: scale=-2:<height> -c:v libx264 -crf 20 -preset medium -pix_fmt yuv420p -movflags +faststart -c:a copy
+preview:   -ss <a> -t <b-a> -c:v libx264 -crf 20 -preset medium -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 128k
+```
+
+- Both read the final mix (`<out_prefix>.mp4`), not the master, so overlays land in the downscale and the preview too.
+Captions stay in the `-captions` variant only.
+- The downscale copies the audio track (`-c:a copy`): only the video changes size, so there is no second lossy audio encode.
+- The preview re-encodes video and audio through `-ss`/`-t` instead of `-c copy`, so its cut starts on an exact frame rather than the previous keyframe.
+
 ## Self-test fixture
 
 `scripts/fixture/make-fixture.sh` renders 24 s of `testsrc2` with a synthetic narration:

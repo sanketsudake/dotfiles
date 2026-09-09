@@ -35,6 +35,8 @@ Read that file before changing a filter value.
 - Product name, one-line tagline, footer (company), accent colour. Default to what the UI shows.
 - Music: a track the user supplies, or none. Never generate narration with TTS; synthetic voices read as robotic and get rejected.
 - Output name. Default `<name>-polished.mp4` beside the original, plus `-no-music`, `-captions` and `.srt`.
+  `exports` can add a downscaled copy for chat, a preview clip, `.vtt`/`.txt` transcripts, a YouTube chapter list, and chapters inside the mp4.
+  The loudness target follows the destination: `-14` YouTube, `-16` default, `-23` broadcast.
 - Several clips go in `sources` in order and are joined before anything else; `build_demo.py plan.json prepare` prints the file the voice chain reads.
 - A voice track recorded separately goes in `voice: {path, offset}`, and `offset` is measured with `uv run --with numpy {baseDir}/scripts/voice-offset.py <src> <track.wav> --window a:b`, never guessed.
 - A recording with no narration takes `voice: "none"` and gets no captions and no ducking.
@@ -76,10 +78,11 @@ Use whisper for placement and captions, parakeet only to count fillers.
 ### 3. Process the voice
 
 ```bash
-{baseDir}/scripts/voice-chain.sh <src> voice.wav [--offset s] [--window a:b] [--dip a:b]
+{baseDir}/scripts/voice-chain.sh <src> voice.wav [--target -14|-16|-23] [--offset s] [--window a:b] [--dip a:b]
 ```
 
-The script prints the result loudness (target I −16 LUFS, TP −1.5 dBFS) and the speech RMS.
+The script prints the result loudness (target I per `--target`, default −16 LUFS; TP −1.5 dBFS) and the speech RMS.
+`--target` picks the loudness preset: `-14` for YouTube and streaming, `-16` for podcast (the default), `-23` for EBU R128 broadcast; true peak stays −1.5 dBFS for every target.
 Confirm the floor moved: measure a 0.6 s silent core of a gap before and after with `astats`, not the whole whisper gap; breath and consonant edges are broadband, survive the denoiser, and read louder after make-up gain.
 A passing vehicle or a bump is a low rumble below 600 Hz;
 locate it with `showspectrumpic` on the window and hand the window to `--window` (steep high-pass and extra denoise only there), plus `--dip` on a silent gap that still carries it.
@@ -130,6 +133,7 @@ Delete `seg/NNN.mp4` for a segment whose source range changed; unchanged segment
 
 `verify` prints stream durations (video and audio within 50 ms), integrated loudness and true peak, and writes `verify.png`: direct-seek frames at every card, callout, badge, hold, bumper, zoom, dissolve and redaction midpoint.
 The redacted region must be unreadable in the frame at the window's midpoint.
+The loudness line names the plan's target and flags a difference over 1 LU with a `warning:` prefix, not a failure.
 Read the image.
 Zooms at ≤ 1.3× are subtle by design, so each zoom gets a before/after pair cropped 1:1 around the target; judge the zoom on that pair, not on the full frame.
 Reject the build if any callout is clipped, a header label sits on a card, a zoom pair shows the wrong region, or the strip is missing.
@@ -139,6 +143,8 @@ When a music bed is used, measure it on its own: render the ducked stem alone an
 
 Copy the variants next to the original with the name the user asked for, hand the main file to the user in the conversation, and tell the user what to listen for, because you could only measure:
 sibilance from the de-esser, a gated feel between words, music breathing in pauses, thinness in any `--window` region.
+Exports the plan asked for land beside it by suffix: a downscaled `-<height>p.mp4`, a `-preview.mp4` clip, `.vtt` and `.txt` transcripts, and a `-chapters.txt` list for YouTube.
+The same chapter marks are also muxed into every final mp4 variant that exists (main, `-captions`, `-no-music`).
 
 ## Common mistakes
 
