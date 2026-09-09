@@ -180,6 +180,24 @@ elif [ "$golden" = check ]; then
   echo "golden: identical"
 fi
 
+# transcribe.sh and probe.sh checks go here, after the golden section: probe.sh's ffmpeg calls
+# would otherwise land in ffmpeg-calls.log through the shim. Task 4's variants follow this block.
+# transcribe.sh: the command per backend, printed, never run.
+t="$HERE/transcribe.sh"
+out=$(bash "$t" audio16k.wav whisper --backend faster --language de --print)
+grep -q 'backend=faster language=de' <<<"$out" || fail "transcribe faster: $out"
+grep -q 'faster-whisper' <<<"$out" || fail "transcribe faster command: $out"
+out=$(bash "$t" audio16k.wav whisper --backend mlx --language de --print)
+grep -q 'mlx_whisper' <<<"$out" && grep -q -- '--language de' <<<"$out" || fail "transcribe mlx: $out"
+out=$(bash "$t" audio16k.wav whisper --backend none)
+grep -q 'backend none' <<<"$out" || fail "transcribe none: $out"
+# probe.sh on the 24 s fixture: the frame seek must land inside the clip.
+mkdir -p "$WORK/probe"
+bash "$HERE/probe.sh" "$WORK/fixture.mp4" "$WORK/probe" > "$WORK/probe/out.txt" 2>&1 || fail "probe.sh failed: $(tail -5 "$WORK/probe/out.txt")"
+grep -q 'pixel_scale: 1' "$WORK/probe/out.txt" || fail "probe: pixel_scale line missing"
+[ -s "$WORK/probe/frame30.png" ] && [ -s "$WORK/probe/chrome-top.png" ] || fail "probe: frames missing"
+echo "transcribe + probe: ok"
+
 cd "$HERE"
 [ "$keep" = 1 ] || rm -rf "$WORK"
 echo "selftest: pass"
