@@ -13,8 +13,7 @@
     "tiles": [["Models", "Deploy and serve"], ["Chat", "Playground and API"]],
     "footer": "Acme Corp",
     "end_title": "Thank you",
-    "end_lines": ["One control plane for models and chat."],
-    "fonts": {"bold": "FILLED-BY-SELFTEST", "regular": "FILLED-BY-SELFTEST"}
+    "end_lines": ["One control plane for models and chat."]
   },
   "range": {"start": 0.2, "end": 23.8},
   "first_label": "Welcome",

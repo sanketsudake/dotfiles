@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from demo.fonts import resolve as resolve_fonts
 
 SCHEMA_VERSION = 2
 TOP_KEYS = {
@@ -191,6 +192,8 @@ class Ctx:
     brand: dict
     fb: str
     fr: str
+    font_family: str
+    font_dir: str
     accent: tuple
     ink: tuple
     muted: tuple
@@ -233,7 +236,7 @@ def build(plan, work):
         strip_h = int(strip.get('height', round(64 * height / 1080)))
     else:
         strip_h = 0
-    fonts = brand.get('fonts', {})
+    face = resolve_fonts(brand.get('fonts'))
     accent = hexrgb(brand.get('accent', '#3b5bfd'))
     timing = plan.get('timing', {})
     callout_dur = float(plan.get('callout_dur', 5.0))
@@ -249,8 +252,10 @@ def build(plan, work):
         strip_color=strip.get('color', '0b1220'),
         master='master.mov',
         brand=brand,
-        fb=fonts.get('bold') or '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
-        fr=fonts.get('regular') or '/System/Library/Fonts/Supplemental/Arial.ttf',
+        fb=face.bold,
+        fr=face.regular,
+        font_family=face.family,
+        font_dir=face.dir,
         accent=accent,
         ink=hexrgb(brand.get('ink', '#0b1220')),
         muted=hexrgb(brand.get('muted', '#788296')),

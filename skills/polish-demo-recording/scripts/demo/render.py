@@ -196,7 +196,7 @@ def final(ctx, name, ass, music):
               f"[v1][md]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=false[a];")
     else:
         fc = '[0:a]anull[a];'
-    fc += f'[0:v]ass={ass}[v]'
+    fc += f'[0:v]ass={ass}:fontsdir={ctx.font_dir}[v]'
     ff(*inputs, '-filter_complex', fc, '-map', '[v]', '-map', '[a]', '-t', f'{T:.3f}',
        '-c:v', 'libx264', '-crf', '18', '-preset', 'slow', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
        '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', name)

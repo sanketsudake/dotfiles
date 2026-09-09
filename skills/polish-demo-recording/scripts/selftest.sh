@@ -66,11 +66,10 @@ fi
 cp "$WORK/fixture.mp4" "$WORK/src.mov"
 bash "$HERE/voice-chain.sh" "$WORK/src.mov" "$WORK/voice.wav" 2> "$WORK/voice.txt"
 
-python3 - "$FIX/plan-v2.json" "$WORK/plan.json" "$FONT_B" "$FONT_R" "$WORK/music.wav" <<'PY'
+python3 - "$FIX/plan-v2.json" "$WORK/plan.json" "$WORK/music.wav" <<'PY'
 import json, sys
-src, dst, fb, fr, music = sys.argv[1:]
+src, dst, music = sys.argv[1:]
 plan = json.load(open(src))
-plan['brand']['fonts'] = {'bold': fb, 'regular': fr}
 plan['music']['path'] = music
 json.dump(plan, open(dst, 'w'), indent=1)
 PY

@@ -49,12 +49,12 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Hdr,Arial,{fs(ctx, 30)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
-Style: HdrMuted,Arial,{fs(ctx, 26)},&H00B8C0CC,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,6,0,0,0,1
-Style: Box,Arial,{fs(ctx, 20)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
-Style: LT,Arial,{fs(ctx, 34)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
-Style: Badge,Arial,{fs(ctx, 26)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
-Style: Cap,Arial,{fs(ctx, 40)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,0,0,0,0,100,100,0,0,3,{sy(ctx, 10)},0,2,{sx(ctx, 60)},{sx(ctx, 60)},{sy(ctx, 42)},1
+Style: Hdr,{ctx.font_family},{fs(ctx, 30)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: HdrMuted,{ctx.font_family},{fs(ctx, 26)},&H00B8C0CC,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,6,0,0,0,1
+Style: Box,{ctx.font_family},{fs(ctx, 20)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: LT,{ctx.font_family},{fs(ctx, 34)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: Badge,{ctx.font_family},{fs(ctx, 26)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
+Style: Cap,{ctx.font_family},{fs(ctx, 40)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,0,0,0,0,100,100,0,0,3,{sy(ctx, 10)},0,2,{sx(ctx, 60)},{sx(ctx, 60)},{sy(ctx, 42)},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
