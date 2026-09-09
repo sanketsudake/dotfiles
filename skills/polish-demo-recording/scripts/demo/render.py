@@ -5,6 +5,7 @@ See ../../references/ffmpeg-recipes.md for why each parameter is what it is.
 import os
 from PIL import Image, ImageDraw, ImageFont
 from demo.ffmpeg import AENC, dur, ff, venc
+from demo.timeline import build_pieces
 
 
 def font(p, s):
@@ -93,7 +94,7 @@ def zoom_vf(ctx, z, cx, cy, D):
             f'pad={ctx.W}:{ctx.H}:0:{ctx.strip}:color=0x{ctx.strip_color}')
 
 
-def render_segs(ctx, tl, rerender, pieces_of):
+def render_segs(ctx, tl, rerender):
     """Encode every timeline segment (cards, cuts, speed-ups, zooms) with identical settings.
 
     A segment file that already exists is reused unless rerender is set. Fills file, len and out
@@ -125,7 +126,7 @@ def render_segs(ctx, tl, rerender, pieces_of):
         s['len'] = dur(s['file'])
         assert s['len'] > 0, f"segment {s['file']} is empty: {s}"
     chain = 0.0
-    for k, (kind, segs) in enumerate(pieces_of(tl)):
+    for k, (kind, segs) in enumerate(build_pieces(tl)):
         t = chain - (ctx.xf if k > 0 else 0.0)
         for s in segs:
             s['out'] = t
@@ -134,10 +135,10 @@ def render_segs(ctx, tl, rerender, pieces_of):
     return chain
 
 
-def concat(ctx, tl, pieces_of):
+def concat(ctx, tl):
     """Join consecutive source segments with -c copy, then one xfade/acrossfade chain across every card boundary."""
     files = []
-    for k, (kind, segs) in enumerate(pieces_of(tl)):
+    for k, (kind, segs) in enumerate(build_pieces(tl)):
         if kind == 'card':
             files.append(segs[0]['file'])
             continue

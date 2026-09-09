@@ -34,8 +34,11 @@ font, tw = R.font, R.tw
 def master(): R.master(ctx)
 def make_cards(): R.make_cards(ctx)
 def zoom_vf(z, cx, cy, D): return R.zoom_vf(ctx, z, cx, cy, D)
-def render_segs(tl): return R.render_segs(ctx, tl, 'segs' in STAGES, build_pieces)
-def concat(tl): R.concat(ctx, tl, build_pieces)
+from demo import timeline as T
+def build_timeline(): return T.build_timeline(ctx)
+build_pieces, TimeMap = T.build_pieces, T.TimeMap
+def render_segs(tl): return R.render_segs(ctx, tl, 'segs' in STAGES)
+def concat(tl): R.concat(ctx, tl)
 def final(name, ass, music): R.final(ctx, name, ass, music)
 
 # ---------------------------------------------------------------- gaps (planning aid)
@@ -55,57 +58,8 @@ def gaps():
         nxt = ' '.join(w for _, _, w in words[i:i + 6])
         print(f'{a:9.2f} {b:9.2f} {g:5.1f}  {sug:12s} {nxt}')
 
-# ---------------------------------------------------------------- timeline
-def build_timeline():
-    assert B.get('name') and SRC_END > SRC_START, 'plan.json needs brand.name, src_start and src_end'
-    ops = []
-    for i, c in enumerate(PLAN.get('chapters', []), 1): ops.append((c['cut'], c.get('resume', c['cut']), 'card', i))
-    for a, b, s, badge in PLAN.get('speedups', []): ops.append((a + 0.5, b - 0.4, 'speed', (s, badge)))
-    for a, b, z, cx, cy in PLAN.get('zooms', []): ops.append((a, b, 'zoom', (z, cx, cy)))
-    ops.sort()
-    for i in range(1, len(ops)): assert ops[i][0] >= ops[i - 1][1], f'overlapping ops: {ops[i-1]} {ops[i]}'
-    tl = [dict(kind='card', img='cards/open.png', dur=OPEN_DUR)]
-    cur = SRC_START
-    def src(a, b, speed=1, badge=False, zoom=None):
-        if b - a > 0.05: tl.append(dict(kind='src', a=a, b=b, speed=speed, badge=badge, zoom=zoom))
-    for a, b, kind, p in ops:
-        src(cur, a)
-        if kind == 'card': tl.append(dict(kind='card', img=f'cards/ch{p}.png', dur=CARD_DUR, chapter=p)); cur = b
-        elif kind == 'speed': src(a, b, speed=p[0], badge=p[1]); cur = b
-        else: src(a, b, zoom=p); cur = b
-    end = min(SRC_END, dur(MASTER) - 0.05)
-    if end < SRC_END: print(f'warning: src_end {SRC_END} is past the master ({dur(MASTER):.2f}s); clamped to {end:.2f}')
-    for a, b, kind, p in ops: assert b <= end, f'op {kind} {a}-{b} lies past the end of the master ({end:.2f}s)'
-    src(cur, end)
-    tl.append(dict(kind='card', img='cards/end.png', dur=END_DUR))
-    return tl
-
 VENC = F.venc(FPS)
 AENC = F.AENC
-
-def build_pieces(tl):
-    pieces = []
-    for s in tl:
-        if s['kind'] == 'card': pieces.append(('card', [s]))
-        elif pieces and pieces[-1][0] == 'run': pieces[-1][1].append(s)
-        else: pieces.append(('run', [s]))
-    return pieces
-
-# ---------------------------------------------------------------- time map
-class TimeMap:
-    def __init__(self, tl): self.tl = tl
-    def seg_of(self, t):
-        for s in self.tl:
-            if s['kind'] == 'src' and s['a'] <= t < s['b']: return s
-    def out(self, t):
-        s = self.seg_of(t); return None if s is None else s['out'] + (t - s['a']) / s['speed']
-    def out_clamped(self, t):
-        best = 0.0
-        for s in self.tl:
-            if s['kind'] != 'src': continue
-            if s['a'] <= t < s['b']: return s['out'] + (t - s['a']) / s['speed']
-            if s['b'] <= t: best = s['out'] + s['len']
-        return best
 
 # ---------------------------------------------------------------- overlays (ASS)
 def ts(t):
