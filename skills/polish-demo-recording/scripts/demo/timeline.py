@@ -5,14 +5,13 @@ from demo.ffmpeg import dur
 
 def build_timeline(ctx):
     """Ordered segments: open card, source runs split at every op, chapter cards, end card."""
-    plan = ctx.plan
     assert ctx.brand.get('name') and ctx.src_end > ctx.src_start, 'plan.json needs brand.name, src_start and src_end'
     ops = []
-    for i, c in enumerate(plan.get('chapters', []), 1):
+    for i, c in enumerate(ctx.chapters, 1):
         ops.append((c['cut'], c.get('resume', c['cut']), 'card', i))
-    for a, b, s, badge in plan.get('speedups', []):
+    for a, b, s, badge in ctx.speedups:
         ops.append((a + 0.5, b - 0.4, 'speed', (s, badge)))
-    for a, b, z, cx, cy in plan.get('zooms', []):
+    for a, b, z, cx, cy in ctx.zooms:
         ops.append((a, b, 'zoom', (z, cx, cy)))
     ops.sort()
     for i in range(1, len(ops)):

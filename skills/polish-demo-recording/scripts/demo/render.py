@@ -17,8 +17,8 @@ def tw(text, p, s):
 
 
 def master(ctx):
-    raw = ctx.plan['raw']
-    voice = ctx.plan['voice_wav']
+    raw = ctx.sources[0]['path']
+    voice = ctx.voice_wav
     vf = f'fps={ctx.fps}'
     if ctx.strip:
         vf += f',crop={ctx.W}:{ctx.H - ctx.strip}:0:{ctx.strip},pad={ctx.W}:{ctx.H}:0:{ctx.strip}:color=0x{ctx.strip_color}'
@@ -34,7 +34,7 @@ def rounded(d, box, r, fill, outline=None):
 
 def make_cards(ctx):
     os.makedirs('cards', exist_ok=True)
-    for i, c in enumerate(ctx.plan.get('chapters', []), 1):
+    for i, c in enumerate(ctx.chapters, 1):
         im = Image.new('RGB', (ctx.W, ctx.H), ctx.bg)
         d = ImageDraw.Draw(im)
         d.rectangle([0, 0, 16, ctx.H], fill=ctx.accent)

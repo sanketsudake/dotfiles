@@ -66,15 +66,34 @@ fi
 cp "$WORK/fixture.mp4" "$WORK/src.mov"
 bash "$HERE/voice-chain.sh" "$WORK/src.mov" "$WORK/voice.wav" 2> "$WORK/voice.txt"
 
-python3 - "$FIX/plan-v1.json" "$WORK/plan.json" "$FONT_B" "$FONT_R" "$WORK/music.wav" <<'PY'
+python3 - "$FIX/plan-v2.json" "$WORK/plan.json" "$FONT_B" "$FONT_R" "$WORK/music.wav" <<'PY'
 import json, sys
 src, dst, fb, fr, music = sys.argv[1:]
 plan = json.load(open(src))
-plan['brand']['font_bold'] = fb
-plan['brand']['font_regular'] = fr
+plan['brand']['fonts'] = {'bold': fb, 'regular': fr}
 plan['music']['path'] = music
 json.dump(plan, open(dst, 'w'), indent=1)
 PY
+
+# A v1-shaped plan (positional ops) must be refused with pointed messages, before any ffmpeg call.
+cat > "$WORK/bad.json" <<'JSON'
+{"raw": "src.mov", "brand": {"name": "x"}, "src_start": 0.2, "src_end": 23.8,
+ "speedups": [[15.0, 20.0, 4, true]], "zooms": [[5.6, 8.9, 1.25, 960, 540]], "callouts": [[1.0, "Single sign-on"]]}
+JSON
+if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/bad.json" gaps 2> "$WORK/bad.txt"; then fail "v1 plan was accepted"; fi
+for msg in 'schema_version: must be 2' 'raw: unknown key' 'speedups\[0\]: must be an object' 'zooms\[0\]: must be an object' 'range: required'; do
+  grep -q "$msg" "$WORK/bad.txt" || fail "validation message missing ($msg): $(cat "$WORK/bad.txt")"
+done
+grep -q Traceback "$WORK/bad.txt" && fail "validation crashed instead of reporting"
+# An overlap must be caught by validation, not by the timeline assert after the master was rendered.
+python3 - "$WORK/plan.json" "$WORK/overlap.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+p['zooms'].append({'from': 15.8, 'to': 17.0, 'factor': 1.2, 'cx': 960, 'cy': 540})  # inside the speed-up window 15.5..19.6
+json.dump(p, open(sys.argv[2], 'w'))
+PY
+if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/overlap.json" gaps 2> "$WORK/overlap.txt"; then fail "overlapping ops were accepted"; fi
+grep -q 'zooms\[1\]: overlaps speedups\[0\]' "$WORK/overlap.txt" || fail "overlap message missing: $(cat "$WORK/overlap.txt")"
 
 cd "$WORK"
 BUILD="uv run --with pillow>=10 $HERE/build_demo.py"

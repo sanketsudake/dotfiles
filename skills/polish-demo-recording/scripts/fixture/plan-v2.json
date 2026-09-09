@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "sources": [{"path": "src.mov"}],
+  "voice_wav": "voice.wav",
+  "transcript": "whisper.json",
+  "video": {"width": 1920, "height": 1080, "fps": 30, "chrome_top": 64, "strip": {"mode": "crop", "height": 64, "color": "0b1220"}},
+  "brand": {
+    "name": "Acme Console",
+    "subtitle": "Product demo",
+    "accent": "#3b5bfd",
+    "tagline": "Your models. Your cluster. One control plane.",
+    "blurb": "Deploy models, notebooks and vector databases on your own Kubernetes.",
+    "tiles": [["Models", "Deploy and serve"], ["Chat", "Playground and API"]],
+    "footer": "Acme Corp",
+    "end_title": "Thank you",
+    "end_lines": ["One control plane for models and chat."],
+    "fonts": {"bold": "FILLED-BY-SELFTEST", "regular": "FILLED-BY-SELFTEST"}
+  },
+  "range": {"start": 0.2, "end": 23.8},
+  "first_label": "Welcome",
+  "chapters": [{"cut": 9.2, "resume": 11.5, "title": "Models", "subtitle": "Catalog and registry", "label": "Models"}],
+  "labels": [{"at": 20.0, "text": "Wrap up"}],
+  "speedups": [{"from": 15.0, "to": 20.0, "factor": 4, "badge": true}],
+  "zooms": [{"from": 5.6, "to": 8.9, "factor": 1.25, "cx": 960, "cy": 540}],
+  "callouts": [{"at": 1.0, "text": "Single sign-on"}, {"at": 12.2, "text": "Chat playground"}],
+  "callout_dur": 3.0,
+  "caption_fixes": [{"find": "Acme console", "replace": "Acme Console"}],
+  "captions": {"max_width_frac": 0.8},
+  "music": {"path": "FILLED-BY-SELFTEST", "volume": 0.17},
+  "timing": {"card_dur": 2.4, "open_dur": 3.2, "end_dur": 5.0, "xfade": 0.45},
+  "out_prefix": "fixture-polished"
+}

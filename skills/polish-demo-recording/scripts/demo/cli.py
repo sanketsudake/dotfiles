@@ -47,7 +47,7 @@ def main(argv=None):
         overlays.write_srt(ctx, tm)
         print('overlays + srt ok')
     if 'final' in stages:
-        music = ctx.plan.get('music')
+        music = ctx.music
         if music:
             render.final(ctx, f'{ctx.out}.mp4', 'overlays.ass', music)
             render.final(ctx, f'{ctx.out}-captions.mp4', 'overlays_cc.ass', music)

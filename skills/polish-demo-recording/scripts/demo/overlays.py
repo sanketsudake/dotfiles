@@ -6,7 +6,7 @@ from demo.render import tw
 
 
 def load_words(ctx):
-    d = json.load(open(ctx.plan['whisper']))
+    d = json.load(open(ctx.transcript))
     return [(w['start'], w['end'], w['word'].strip()) for s in d['segments'] for w in s.get('words', [])]
 
 
@@ -63,7 +63,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 def build_ass(ctx, tl, tm, captions=False):
     lines = [ass_header(ctx)]
-    labels = sorted([(ctx.src_start, ctx.plan.get('first_label', 'Welcome'))] + [(c['cut'], c.get('label', c['title'])) for c in ctx.plan.get('chapters', [])] + [tuple(x) for x in ctx.plan.get('labels', [])])
+    labels = sorted([(ctx.src_start, ctx.first_label)] + [(c['cut'], c.get('label', c['title'])) for c in ctx.chapters] + list(ctx.labels))
     runs, cur = [], None
     for s in tl:
         if s['kind'] == 'src':
@@ -88,14 +88,14 @@ def build_ass(ctx, tl, tm, captions=False):
                 if s2 - s1 > 0.2:
                     lines.append(ev(2, s1, s2, 'HdrMuted', f'{{\\an6\\pos({ctx.W-40},{ctx.strip//2})}}' + lab))
     lt_y = (ctx.H - 280) if captions else (ctx.H - 116)
-    callouts = ctx.plan.get('callouts', [])
-    for i, (t, text) in enumerate(callouts):
+    callouts = ctx.callouts
+    for i, (t, text, dur_) in enumerate(callouts):
         o1 = tm.out(t)
         if o1 is None:
             continue
         seg = tm.seg_of(t)
         nxt = callouts[i + 1][0] if i + 1 < len(callouts) else 1e9
-        o2 = min(tm.out_clamped(min(t + ctx.callout_dur, nxt - 0.3)), seg['out'] + seg['len'])
+        o2 = min(tm.out_clamped(min(t + dur_, nxt - 0.3)), seg['out'] + seg['len'])
         w = tw(text, ctx.fr, 34) + 70
         x1, y1 = 60, lt_y
         x2, y2 = int(60 + w + 14), lt_y + 76
@@ -124,7 +124,7 @@ def build_ass(ctx, tl, tm, captions=False):
 
 def clean(ctx, text):
     """Apply the plan's caption_fixes, then drop 'uh' and tidy the spaces."""
-    fixes = ctx.plan.get('caption_fixes', []) + [(r', uh,', ','), (r'\buh, ', ''), (r'\buh\b', ''), (r'  +', ' '), (r' ,', ',')]
+    fixes = list(ctx.caption_fixes) + [(r', uh,', ','), (r'\buh, ', ''), (r'\buh\b', ''), (r'  +', ' '), (r' ,', ',')]
     for pat, rep in fixes:
         text = re.sub(pat, rep, text)
     return text.strip()
