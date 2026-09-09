@@ -29,8 +29,14 @@ SRC_START, SRC_END = ctx.src_start, ctx.src_end
 CARD_DUR, OPEN_DUR, END_DUR, XF, CALLOUT_DUR, OUT = ctx.card_dur, ctx.open_dur, ctx.end_dur, ctx.xf, ctx.callout_dur, ctx.out
 hexrgb = P.hexrgb
 run, ff, dur = F.run, F.ff, F.dur
-def font(p, s): return ImageFont.truetype(p, s)
-def tw(text, p, s): return font(p, s).getlength(text)
+from demo import render as R
+font, tw = R.font, R.tw
+def master(): R.master(ctx)
+def make_cards(): R.make_cards(ctx)
+def zoom_vf(z, cx, cy, D): return R.zoom_vf(ctx, z, cx, cy, D)
+def render_segs(tl): return R.render_segs(ctx, tl, 'segs' in STAGES, build_pieces)
+def concat(tl): R.concat(ctx, tl, build_pieces)
+def final(name, ass, music): R.final(ctx, name, ass, music)
 
 # ---------------------------------------------------------------- gaps (planning aid)
 def load_words():
@@ -48,57 +54,6 @@ def gaps():
         if g > 2.4: sug = (sug + ' speedup x' + ('4' if g > 4 else '3')).strip()
         nxt = ' '.join(w for _, _, w in words[i:i + 6])
         print(f'{a:9.2f} {b:9.2f} {g:5.1f}  {sug:12s} {nxt}')
-
-# ---------------------------------------------------------------- master
-def master():
-    raw = PLAN['raw']; voice = PLAN['voice_wav']
-    vf = f'fps={FPS}'
-    if STRIP: vf += f',crop={W}:{H - STRIP}:0:{STRIP},pad={W}:{H}:0:{STRIP}:color=0x{STRIP_COLOR}'
-    vf += ',format=yuv420p'
-    ff('-i', raw, '-vf', vf, '-an', '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p', 'master_v.mp4')
-    ff('-i', 'master_v.mp4', '-i', voice, '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', MASTER)
-    print('master.mov', dur(MASTER))
-
-# ---------------------------------------------------------------- cards
-def rounded(d, box, r, fill, outline=None): d.rounded_rectangle(box, radius=r, fill=fill, outline=outline, width=2)
-
-def make_cards():
-    os.makedirs('cards', exist_ok=True)
-    for i, c in enumerate(PLAN.get('chapters', []), 1):
-        im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
-        d.rectangle([0, 0, 16, H], fill=ACCENT)
-        d.text((150, 110), B['name'], font=font(FB, 52), fill=ACCENT)
-        d.text((156, 330), 'CHAPTER', font=font(FR, 40), fill=MUTED)
-        d.text((150, 360), f'{i:02d}', font=font(FB, 200), fill=LIGHT)
-        d.text((156, 620), c['title'], font=font(FB, 96), fill=INK)
-        d.rectangle([160, 770, 600, 780], fill=ACCENT)
-        if c.get('subtitle'): d.text((160, 815), c['subtitle'], font=font(FR, 40), fill=MUTED)
-        im.save(f'cards/ch{i}.png')
-    im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
-    d.rectangle([0, 0, 16, H], fill=ACCENT)
-    d.text((150, 110), B.get('subtitle', 'Product demo'), font=font(FR, 40), fill=MUTED)
-    d.text((146, 300), B['name'], font=font(FB, 180), fill=ACCENT)
-    if B.get('tagline'): d.text((156, 520), B['tagline'], font=font(FB, 58), fill=INK)
-    if B.get('blurb'): d.text((158, 605), B['blurb'], font=font(FR, 36), fill=MUTED)
-    tiles = B.get('tiles', [])
-    if tiles:
-        x, y, th, gap = 160, 760, 150, 22; tw_ = int((W - 320 - gap * (len(tiles) - 1)) / len(tiles))
-        for t, s in tiles:
-            rounded(d, [x, y, x + tw_, y + th], 18, (255, 255, 255), outline=(226, 230, 238))
-            d.rectangle([x, y, x + 6, y + th], fill=ACCENT)
-            d.text((x + 28, y + 36), t, font=font(FB, 30), fill=INK)
-            d.text((x + 28, y + 84), s, font=font(FR, 24), fill=MUTED)
-            x += tw_ + gap
-    if B.get('footer'): d.text((160, 980), B['footer'], font=font(FB, 34), fill=INK)
-    im.save('cards/open.png')
-    im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
-    d.rectangle([0, 0, 16, H], fill=ACCENT)
-    d.text((150, 110), B['name'], font=font(FB, 52), fill=ACCENT)
-    d.text((150, 360), B.get('end_title', 'Thank you'), font=font(FB, 150), fill=INK)
-    d.rectangle([160, 560, 600, 570], fill=ACCENT)
-    for k, line in enumerate(B.get('end_lines', [])): d.text((160, 610 + 55 * k), line, font=font(FR, 40), fill=MUTED)
-    if B.get('footer'): d.text((160, 980), B['footer'], font=font(FB, 34), fill=INK)
-    im.save('cards/end.png')
 
 # ---------------------------------------------------------------- timeline
 def build_timeline():
@@ -128,15 +83,6 @@ def build_timeline():
 VENC = F.venc(FPS)
 AENC = F.AENC
 
-def zoom_vf(z, cx, cy, D):
-    """Eased push-in (smoothstep, 0.7 s in/out) on the content area only; the strip is cropped off and padded back."""
-    e = f'min(1,max(0,min(t/0.7,({D:.3f}-t)/0.7)))'; E = f'(({e})*({e})*(3-2*({e})))'; Z = f'(1+{z-1:.3f}*{E})'
-    ch = H - STRIP; cyc = cy - STRIP
-    return (f'crop={W}:{ch}:0:{STRIP},'
-            f"scale=w='trunc({W}*{Z}/2)*2':h='trunc({ch}*{Z}/2)*2':eval=frame,"
-            f"crop={W}:{ch}:x='min(max({cx}*{Z}-{W/2},0),iw-{W})':y='min(max({cyc}*{Z}-{ch/2},0),ih-{ch})',"
-            f'pad={W}:{H}:0:{STRIP}:color=0x{STRIP_COLOR}')
-
 def build_pieces(tl):
     pieces = []
     for s in tl:
@@ -144,49 +90,6 @@ def build_pieces(tl):
         elif pieces and pieces[-1][0] == 'run': pieces[-1][1].append(s)
         else: pieces.append(('run', [s]))
     return pieces
-
-def render_segs(tl):
-    os.makedirs('seg', exist_ok=True)
-    for i, s in enumerate(tl):
-        out = f'seg/{i:03d}.mp4'; s['file'] = out
-        if os.path.exists(out) and 'segs' not in STAGES: continue
-        if s['kind'] == 'card':
-            ff('-loop', '1', '-framerate', str(FPS), '-t', str(s['dur']), '-i', s['img'], '-f', 'lavfi', '-t', str(s['dur']), '-i', 'anullsrc=r=48000:cl=stereo',
-               '-vf', f'scale={W}:{H},format=yuv420p', '-t', str(s['dur']), *VENC, *AENC, out)
-        else:
-            D = s['b'] - s['a']; vf = f'fps={FPS}'; af = 'anull'
-            if s['speed'] != 1: vf = f"setpts=PTS/{s['speed']},fps={FPS}"; af = f"atempo={s['speed']},volume=0"
-            if s['zoom']: vf = f'fps={FPS},' + zoom_vf(*s['zoom'], D)
-            ff('-ss', f"{s['a']:.3f}", '-t', f'{D:.3f}', '-i', MASTER, '-vf', vf, '-af', af, *VENC, *AENC, out)
-        print(f"{out} {s['kind']} {s.get('a','')}-{s.get('b','')} x{s.get('speed','')}", flush=True)
-    for s in tl:
-        s['len'] = dur(s['file'])
-        assert s['len'] > 0, f"segment {s['file']} is empty: {s}"
-    chain = 0.0
-    for k, (kind, segs) in enumerate(build_pieces(tl)):
-        t = chain - (XF if k > 0 else 0.0)
-        for s in segs: s['out'] = t; t += s['len']
-        chain = t
-    return chain
-
-def concat(tl):
-    files = []
-    for k, (kind, segs) in enumerate(build_pieces(tl)):
-        if kind == 'card': files.append(segs[0]['file']); continue
-        lst, out = f'seg/run{k:02d}.txt', f'seg/run{k:02d}.mp4'
-        with open(lst, 'w') as f:
-            for s in segs: f.write(f"file '{os.path.abspath(s['file'])}'\n")
-        ff('-f', 'concat', '-safe', '0', '-i', lst, '-c', 'copy', out); files.append(out)
-    lens = [dur(f) for f in files]; inputs = []; fc = []; chain = lens[0]; v, a = '[0:v]', '[0:a]'
-    for f in files: inputs += ['-i', f]
-    for i in range(1, len(files)):
-        off = chain - XF
-        fc.append(f'{v}[{i}:v]xfade=transition=fade:duration={XF}:offset={off:.3f}[v{i}]')
-        fc.append(f'{a}[{i}:a]acrossfade=d={XF}:c1=tri:c2=tri[a{i}]')
-        v, a = f'[v{i}]', f'[a{i}]'; chain = off + lens[i]
-    fc.append(f'{v}fade=t=in:d=0.6,fade=t=out:st={chain-0.8:.3f}:d=0.8,format=yuv420p[vout]'); fc.append(f'{a}anull[aout]')
-    ff(*inputs, '-filter_complex', ';'.join(fc), '-map', '[vout]', '-map', '[aout]', *VENC, *AENC, '-movflags', '+faststart', 'cut.mp4')
-    print(f'cut.mp4 expected {chain:.2f}s, actual {dur("cut.mp4"):.2f}s')
 
 # ---------------------------------------------------------------- time map
 class TimeMap:
@@ -377,21 +280,6 @@ def verify(tl, tm):
     if len(row_files) == 1: os.replace(row_files[0], 'verify.png')
     else: ff(*sum([['-i', f] for f in row_files], []), '-filter_complex', f'{"".join(f"[{i}]" for i in range(len(row_files)))}vstack=inputs={len(row_files)}', 'verify.png')
     print(f'verify.png: {len(files)} frames (cards, callouts, badges, zooms, dissolves). Read it and check each one.')
-
-# ---------------------------------------------------------------- final mix
-def final(name, ass, music):
-    T = dur('cut.mp4'); inputs = ['-i', 'cut.mp4']
-    if music:
-        inputs += ['-stream_loop', '-1', '-i', music['path']]
-        fc = (f"[1:a]volume={music.get('volume', 0.17)},atrim=0:{T:.3f},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=2,afade=t=out:st={T-4.5:.3f}:d=4.5[m0];"
-              f"[0:a]asplit[v1][v2];[m0][v2]sidechaincompress=threshold=0.015:ratio=8:attack=30:release=600:makeup=1[md];"
-              f"[v1][md]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=false[a];")
-    else: fc = '[0:a]anull[a];'
-    fc += f'[0:v]ass={ass}[v]'
-    ff(*inputs, '-filter_complex', fc, '-map', '[v]', '-map', '[a]', '-t', f'{T:.3f}',
-       '-c:v', 'libx264', '-crf', '18', '-preset', 'slow', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
-       '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', name)
-    print('wrote', name, dur(name), flush=True)
 
 if __name__ == '__main__':
     if 'gaps' in STAGES: gaps(); sys.exit(0)
