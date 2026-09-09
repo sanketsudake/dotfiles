@@ -13,6 +13,8 @@ fps=30,crop=1920:1016:0:64,pad=1920:1080:0:64:color=0x0b1220,format=yuv420p   -c
 - Crop the browser chrome and pad the same height back as a dark strip so UI pixels stay 1:1. Do not crop and upscale: a 1 Mbps screen recording is already soft.
 - The strip carries the product name and the chapter label (ASS header events), which is why it is baked into the master.
 - Mux the processed voice into the master so every segment takes video and audio from one file. That is the sync guarantee.
+- `pad` mode (no chrome to crop): `fps=30,scale=1920:1016:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:64:color=0x0b1220,format=yuv420p` — the content is scaled by `(H − strip) / H`, a few percent, to make room for a strip under a recording that had no browser chrome to begin with.
+- `none` mode: `fps=30,crop=1920:1016:0:64,scale=1920:1080,format=yuv420p` when there is chrome to crop, else just `fps=30,format=yuv420p` — no strip and no header events are emitted.
 
 ## Voice chain (`voice-chain.sh`)
 

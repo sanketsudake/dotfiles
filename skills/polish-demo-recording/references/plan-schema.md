@@ -44,8 +44,8 @@ Keys not listed here are refused (`<key>: unknown key`).
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `mode` | `crop` \| `pad` \| `none` | `crop` | see "Strip modes" in the design spec |
-| `height` | int, 0..1000 | `chrome_top` in `crop` mode, else `round(64 * height / 1080)` | strip height in master pixels; in `crop` mode it must equal `video.chrome_top` |
+| `mode` | `crop` \| `pad` \| `none` | `crop` | `crop`: crop the chrome and pad the same height back, UI pixels stay 1:1 (v1). `pad`: scale the content down to make room for a strip under a recording with no chrome. `none`: no strip, no header events. See "Strip modes" in the design spec |
+| `height` | int, 0..1000 | `chrome_top` in `crop` mode; `round(64 * height / 1080)` in `pad` mode; `0` in `none` mode | strip height in master pixels; in `crop` mode it must equal `video.chrome_top` (the strip replaces the chrome, so the content stays 1:1 — ffmpeg's `pad` would refuse any other height) |
 | `color` | hex string, no `#` | `0b1220` | strip background color |
 
 ## brand

@@ -140,6 +140,32 @@ if fails:
 print('structural asserts: ok')
 PY
 
+# Strip modes: the master filter for each mode, checked as strings (the fixture only renders crop).
+uv run --with "pillow>=10" python3 - "$HERE" <<'PY'
+import copy, json, sys
+sys.path.insert(0, sys.argv[1])
+from demo import plan, render
+base = json.load(open('plan.json'))
+def vf(mode, chrome_top, height=64):
+    p = copy.deepcopy(base)
+    p['video']['chrome_top'] = chrome_top
+    p['video']['strip'] = {'mode': mode, 'height': height, 'color': '0b1220'}
+    if mode == 'crop':
+        p['video']['strip']['height'] = chrome_top
+    return render.master_vf(plan.build(p, '.'))
+want = {
+    ('crop', 64): 'fps=30,crop=1920:1016:0:64,pad=1920:1080:0:64:color=0x0b1220,format=yuv420p',
+    ('crop', 0): 'fps=30,format=yuv420p',
+    ('pad', 0): 'fps=30,scale=1920:1016:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:64:color=0x0b1220,format=yuv420p',
+    ('none', 0): 'fps=30,format=yuv420p',
+    ('none', 64): 'fps=30,crop=1920:1016:0:64,scale=1920:1080,format=yuv420p',
+}
+for (mode, ct), exp in want.items():
+    got = vf(mode, ct)
+    assert got == exp, f'{mode} chrome_top={ct}:\n  got  {got}\n  want {exp}'
+print('strip modes: ok')
+PY
+
 # ---- golden capture / check (paths normalised so the files carry no machine-specific prefix)
 norm() { sed -e "s#$WORK#<WORK>#g" -e "s#$(dirname "$FONT_B")#<FONTS>#g" "$1"; }
 files="timeline.json overlays.ass overlays_cc.ass fixture-polished.srt ffmpeg-calls.log"

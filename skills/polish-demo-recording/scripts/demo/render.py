@@ -34,14 +34,22 @@ def fs(ctx, v):
     return int(round(v * ctx.H / REF_H))
 
 
+def master_vf(ctx):
+    """The master's video filter for the plan's strip mode. crop keeps UI pixels 1:1 (v1); pad scales the content under a strip; none has no strip."""
+    vf = f'fps={ctx.fps}'
+    if ctx.strip_mode == 'crop' and ctx.chrome_top:
+        vf += f',crop={ctx.W}:{ctx.H - ctx.chrome_top}:0:{ctx.chrome_top},pad={ctx.W}:{ctx.H}:0:{ctx.strip}:color=0x{ctx.strip_color}'
+    elif ctx.strip_mode == 'pad':
+        vf += f',scale={ctx.W}:{ctx.H - ctx.strip}:force_original_aspect_ratio=decrease,pad={ctx.W}:{ctx.H}:(ow-iw)/2:{ctx.strip}:color=0x{ctx.strip_color}'
+    elif ctx.strip_mode == 'none' and ctx.chrome_top:
+        vf += f',crop={ctx.W}:{ctx.H - ctx.chrome_top}:0:{ctx.chrome_top},scale={ctx.W}:{ctx.H}'
+    return vf + ',format=yuv420p'
+
+
 def master(ctx):
     raw = ctx.sources[0]['path']
     voice = ctx.voice_wav
-    vf = f'fps={ctx.fps}'
-    if ctx.strip:
-        vf += f',crop={ctx.W}:{ctx.H - ctx.strip}:0:{ctx.strip},pad={ctx.W}:{ctx.H}:0:{ctx.strip}:color=0x{ctx.strip_color}'
-    vf += ',format=yuv420p'
-    ff('-i', raw, '-vf', vf, '-an', '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p', 'master_v.mp4')
+    ff('-i', raw, '-vf', master_vf(ctx), '-an', '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p', 'master_v.mp4')
     ff('-i', 'master_v.mp4', '-i', voice, '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
     print('master.mov', dur(ctx.master))
 
