@@ -239,7 +239,9 @@ if [ "$VARIANTS" = 1 ]; then
     mkdir -p "$v"
     ln -sf "$WORK/fixture.mp4" "$v/src.mov"
     ln -sf "$WORK/a.mp4" "$v/a.mp4"; ln -sf "$WORK/b.mp4" "$v/b.mp4"; ln -sf "$WORK/vo.wav" "$v/vo.wav"
+    ln -sf "$WORK/bumper.mp4" "$v/bumper.mp4"
     cp "$FIX/whisper.json" "$v/whisper.json"
+    uv run --with pillow python3 -c "from PIL import Image; Image.new('RGBA', (200, 60), (255, 0, 0, 255)).save('$v/logo.png')"
     python3 - "$WORK/plan.json" "$v/plan.json" "$WORK/music.wav" <<PY
 import json, sys
 p = json.load(open(sys.argv[1]))
@@ -262,6 +264,7 @@ PY
   variant multi "p['sources'] = [{'path': 'a.mp4'}, {'path': 'b.mp4'}]" "master cards segs concat ass" "cut.mp4 overlays.ass var-multi.srt"
   variant voice-file "p['voice'] = {'path': 'vo.wav', 'offset': -0.35}" "master cards segs concat ass" "cut.mp4 overlays_cc.ass"
   variant no-voice "p['voice'] = 'none'; p['transcript'] = None" "master cards segs concat ass final" "var-no-voice.mp4 var-no-voice-no-music.mp4"
+  variant ops "p['cuts'] = [{'from': 20.5, 'to': 21.5}]; p['holds'] = [{'at': 2.0, 'dur': 1.0}]; p['redactions'] = [{'from': 1.0, 'to': 4.0, 'x': 100, 'y': 200, 'w': 300, 'h': 80}, {'from': 5.0, 'to': 6.0, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}]; p['bumpers'] = {'intro': 'bumper.mp4'}; p['brand']['logo'] = 'logo.png'; p['brand']['theme'] = 'dark'" "master cards segs concat ass final verify" "cut.mp4 var-ops.mp4 verify.png"
   python3 - "$WORK" "$HERE/build_demo.py" <<'PY'
 import json, os, re, subprocess, sys
 work, build_py = sys.argv[1], sys.argv[2]
@@ -286,6 +289,20 @@ if count(os.path.join(work, 'var-voice-file', 'overlays_cc.ass'), 'Cap') != 4:
     fails.append('voice-file: expected 4 Cap events')
 if os.path.exists(os.path.join(work, 'var-no-voice', 'var-no-voice-captions.mp4')) or os.path.exists(os.path.join(work, 'var-no-voice', 'var-no-voice.srt')):
     fails.append('no-voice: a captions variant or an srt was written without a transcript')
+v = os.path.join(work, 'var-ops')
+cut = dur(os.path.join(v, 'cut.mp4'))
+if abs(cut - 27.575) > 0.15:
+    fails.append(f'ops: cut.mp4 {cut:.3f}, expected 27.575 +/- 0.15')
+tl = json.load(open(os.path.join(v, 'timeline.json')))
+if len(tl) != 13 or sum(1 for s in tl if s.get('hold')) != 1 or sum(1 for s in tl if s['kind'] == 'bumper') != 1:
+    fails.append(f'ops: timeline shape wrong: {len(tl)} segments, holds {sum(1 for s in tl if s.get("hold"))}, bumpers {sum(1 for s in tl if s["kind"] == "bumper")}')
+if count(os.path.join(v, 'overlays.ass'), 'Hdr') != 2:
+    fails.append('ops: expected 2 Hdr events')
+log = open(os.path.join(v, 'build.txt')).read()
+if 'warning: callout' in log:
+    fails.append('ops: a callout was dropped, but no callout sits inside the cut (TimeMap regression)')
+if 'warning: caption' in log:
+    fails.append('ops: a caption was dropped, but no cue starts inside the cut')
 gaps = subprocess.run(['uv', 'run', '--with', 'pillow>=10', build_py, 'plan.json', 'gaps'], cwd=os.path.join(work, 'var-multi'), capture_output=True, text=True).stdout
 if 'clip boundary' not in gaps:
     fails.append('multi: gaps did not print the clip boundary')

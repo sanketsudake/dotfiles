@@ -24,4 +24,7 @@ ffmpeg -hide_banner -loglevel error -y \
 ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -t 12 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/a.mp4"
 ffmpeg -hide_banner -loglevel error -y -ss 12 -i "$out/fixture.mp4" -t 12 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/b.mp4"
 ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -vn -af "adelay=delays=350:all=1" -c:a pcm_s16le "$out/vo.wav"
+# A 2 s bumper (solid colour with a tone) for the ops variant.
+ffmpeg -hide_banner -loglevel error -y -f lavfi -i "color=c=0x3b5bfd:s=1920x1080:r=30" -f lavfi -i "sine=f=440:r=48000" \
+  -t 2 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/bumper.mp4"
 echo "fixture: $out/fixture.mp4 (24 s), $out/music.wav (30 s)"

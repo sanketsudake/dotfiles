@@ -35,6 +35,20 @@
       "prompt": "The screen capture is ~/Desktop/demo.mov and the audio is ~/Desktop/demo-voice.wav from my phone mic; I clapped once at the start of both. Sync them and polish it.",
       "expected_output": "Sets voice to {path, offset}, measures offset with scripts/voice-offset.py on a window around the clap (never guesses), runs voice-chain.sh with --offset after the two positional arguments, and confirms the words in the transcript line up with the picture in verify.png before building.",
       "files": []
+    },
+    {
+      "id": "redact-token",
+      "name": "Hide an API key that is visible on screen",
+      "prompt": "In my demo ~/Desktop/api-demo.mov an API key is visible in the settings page from about 0:40 to 0:52. Polish the video and make sure the key cannot be read.",
+      "expected_output": "Seeks frames at 40 and 52 s to measure the key's box in master pixels, adds one redactions entry (blur by default, box if the blur still shows shape) in master time, rebuilds only master and segs, and shows the redacted region in a direct-seek frame before delivering. Does not cut the section.",
+      "files": []
+    },
+    {
+      "id": "cut-mistake",
+      "name": "Remove a wrong page from the recording",
+      "prompt": "Around 3:20 in ~/Desktop/demo.mov I opened the wrong page for about ten seconds before going back. Take that out and polish the rest.",
+      "expected_output": "Finds the range from the transcript gaps and frames, adds one cuts entry with from/to in master seconds, checks that no chapter card or speed-up sits inside it (validation refuses that), reports any callout the cut drops, and confirms in verify.png that the picture and narration line up after the cut.",
+      "files": []
     }
   ]
 }
