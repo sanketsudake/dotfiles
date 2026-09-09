@@ -13,34 +13,22 @@ Stages (default: all): master cards segs concat ass final verify gaps
 See ../references/ffmpeg-recipes.md for why each parameter is what it is.
 """
 import json, os, re, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw, ImageFont
+from demo import ffmpeg as F
+from demo import plan as P
 
 if len(sys.argv) < 2: sys.exit(__doc__)
-PLAN = json.load(open(sys.argv[1]))
+ctx = P.load(sys.argv[1])
 STAGES = sys.argv[2:] or ['master', 'cards', 'segs', 'concat', 'ass', 'final']
-WORK = os.path.abspath(PLAN.get('workdir', os.path.dirname(os.path.abspath(sys.argv[1])))); os.makedirs(WORK, exist_ok=True); os.chdir(WORK)
-W, H = PLAN.get('width', 1920), PLAN.get('height', 1080)
-STRIP = PLAN.get('chrome_top', 0)
-STRIP_COLOR = PLAN.get('strip_color', '0b1220')
-FPS = PLAN.get('fps', 30)
-MASTER = 'master.mov'
-B = PLAN.get('brand', {})
-FB = B.get('font_bold', '/System/Library/Fonts/Supplemental/Arial Bold.ttf')
-FR = B.get('font_regular', '/System/Library/Fonts/Supplemental/Arial.ttf')
-def hexrgb(h): h = h.lstrip('#'); return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-ACCENT = hexrgb(B.get('accent', '#3b5bfd')); INK = hexrgb(B.get('ink', '#0b1220')); MUTED = hexrgb(B.get('muted', '#788296'))
-BG = hexrgb(B.get('card_bg', '#f8fafc')); LIGHT = hexrgb(B.get('light', '#d5d9e2'))
-ACCENT_ASS = '%02X%02X%02X' % (ACCENT[2], ACCENT[1], ACCENT[0])  # ASS colours are BGR
-SRC_START, SRC_END = PLAN.get('src_start', 0.0), PLAN.get('src_end', 0.0)
-CARD_DUR, OPEN_DUR, END_DUR = PLAN.get('card_dur', 2.4), PLAN.get('open_dur', 3.2), PLAN.get('end_dur', 5.0)
-XF = PLAN.get('xfade', 0.45)
-CALLOUT_DUR = PLAN.get('callout_dur', 5.0)
-OUT = PLAN.get('out_prefix', 'final')
-
-def run(cmd): subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
-def ff(*args): run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', *args])
-def dur(path):
-    return float(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=duration', '-of', 'default=nw=1:nk=1', path]).strip())
+PLAN = ctx.plan
+W, H, STRIP, STRIP_COLOR, FPS, MASTER = ctx.W, ctx.H, ctx.strip, ctx.strip_color, ctx.fps, ctx.master
+B, FB, FR = ctx.brand, ctx.fb, ctx.fr
+ACCENT, INK, MUTED, BG, LIGHT, ACCENT_ASS = ctx.accent, ctx.ink, ctx.muted, ctx.bg, ctx.light, ctx.accent_ass
+SRC_START, SRC_END = ctx.src_start, ctx.src_end
+CARD_DUR, OPEN_DUR, END_DUR, XF, CALLOUT_DUR, OUT = ctx.card_dur, ctx.open_dur, ctx.end_dur, ctx.xf, ctx.callout_dur, ctx.out
+hexrgb = P.hexrgb
+run, ff, dur = F.run, F.ff, F.dur
 def font(p, s): return ImageFont.truetype(p, s)
 def tw(text, p, s): return font(p, s).getlength(text)
 
@@ -137,8 +125,8 @@ def build_timeline():
     tl.append(dict(kind='card', img='cards/end.png', dur=END_DUR))
     return tl
 
-VENC = ['-r', str(FPS), '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-video_track_timescale', '30000']
-AENC = ['-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '2']
+VENC = F.venc(FPS)
+AENC = F.AENC
 
 def zoom_vf(z, cx, cy, D):
     """Eased push-in (smoothstep, 0.7 s in/out) on the content area only; the strip is cropped off and padded back."""
