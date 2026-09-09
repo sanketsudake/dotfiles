@@ -82,7 +82,7 @@ Then `fade=t=in:d=0.6` at the head and `fade=t=out` over the last 0.8 s.
 - `PlayResX/Y` = frame size; `WrapStyle: 2` so lower-thirds never wrap.
 - Lower-third box: a `\p1` rectangle whose width comes from Pillow measuring the text at 34 px Arial; accent bar 10 px; `\fad(250,250)`.
 - Header: `\an4\pos(40,32)` product name, `\an6\pos(1880,32)` chapter label; events exist only during source runs, never on cards.
-- Captions: cues pre-broken to two lines of ≤ 42 characters, `\N` between lines, `BorderStyle=3` box, lower-thirds raised to y = H−280 in the captioned variant so they do not collide.
+- Captions: cues pre-broken to lines by measured pixel width, each within `captions.max_width_frac` (default `0.8`) of the frame width, `\N` between lines, `BorderStyle=3` box, lower-thirds raised to y = H−280 in the captioned variant so they do not collide.
 
 ## Music bed
 

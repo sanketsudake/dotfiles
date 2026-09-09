@@ -65,7 +65,7 @@ Keys not listed here are refused (`<key>: unknown key`).
 | `footer` | string | none | footer text on the open and end cards |
 | `end_title` | string | `Thank you` | end-card heading |
 | `end_lines` | list of strings | `[]` | end-card body lines |
-| `fonts` | `{bold, regular}` | see Notes | absolute font file paths; each falls back to the macOS Arial faces when empty or absent |
+| `fonts` | `{bold, regular}` | see Notes | absolute font file paths; when empty or absent, `resolve()` tries this override, then Arial (macOS), then DejaVu Sans, then Liberation Sans, reusing one matched face for both bold and regular when only one is given, and exits 2 with the tried list if none match |
 
 ## range
 

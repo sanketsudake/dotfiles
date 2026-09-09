@@ -12,10 +12,10 @@ description: >-
   or hands over a screen recording to share with a customer. Not for generating
   narration (the presenter records it) or for cutting a teaser from finished footage.
 license: Apache-2.0
-compatibility: macOS on Apple Silicon (mlx-whisper), ffmpeg 6+, ffprobe, uv; fonts default to Arial under /System/Library/Fonts
+compatibility: "macOS on Apple Silicon (mlx-whisper), ffmpeg 6+, ffprobe, uv; fonts: Arial on macOS, DejaVu Sans or Liberation Sans on Linux, or brand.fonts"
 metadata:
   author: sanketsudake
-  version: "1.0"
+  version: "2.0"
 ---
 
 # Polish a demo recording
@@ -54,7 +54,7 @@ Decide from numbers:
 | `r_frame_rate=300/1` or similar | variable frame rate | the `master` stage forces 30 fps; never cut the raw file directly |
 | L minus R is `-inf` | dual mono mic | the voice chain collapses to mono |
 | noise floor vs speech RMS gap < 25 dB | audible hiss or room tone | keep the default denoiser (`--nr 12 --nlm 2`) |
-| `chrome-top.png` shows tabs and an address bar | browser chrome in frame | measure its height in px (64 on Chrome/Helium at 1080p) and set `chrome_top` |
+| `chrome-top.png` shows tabs and an address bar | browser chrome in frame | measure its height in px (64 on Chrome/Helium at 1080p) and set `chrome_top` and `video.strip.mode: crop`; a terminal or IDE recording with no chrome takes `strip.mode: pad` to keep the header, or `none` |
 | silences > 4 s | waiting on the UI | fast-forward candidates, not cuts |
 
 ### 2. Transcribe with word timestamps
@@ -84,18 +84,20 @@ Do not pitch-shift; EQ and compression make the voice fuller without artefacts.
 ### 4. Write the edit plan
 
 ```bash
-cp {baseDir}/assets/example-plan.json plan.json          # then set raw, voice_wav, whisper, brand, src_start/src_end
+cp {baseDir}/assets/example-plan.json plan.json          # then set sources, range, video, brand; every key is in references/plan-schema.md
 uv run --with "pillow>=10" {baseDir}/scripts/build_demo.py plan.json gaps   # narration gaps with a suggested treatment
 ```
 
+The template names files that do not exist yet (`src.mov`, the transcript, the music track); the build refuses with one line per missing file until they are filled in.
+
 Fill the rest of `plan.json` from the gap list and the transcript:
 
-- **Chapters** only where the narration changes topic *and* there is a pause; `cut` at gap start + 0.2 s, `resume` at gap end − 0.5 s. Two to three seconds per card; six cards is plenty for seven minutes. A short or densely narrated clip may offer one usable pause or none: one card or zero is the right answer, never a card inside speech.
-- **Speed-ups** for every gap > 2.4 s where the screen is loading or the presenter is waiting: ×3, or ×4 with a badge when > 4 s. Fast-forward beats a hard cut because the motion stays continuous.
-- **Zooms** at ≤ 1.3× on two to four high-value moments (a code dialog, a response, a budget field). Check the frame at the zoom start first so the target is already on screen.
-- **Callouts** are value statements, one per feature, ≤ 60 characters, timed to the word that introduces the feature.
-- **Labels** change the header strip's chapter name without a card.
-- **Caption fixes** for product names the recognizer mangled.
+- **Chapters** (`chapters`) only where the narration changes topic *and* there is a pause; `cut` at gap start + 0.2 s, `resume` at gap end − 0.5 s. Two to three seconds per card; six cards is plenty for seven minutes. A short or densely narrated clip may offer one usable pause or none: one card or zero is the right answer, never a card inside speech.
+- **Speed-ups** (`speedups {from, to, factor, badge}`) for every gap > 2.4 s where the screen is loading or the presenter is waiting: ×3, or ×4 with a badge when > 4 s. Fast-forward beats a hard cut because the motion stays continuous.
+- **Zooms** (`zooms {from, to, factor, cx, cy}`) at ≤ 1.3× on two to four high-value moments (a code dialog, a response, a budget field). Check the frame at the zoom start first so the target is already on screen.
+- **Callouts** (`callouts {at, text}`) are value statements, one per feature, ≤ 60 characters, timed to the word that introduces the feature.
+- **Labels** (`labels {at, text}`) change the header strip's chapter name without a card.
+- **Caption fixes** (`caption_fixes {find, replace}`) for product names the recognizer mangled.
 
 ### 5. Build
 
@@ -123,12 +125,12 @@ sibilance from the de-esser, a gated feel between words, music breathing in paus
 ## Common mistakes
 
 - Cutting the raw VFR file: A/V drift and xfade misalignment. Always build from the normalized master.
-- Timing overlays against source seconds after cutting: every callout drifts. `TimeMap` in `build_demo.py` maps source → output time, including the dissolve overlaps.
+- Timing overlays against source seconds after cutting: every callout drifts. `TimeMap` in `demo/timeline.py` maps source → output time, including the dissolve overlaps.
 - `select=eq(n,…)` contact sheets on the concatenated output come out time-shifted. Verify with direct `-ss` seeks only.
 - `afftdn` alone: gaps sit at −31 dB after make-up gain. `anlmdn` after it is what keeps them low.
 - Zooming the whole frame: the branded strip stretches. `zoom_vf` crops the strip off, zooms the content and pads it back.
 - A zoompan on a text card at 30 fps shimmers and reads as flicker. Cards are static; dissolves supply the motion.
-- `WrapStyle: 2` (needed so lower-thirds never wrap) also disables caption wrapping: captions are pre-broken into two 42-character lines from word timestamps.
+- `WrapStyle: 2` (needed so lower-thirds never wrap) also disables caption wrapping: captions are pre-broken into lines by measured pixel width, each within `captions.max_width_frac` (default `0.8`) of the frame width.
 - Shell traps on macOS: `sed -i ''` fails under GNU sed from nix; `$VAR:l` in a zsh string lowercases the variable; BSD `grep -E` does not know `\s`. Put ffmpeg chains in a script file.
 - Auto-removing "uh"s at word boundaries: on a screen recording the jump cuts look broken. Cut only stutters and fillers that sit in pauses; offer a voice-only re-record of weak chapters instead.
 
@@ -140,5 +142,6 @@ sibilance from the de-esser, a gated feel between words, music breathing in paus
 | Clean and normalize the voice | `{baseDir}/scripts/voice-chain.sh` |
 | Plan, build, verify | `{baseDir}/scripts/build_demo.py <plan.json> [stages]` |
 | Example plan | `{baseDir}/assets/example-plan.json` |
+| Every plan key, default and phase | `{baseDir}/references/plan-schema.md` |
 | Why each parameter | `{baseDir}/references/ffmpeg-recipes.md` |
 | Self-test on a synthetic clip (no recording, no ASR) | `{baseDir}/scripts/selftest.sh` |
