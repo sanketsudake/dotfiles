@@ -18,6 +18,7 @@ def verify(ctx, tl, tm):
     times += [(tm.out(t) + 1.0, 'callout') for t, _, _ in ctx.callouts if tm.out(t) is not None]
     times += [(s['out'] + s['len'] / 2, 'badge') for s in tl if s['kind'] == 'src' and s['badge']]
     times += [(s['out'] + s['len'] / 2, 'hold') for s in tl if s['kind'] == 'src' and s.get('hold')]
+    times += [(tm.out((a + b) / 2), 'redaction') for a, b, *_ in ctx.redactions if tm.out((a + b) / 2) is not None]
     zooms = [s for s in tl if s['kind'] == 'src' and s['zoom']]
     times += [(s['out'] - ctx.xf / 2, 'dissolve') for s in tl if s['kind'] == 'card' and s['out'] > 0]
     times.sort()

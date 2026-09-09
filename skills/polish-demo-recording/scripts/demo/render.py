@@ -35,6 +35,20 @@ def fs(ctx, v):
     return int(round(v * ctx.H / REF_H))
 
 
+def redact_vf(ctx):
+    """Blur or box each redaction region during its window, in master pixels and master time (after the strip transform)."""
+    parts = []
+    for k, (a, b, x, y, w, h, mode) in enumerate(ctx.redactions):
+        en = f"enable='between(t,{a:.3f},{b:.3f})'"
+        if mode == 'box':
+            parts.append(f',drawbox=x={x}:y={y}:w={w}:h={h}:color=0x{ctx.strip_color}:t=fill:{en}')
+        else:
+            # even crop sizes keep yuv420p chroma aligned; avgblur has no radius-vs-size limit (boxblur refuses radius 20 under 80 px)
+            w2, h2 = w - (w % 2), h - (h % 2)
+            parts.append(f',split[m{k}][r{k}];[r{k}]crop={w2}:{h2}:{x}:{y},avgblur=sizeX=20:sizeY=20[b{k}];[m{k}][b{k}]overlay=x={x}:y={y}:{en}')
+    return ''.join(parts)
+
+
 def master_vf(ctx):
     """The master's video filter for the plan's strip mode. crop keeps UI pixels 1:1 (v1); pad scales the content under a strip; none has no strip."""
     vf = f'fps={ctx.fps}'
@@ -44,7 +58,7 @@ def master_vf(ctx):
         vf += f',scale={ctx.W}:{ctx.H - ctx.strip}:force_original_aspect_ratio=decrease,pad={ctx.W}:{ctx.H}:(ow-iw)/2:{ctx.strip}:color=0x{ctx.strip_color}'
     elif ctx.strip_mode == 'none' and ctx.chrome_top:
         vf += f',crop={ctx.W}:{ctx.H - ctx.chrome_top}:0:{ctx.chrome_top},scale={ctx.W}:{ctx.H}'
-    return vf + ',format=yuv420p'
+    return vf + redact_vf(ctx) + ',format=yuv420p'
 
 
 def master(ctx):

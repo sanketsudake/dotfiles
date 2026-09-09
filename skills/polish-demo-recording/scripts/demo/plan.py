@@ -13,7 +13,7 @@ SCHEMA_VERSION = 2
 TOP_KEYS = {
     'schema_version', 'workdir', 'sources', 'voice', 'voice_wav', 'transcript', 'video', 'brand', 'range',
     'first_label', 'chapters', 'labels', 'speedups', 'zooms', 'cuts', 'holds', 'callouts', 'callout_dur',
-    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix',
+    'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
 
@@ -173,6 +173,20 @@ def validate(plan, base_dir):
             inside(h['at'], f'holds[{i}].at')
             inside(h['at'] + h['dur'], f'holds[{i}].at+dur')
             ops.append((h['at'], h['at'] + h['dur'], f'holds[{i}]'))
+    frame = (int(video['width']), int(video['height'])) if _num(video.get('width')) and _num(video.get('height')) else None
+    for i, r in items('redactions'):
+        need(r, f'redactions[{i}]', ['from', 'to', 'x', 'y', 'w', 'h'])
+        span(r, f'redactions[{i}]')
+        mode = r.get('mode', 'blur')
+        if mode not in ('blur', 'box'):
+            e.append(f'redactions[{i}].mode: must be blur or box, got {mode!r}')
+        if all(_num(r.get(k)) for k in ('x', 'y', 'w', 'h')):
+            if r['w'] < 8 or r['h'] < 8:
+                e.append(f'redactions[{i}]: w and h must be at least 8 px')
+            if r['x'] < 0 or r['y'] < 0:
+                e.append(f'redactions[{i}]: x and y must not be negative')
+            if frame and (r['x'] + r['w'] > frame[0] or r['y'] + r['h'] > frame[1]):
+                e.append(f'redactions[{i}]: box {r["x"]},{r["y"]} {r["w"]}x{r["h"]} lies outside the {frame[0]}x{frame[1]} frame')
     for i, c in items('callouts'):
         need(c, f'callouts[{i}]', ['at', 'text'])
         inside(c.get('at'), f'callouts[{i}].at')
@@ -247,6 +261,7 @@ class Ctx:
     zooms: list
     cuts: list
     holds: list
+    redactions: list
     callouts: list
     caption_fixes: list
     music: dict
@@ -325,6 +340,7 @@ def build(plan, work):
         zooms=[(float(z['from']), float(z['to']), z['factor'], z['cx'], z['cy']) for z in plan.get('zooms', [])],
         cuts=[(float(c['from']), float(c['to'])) for c in plan.get('cuts', [])],
         holds=[(float(h['at']), float(h['dur'])) for h in plan.get('holds', [])],
+        redactions=[(float(r['from']), float(r['to']), int(r['x']), int(r['y']), int(r['w']), int(r['h']), r.get('mode', 'blur')) for r in plan.get('redactions', [])],
         callouts=[(float(c['at']), str(c['text']), float(c.get('dur', callout_dur))) for c in plan.get('callouts', [])],
         caption_fixes=[(f['find'], f['replace']) for f in plan.get('caption_fixes', [])],
         music=plan.get('music'),
