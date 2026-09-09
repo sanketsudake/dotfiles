@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Self-test for the polish-demo-recording pipeline on a synthetic fixture (no recording, no ASR).
-# usage: selftest.sh [--golden capture|check] [--keep]
+# usage: selftest.sh [--golden capture|check] [--keep] [--no-variants]
 #   --golden capture  store timeline.json, the ASS files, the .srt and the ffmpeg argv log under fixture/golden-v1/
 #   --golden check    diff the same five files against fixture/golden-v1/ (dev-machine parity gate; not for CI)
 #   --keep            leave fixture/.work/ in place for inspection
+#   --no-variants     skip the multi/voice-file/no-voice variants (golden + transcribe/probe checks only)
 # Structural asserts run in every mode: expected cut length, A/V duration match, voice loudness,
 # ASS event counts, .srt cue count, verify.png present. Exit 1 on the first failure.
 set -euo pipefail
@@ -13,10 +14,12 @@ WORK="$FIX/.work"
 GOLD="$FIX/golden-v1"
 golden=""
 keep=0
+VARIANTS=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --golden) golden="$2"; shift 2;;
     --keep) keep=1; shift;;
+    --no-variants) VARIANTS=0; shift;;
     *) echo "unknown arg $1" >&2; exit 2;;
   esac
 done
@@ -197,6 +200,80 @@ bash "$HERE/probe.sh" "$WORK/fixture.mp4" "$WORK/probe" > "$WORK/probe/out.txt" 
 grep -q 'pixel_scale: 1' "$WORK/probe/out.txt" || fail "probe: pixel_scale line missing"
 [ -s "$WORK/probe/frame30.png" ] && [ -s "$WORK/probe/chrome-top.png" ] || fail "probe: frames missing"
 echo "transcribe + probe: ok"
+
+if [ "$VARIANTS" = 1 ]; then
+  BUILD="uv run --with pillow>=10 $HERE/build_demo.py"
+  variant() {  # $1 name, $2 python that edits plan dict `p`, $3 stages, $4 expected outputs (space-separated)
+    local name="$1" edit="$2" stages="$3" expect="$4" v="$WORK/var-$1"
+    mkdir -p "$v"
+    ln -sf "$WORK/fixture.mp4" "$v/src.mov"
+    ln -sf "$WORK/a.mp4" "$v/a.mp4"; ln -sf "$WORK/b.mp4" "$v/b.mp4"; ln -sf "$WORK/vo.wav" "$v/vo.wav"
+    cp "$FIX/whisper.json" "$v/whisper.json"
+    python3 - "$WORK/plan.json" "$v/plan.json" "$WORK/music.wav" <<PY
+import json, sys
+p = json.load(open(sys.argv[1]))
+p['music']['path'] = sys.argv[3]
+p['out_prefix'] = 'var-$name'
+$edit
+json.dump(p, open(sys.argv[2], 'w'), indent=1)
+PY
+    ( cd "$v"
+      vin=$($BUILD plan.json prepare | sed -n 's/^voice input: //p')
+      if [ -n "$vin" ]; then
+        # "voice input: <file> [--offset x]"; voice-chain.sh binds <src> <out.wav> first, flags after.
+        set -- $vin
+        bash "$HERE/voice-chain.sh" "$1" voice.wav "${@:2}" 2> voice.txt
+      fi
+      $BUILD plan.json $stages > build.txt 2>&1 || { tail -20 build.txt; exit 1; }
+      for f in $expect; do [ -s "$f" ] || { echo "missing $f"; exit 1; }; done
+    ) || fail "variant $name"
+  }
+  variant multi "p['sources'] = [{'path': 'a.mp4'}, {'path': 'b.mp4'}]" "master cards segs concat ass" "cut.mp4 overlays.ass var-multi.srt"
+  variant voice-file "p['voice'] = {'path': 'vo.wav', 'offset': -0.35}" "master cards segs concat ass" "cut.mp4 overlays_cc.ass"
+  variant no-voice "p['voice'] = 'none'; p['transcript'] = None" "master cards segs concat ass final" "var-no-voice.mp4 var-no-voice-no-music.mp4"
+  python3 - "$WORK" "$HERE/build_demo.py" <<'PY'
+import json, os, re, subprocess, sys
+work, build_py = sys.argv[1], sys.argv[2]
+def dur(path):
+    return float(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=duration', '-of', 'default=nw=1:nk=1', path]).strip())
+def count(path, style):
+    return sum(1 for l in open(path) if l.startswith('Dialogue:') and l.split(',')[3] == style)
+fails = []
+for name in ('multi', 'voice-file', 'no-voice'):
+    v = os.path.join(work, 'var-' + name)
+    cut = dur(os.path.join(v, 'cut.mp4'))
+    if abs(cut - 27.025) > 0.15:
+        fails.append(f'{name}: cut.mp4 {cut:.3f}, expected 27.025 +/- 0.15')
+    tl = json.load(open(os.path.join(v, 'timeline.json')))
+    if len(tl) != 9:
+        fails.append(f'{name}: {len(tl)} segments, expected 9')
+    if count(os.path.join(v, 'overlays.ass'), 'Hdr') != 2:
+        fails.append(f'{name}: expected 2 Hdr events')
+if count(os.path.join(work, 'var-multi', 'overlays_cc.ass'), 'Cap') != 4:
+    fails.append('multi: expected 4 Cap events')
+if count(os.path.join(work, 'var-voice-file', 'overlays_cc.ass'), 'Cap') != 4:
+    fails.append('voice-file: expected 4 Cap events')
+if os.path.exists(os.path.join(work, 'var-no-voice', 'var-no-voice-captions.mp4')) or os.path.exists(os.path.join(work, 'var-no-voice', 'var-no-voice.srt')):
+    fails.append('no-voice: a captions variant or an srt was written without a transcript')
+gaps = subprocess.run(['uv', 'run', '--with', 'pillow>=10', build_py, 'plan.json', 'gaps'], cwd=os.path.join(work, 'var-multi'), capture_output=True, text=True).stdout
+if 'clip boundary' not in gaps:
+    fails.append('multi: gaps did not print the clip boundary')
+# voice-file: the 0.35 s lead-in must be gone, so the first burst starts at 0.5 s like the embedded voice.
+err = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', os.path.join(work, 'var-voice-file', 'voice.wav'), '-af', 'silencedetect=n=-35dB:d=0.3', '-f', 'null', '-'], capture_output=True, text=True).stderr
+m = re.search(r'silence_end: ([\d.]+)', err)
+if not m or abs(float(m.group(1)) - 0.5) > 0.1:
+    fails.append(f'voice-file: first silence_end {m.group(1) if m else "missing"}, expected 0.50 +/- 0.10')
+# voice-offset.py must recover the fixture's known offset from the two files.
+out = subprocess.run(['uv', 'run', '--with', 'numpy', os.path.join(os.path.dirname(build_py), 'voice-offset.py'), os.path.join(work, 'fixture.mp4'), os.path.join(work, 'vo.wav')], capture_output=True, text=True).stdout
+m = re.search(r'offset: (-?[\d.]+)', out)
+if not m or abs(float(m.group(1)) + 0.35) > 0.02:
+    fails.append(f'voice-offset.py: {out.strip()!r}, expected offset: -0.350 +/- 0.02')
+if fails:
+    print('\n'.join('FAIL: ' + f for f in fails))
+    sys.exit(1)
+print('variants: ok')
+PY
+fi
 
 cd "$HERE"
 [ "$keep" = 1 ] || rm -rf "$WORK"

@@ -19,4 +19,9 @@ ffmpeg -hide_banner -loglevel error -y \
 ffmpeg -hide_banner -loglevel error -y \
   -f lavfi -i "sine=f=110:r=48000" -af "volume=0.1,aformat=channel_layouts=stereo" -t 30 \
   "$out/music.wav"
+# Two halves for the multi-clip variant (re-encoded so each starts on a keyframe), and a voice track that starts
+# 0.35 s early (silence prepended), for the separate-voice variant: voice.offset = -0.35.
+ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -t 12 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/a.mp4"
+ffmpeg -hide_banner -loglevel error -y -ss 12 -i "$out/fixture.mp4" -t 12 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/b.mp4"
+ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -vn -af "adelay=delays=350:all=1" -c:a pcm_s16le "$out/vo.wav"
 echo "fixture: $out/fixture.mp4 (24 s), $out/music.wav (30 s)"
