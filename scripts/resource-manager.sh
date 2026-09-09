@@ -736,7 +736,17 @@ frontmatter_field() {
       if (v !~ /^[>|][+-]?$/) val = v
       capturing = 1
     }
-    END { print val }
+    # A YAML quoted scalar (upstream needs quotes when the text holds a colon)
+    # must be stored as its text, not its encoding: drop a matching outer pair
+    # and undo the escape each quote style uses.
+    END {
+      if (val ~ /^".*"$/ && length(val) > 1) {
+        val = substr(val, 2, length(val) - 2); gsub(/\\"/, "\"", val)
+      } else if (val ~ /^\047.*\047$/ && length(val) > 1) {
+        val = substr(val, 2, length(val) - 2); gsub(/\047\047/, "\047", val)
+      }
+      print val
+    }
   ' "$file"
 }
 
