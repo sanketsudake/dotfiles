@@ -102,6 +102,19 @@ Fill the rest of `plan.json` from the gap list and the transcript:
 - **Callouts** (`callouts {at, text}`) are value statements, one per feature, ≤ 60 characters, timed to the word that introduces the feature.
 - **Labels** (`labels {at, text}`) change the header strip's chapter name without a card.
 - **Caption fixes** (`caption_fixes {find, replace}`) for product names the recognizer mangled.
+- **Cuts** remove a range hard.
+  Use one for a wrong page or a notification, never for an "uh": the jump cut reads as broken on a screen recording.
+  A card or speed-up inside a cut is refused; a callout or a caption that starts inside one is dropped with a warning.
+  A cue that started before the cut keeps its words on screen until the cut start.
+- **Holds** freeze the frame while the narration continues:
+  for a result the presenter talks over while the screen keeps scrolling.
+- **Redactions** blur or box a region in master pixels for a window;
+  measure the box on a direct-seek frame.
+  They live in the master, so a re-plan never moves them.
+- **Bumpers** are intro and outro clips normalized to the frame and level-matched.
+  A changed bumper file keeps its old render until `bumper/` is deleted, like `norm/`.
+- **Logo** replaces the product name on chapter and end cards, joins the hero name on the open card, and sits in the strip.
+- **Theme** `dark` swaps the card palette; `accent` stays.
 
 ### 5. Build
 
@@ -115,7 +128,8 @@ Delete `seg/NNN.mp4` for a segment whose source range changed; unchanged segment
 
 ### 6. Verify before delivering
 
-`verify` prints stream durations (video and audio within 50 ms), integrated loudness and true peak, and writes `verify.png`: direct-seek frames at every card, callout, badge, zoom and dissolve midpoint.
+`verify` prints stream durations (video and audio within 50 ms), integrated loudness and true peak, and writes `verify.png`: direct-seek frames at every card, callout, badge, hold, bumper, zoom, dissolve and redaction midpoint.
+The redacted region must be unreadable in the frame at the window's midpoint.
 Read the image.
 Zooms at ≤ 1.3× are subtle by design, so each zoom gets a before/after pair cropped 1:1 around the target; judge the zoom on that pair, not on the full frame.
 Reject the build if any callout is clipped, a header label sits on a card, a zoom pair shows the wrong region, or the strip is missing.

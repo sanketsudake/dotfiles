@@ -23,12 +23,16 @@ Keys not listed here are refused (`<key>: unknown key`).
 | `labels` | list of objects | `[]` | see [Operations](#operations-chapters-labels-speedups-zooms-callouts-caption_fixes) |
 | `speedups` | list of objects | `[]` | see [Operations](#operations-chapters-labels-speedups-zooms-callouts-caption_fixes) |
 | `zooms` | list of objects | `[]` | see [Operations](#operations-chapters-labels-speedups-zooms-callouts-caption_fixes) |
+| `cuts` | list of objects | `[]` | phase 3; see [Operations](#operations-chapters-labels-speedups-zooms-callouts-caption_fixes) |
+| `holds` | list of objects | `[]` | phase 3; see [Operations](#operations-chapters-labels-speedups-zooms-callouts-caption_fixes) |
 | `callouts` | list of objects | `[]` | see [Operations](#operations-chapters-labels-speedups-zooms-callouts-caption_fixes) |
 | `callout_dur` | number, seconds | `5.0` | default duration for a callout that carries no `dur` |
 | `caption_fixes` | list of `{find, replace}` | `[]` | regex substitutions applied to caption text, before the built-in "uh" clean-up |
 | `captions` | object | `{}` | see [captions](#captions-music-timing) |
 | `music` | `{path, volume}` or null | null | background bed, sidechain-ducked under narration |
 | `timing` | object | `{}` | see [timing](#captions-music-timing) |
+| `redactions` | list of objects | `[]` | phase 3; blur or box a region for a window, in master time; see [redactions](#redactions) |
+| `bumpers` | `{intro, outro}` | `{}` | phase 3; intro and outro clips; see [bumpers](#bumpers) |
 | `out_prefix` | string | required | `<out_prefix>.mp4`, `-no-music`, `-captions`, `.srt` |
 
 ## sources
@@ -78,6 +82,10 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 | `end_title` | string | `Thank you` | end-card heading |
 | `end_lines` | list of strings | `[]` | end-card body lines |
 | `fonts` | `{bold, regular}` | see Notes | absolute font file paths; when empty or absent, `resolve()` tries this override, then Arial (macOS), then DejaVu Sans, then Liberation Sans, reusing one matched face for both bold and regular when only one is given, and exits 2 with the tried list if none match |
+| `logo` | path | none | phase 3; PNG. On chapter and end cards it replaces the small `brand.name` mark at the top left; on the open card it joins the hero `brand.name` text there instead of replacing it, because the hero text is the card's layout anchor. In the header strip it sits at the left edge at `strip.height − 16` px tall, only when a strip exists (`video.strip.mode` is not `none`) |
+| `theme` | `light` \| `dark` | `light` | phase 3; sets the defaults of `ink`, `muted`, `card_bg`, `light`, `tile_bg` and `tile_outline`; an explicit value for any of those keys still wins over the theme. `accent` is not affected by `theme` |
+| `tile_bg` | hex color | `#ffffff` (`light`) / `#111a2e` (`dark`) | phase 3; opening-card feature-tile background |
+| `tile_outline` | hex color | `#e2e6ee` (`light`) / `#2a3650` (`dark`) | phase 3; opening-card feature-tile border |
 
 ## range
 
@@ -89,7 +97,8 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 ## Operations (chapters, labels, speedups, zooms, callouts, caption_fixes)
 
 All times below are master seconds and must lie inside `range`.
-`chapters`, `speedups` and `zooms` share one axis of non-overlapping windows;
+`chapters`, `speedups`, `zooms`, `cuts` and `holds` share one axis of non-overlapping windows:
+chapters `[cut, resume]`, speed-ups `[from + 0.5, to − 0.4]`, zooms `[from, to]`, cuts `[from, to]`, holds `[at, at + dur]`;
 validation sorts them by start and rejects any pair that overlaps.
 
 ### chapters
@@ -128,6 +137,29 @@ validation sorts them by start and rejects any pair that overlaps.
 | `cx` | int | required | zoom center x, master pixels |
 | `cy` | int | required | zoom center y, master pixels |
 
+### cuts
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `from` | number, seconds | required | master second the cut starts |
+| `to` | number, seconds | required | master second it ends; must be greater than `from` |
+
+Removes `[from, to]` hard: the timeline splits the run and the two neighbours join with `-c copy`.
+A chapter card or speed-up may not sit inside a cut (validation error).
+A callout or caption cue that starts inside a cut is dropped with a warning that names it;
+a caption cue that starts before a cut and ends inside it is truncated to the cut start.
+A header label whose time falls inside a cut is not dropped — it moves to the cut start, which is the label's visible effect anyway.
+
+### holds
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `at` | number, seconds | required | master second the freeze starts |
+| `dur` | number, seconds, 0.2..30 | required | how long the frame stays frozen; `at + dur` must lie inside `range` |
+
+Freezes the frame at `at` for `dur` seconds while the narration keeps playing underneath; the source video for `[at, at + dur]` is not read again for playback, so speech and picture stay aligned.
+No badge is shown.
+
 ### callouts
 
 | Key | Type | Default | Notes |
@@ -142,6 +174,37 @@ validation sorts them by start and rejects any pair that overlaps.
 | --- | --- | --- | --- |
 | `find` | regex string | required | pattern applied to caption text |
 | `replace` | string | required | replacement |
+
+## redactions
+
+Phase 3.
+Applied at the master stage, in master pixels and master time, before any zoom — a zoom over a redacted region magnifies the blur, which is the intended result.
+Redactions are not checked against `range` and do not share the chapters/speedups/zooms/cuts/holds overlap axis: a wrong region is fixed by re-running `master` and `segs`, not by re-planning.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `from` | number, seconds | required | master second the redaction starts |
+| `to` | number, seconds | required | master second it ends; must be greater than `from` |
+| `x` | int, master pixels | required | left edge; must not be negative |
+| `y` | int, master pixels | required | top edge; must not be negative |
+| `w` | int, master pixels, ≥ 8 | required | width; below 8 px is refused |
+| `h` | int, master pixels, ≥ 8 | required | height; below 8 px is refused |
+| `mode` | `blur` \| `box` | `blur` | `blur`: `avgblur=sizeX=20:sizeY=20` on the cropped region; `box`: `drawbox` filled with the strip colour |
+
+`x + w` and `y + h` are checked against the frame only when `video.width` and `video.height` are both in the plan; otherwise the bounds check is skipped and an out-of-frame box is caught only visually, in `verify.png`.
+
+## bumpers
+
+Phase 3.
+`bumpers` itself is `{}` or an object; each key is a path or `null`; any other key is refused.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `intro` | path or null | none | clip placed before the open card, normalized to the master frame (see [sources](#sources)) and level-matched with `loudnorm`, joined with the same dissolve as a card |
+| `outro` | path or null | none | clip placed after the end card, same treatment |
+
+Cached at `bumper/<intro|outro>.mov`, keyed by the `bumpers` key name, not the file path;
+a changed bumper file keeps its old render until `bumper/` is deleted, like `norm/`.
 
 ## captions, music, timing
 

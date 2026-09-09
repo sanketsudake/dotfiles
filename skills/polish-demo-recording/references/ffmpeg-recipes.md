@@ -15,6 +15,23 @@ fps=30,crop=1920:1016:0:64,pad=1920:1080:0:64:color=0x0b1220,format=yuv420p   -c
 - Mux the processed voice into the master so every segment takes video and audio from one file. That is the sync guarantee.
 - `pad` mode (no chrome to crop): `fps=30,scale=1920:1016:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:64:color=0x0b1220,format=yuv420p` — the content is scaled by `(H − strip) / H`, a few percent, to make room for a strip under a recording that had no browser chrome to begin with.
 - `none` mode: `fps=30,crop=1920:1016:0:64,scale=1920:1080,format=yuv420p` when there is chrome to crop, else just `fps=30,format=yuv420p` — no strip and no header events are emitted.
+- Strip logo: `movie=<logo>,scale=-1:H[lg]` then `overlay=x=40:y=8` onto the strip, where `H` is `strip.height − 16` px (1080p values, scaled by `sx`/`sy` at other frame sizes) so a tall logo does not touch the strip edges.
+  Only applied when a strip exists (`ctx.strip > 0`), so `video.strip.mode: none` gets card logos only, never a strip overlay.
+
+## Redaction (`demo/render.py` `redact_vf`)
+
+Appended to `master_vf` after the strip and logo filters, so a redaction is in master pixels and master time, like the rumble windows in the voice chain — it survives a re-plan.
+
+```text
+blur: split[m][r];[r]crop=w2:h2:x:y,avgblur=sizeX=20:sizeY=20[b];[m][b]overlay=x=x:y=y:enable='between(t,a,b)'
+box:  drawbox=x=x:y=y:w=w:h=h:color=0x<strip_color>:t=fill:enable='between(t,a,b)'
+```
+
+- `avgblur=sizeX=20:sizeY=20`, not `boxblur=20:2`: `boxblur` refuses a radius of 20 on any region under 80 px in either direction, because its chroma planes are half-size, and a redaction box is often a single 30 px line of text.
+`avgblur` carries no such radius-vs-size limit.
+- The crop is rounded down to even sizes (`w - w % 2`, `h - h % 2`) before the blur: yuv420p chroma planes are half-resolution, and an odd crop size would misalign them against the luma plane.
+- `box` mode fills with the strip colour instead of blurring, so a redaction on a brand-coloured background reads as intentional chrome, not a glitch.
+- The region is measured in master pixels, before any zoom: a zoom over a redacted region magnifies the blur, which is the intended, not accidental, result.
 
 ## Normalize a clip (`demo/sources.py`)
 
@@ -29,6 +46,13 @@ fps=30,scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw
 PCM also has no encoder priming or delay, so the `-c copy` seam lands on an exact sample and the audio is encoded lossily only once, at the master, instead of twice.
 A source with no audio stream gets `anullsrc` muxed in first so every part has an audio track to copy.
 - Sources are then joined in order with the concat demuxer (`-f concat -safe 0`, `-c copy`) into `norm/joined.mov`, the file both the master stage and the voice chain read.
+
+## Bumpers (`demo/sources.py` `bumper`)
+
+An intro or outro clip goes through `normalize_clip` too, with `loudnorm=True`: single-pass `loudnorm=I=-16:TP=-1.5`, not the voice chain's two-pass measured run.
+Single-pass loudnorm's error grows with the material's length and dynamic range; a 2 to 5 s bumper (a logo sting, a short music swell) has little of either, and it dissolves straight into a silent card, so a small residual miss in level is inaudible.
+The voice chain keeps two-pass because narration runs minutes and needs the tighter number.
+`bumper/<intro|outro>.mov` and `norm/*.mov` are both caches keyed by the `bumpers`/`sources` key, not by file content: swap the file at the same path and the old render is reused silently until the directory is deleted.
 
 ## Voice chain (`voice-chain.sh`)
 
@@ -75,6 +99,12 @@ ffmpeg's `axcorrelate` is not usable here because it emits a correlation signal,
 - Accurate cut: `-ss <a> -t <d> -i master.mov` (input seeking decodes from the previous keyframe and discards).
 - Speed-up: `setpts=PTS/s` and `atempo=s,volume=0` (silence; the denoised room tone sped up adds nothing).
 - Cards: `-loop 1 -framerate 30 -t D -i card.png` with anullsrc audio. Static: a slow zoompan on fine text shimmers.
+
+## Hold
+
+Two ffmpeg calls, not one filter: a direct-seek frame PNG at `at` (`-ss <at> -i master.mov -frames:v 1`), then that PNG looped for `dur` (`-loop 1 -framerate <fps> -t <dur> -i <png>`) muxed with the master's own audio for `[at, at + dur]` (`-ss <at> -t <dur> -i master.mov`, mapped `0:v` from the PNG and `1:a` from the master).
+`render_segs` treats a hold as one source segment, so the video for `[at, at + dur]` is never read a second time for playback: the frozen frame and the narration underneath stay aligned with no separate skip step.
+No badge: a hold is a narration device, not a fast-forward.
 
 ## Eased zoom on the content area only
 
