@@ -266,6 +266,7 @@ PY
   variant voice-file "p['voice'] = {'path': 'vo.wav', 'offset': -0.35}" "master cards segs concat ass" "cut.mp4 overlays_cc.ass"
   variant no-voice "p['voice'] = 'none'; p['transcript'] = None" "master cards segs concat ass final" "var-no-voice.mp4 var-no-voice-no-music.mp4"
   variant ops "p['cuts'] = [{'from': 20.5, 'to': 21.5}]; p['holds'] = [{'at': 2.0, 'dur': 1.0}]; p['redactions'] = [{'from': 1.0, 'to': 4.0, 'x': 100, 'y': 200, 'w': 300, 'h': 80}, {'from': 5.0, 'to': 6.0, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}]; p['bumpers'] = {'intro': 'bumper.mp4'}; p['brand']['logo'] = 'logo.png'; p['brand']['theme'] = 'dark'" "master cards segs concat ass final verify" "cut.mp4 var-ops.mp4 verify.png"
+  variant exports "p['loudness'] = {'target': -14}; p['exports'] = {'height': 720, 'preview': {'from': 3.0, 'to': 8.0}, 'formats': ['srt', 'vtt', 'txt', 'chapters']}" "master cards segs concat ass final" "var-exports.mp4 var-exports-720p.mp4 var-exports-preview.mp4 var-exports.vtt var-exports.txt var-exports-chapters.txt var-exports.srt"
   python3 - "$WORK" "$HERE/build_demo.py" <<'PY'
 import json, os, re, subprocess, sys
 work, build_py = sys.argv[1], sys.argv[2]
@@ -317,6 +318,31 @@ out = subprocess.run(['uv', 'run', '--with', 'numpy', os.path.join(os.path.dirna
 m = re.search(r'offset: (-?[\d.]+)', out)
 if not m or abs(float(m.group(1)) + 0.35) > 0.02:
     fails.append(f'voice-offset.py: {out.strip()!r}, expected offset: -0.350 +/- 0.02')
+v = os.path.join(work, 'var-exports')
+def probe_h(path):
+    return int(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'default=nw=1:nk=1', path]).strip())
+if probe_h(os.path.join(v, 'var-exports-720p.mp4')) != 720:
+    fails.append('exports: 720p copy is not 720 px tall')
+pv = dur(os.path.join(v, 'var-exports-preview.mp4'))
+if abs(pv - 5.0) > 0.1:
+    fails.append(f'exports: preview {pv:.2f}s, expected 5.0')
+vtt = open(os.path.join(v, 'var-exports.vtt')).read()
+if not vtt.startswith('WEBVTT') or vtt.count(' --> ') != 4:
+    fails.append('exports: vtt header or cue count wrong')
+txt = open(os.path.join(v, 'var-exports.txt')).read().strip().splitlines()
+if len(txt) != 4 or not txt[0].startswith('[00:03] Welcome'):
+    fails.append(f'exports: txt lines {txt[:2]}')
+ch = open(os.path.join(v, 'var-exports-chapters.txt')).read().splitlines()
+if len(ch) != 2 or not ch[0].startswith('00:00 Acme Console') or not ch[1].endswith(' Models'):
+    fails.append(f'exports: chapter list {ch}')
+chapters = subprocess.check_output(['ffprobe', '-v', 'error', '-show_chapters', '-of', 'csv=p=0', os.path.join(v, 'var-exports.mp4')]).decode().strip().splitlines()
+if len(chapters) != 2:
+    fails.append(f'exports: {len(chapters)} mp4 chapters, expected 2')
+# loudness target -14 on the voice chain
+err = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', os.path.join(v, 'voice.wav'), '-af', 'ebur128', '-f', 'null', '-'], capture_output=True, text=True).stderr
+lufs = float(re.search(r'^\s+I:\s+(-?[\d.]+) LUFS', err, re.M).group(1))
+if abs(lufs + 14.0) > 1.5:
+    fails.append(f'exports: voice.wav at {lufs} LUFS, expected -14 +/- 1.5')
 if fails:
     print('\n'.join('FAIL: ' + f for f in fails))
     sys.exit(1)
