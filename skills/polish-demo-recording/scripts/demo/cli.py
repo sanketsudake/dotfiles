@@ -54,18 +54,17 @@ def main(argv=None):
     tm = timeline.TimeMap(tl)
     if 'ass' in stages:
         open('overlays.ass', 'w').write(overlays.build_ass(ctx, tl, tm))
-        open('overlays_cc.ass', 'w').write(overlays.build_ass(ctx, tl, tm, captions=True))
-        overlays.write_srt(ctx, tm)
-        print('overlays + srt ok')
+        if ctx.transcript:
+            open('overlays_cc.ass', 'w').write(overlays.build_ass(ctx, tl, tm, captions=True))
+            overlays.write_srt(ctx, tm)
+        print('overlays + srt ok' if ctx.transcript else 'overlays ok (no transcript, no captions)')
     if 'final' in stages:
         music = ctx.music
-        if music:
-            render.final(ctx, f'{ctx.out}.mp4', 'overlays.ass', music)
+        render.final(ctx, f'{ctx.out}.mp4', 'overlays.ass', music)
+        if ctx.transcript:
             render.final(ctx, f'{ctx.out}-captions.mp4', 'overlays_cc.ass', music)
+        if music:
             render.final(ctx, f'{ctx.out}-no-music.mp4', 'overlays.ass', None)
-        else:
-            render.final(ctx, f'{ctx.out}.mp4', 'overlays.ass', None)
-            render.final(ctx, f'{ctx.out}-captions.mp4', 'overlays_cc.ass', None)
     if 'verify' in stages:
         verify.verify(ctx, tl, tm)
     return 0

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Process the narration of a screen recording into a broadcast-level stereo WAV.
-# usage: voice-chain.sh <src.mov> <out.wav> [--window a:b ...] [--nr 12] [--nlm 2] [--no-nlm]
+# usage: voice-chain.sh <src.mov> <out.wav> [--offset s] [--window a:b ...] [--nr 12] [--nlm 2] [--no-nlm]
+#   --offset s     shift the track before every other filter: positive s prepends s seconds of silence
+#                  (the track starts late), negative trims -s seconds from the head (the track starts early).
+#                  Measure it with voice-offset.py on a separately recorded track.
 #   --window a:b   extra rumble removal (steep high-pass, low-shelf, denoise) only between a and b seconds;
 #                  repeat for several windows. Use for a passing vehicle or a bump on the desk.
 #   --dip a:b      shaped -16 dB gain dip between a and b (a pure-silence gap that still carries noise).
@@ -10,9 +13,10 @@
 # afftdn alone leaves gaps at -31 dB after make-up gain; anlmdn is what keeps them low.
 set -euo pipefail
 src="${1:?src}"; out="${2:?out.wav}"; shift 2
-NR=12; NLM=2; WIN=(); DIP=()
+NR=12; NLM=2; OFFSET=0; WIN=(); DIP=()
 while [ $# -gt 0 ]; do
   case "$1" in
+    --offset) OFFSET="$2"; shift 2;;
     --window) WIN+=("$2"); shift 2;;
     --dip) DIP+=("$2"); shift 2;;
     --nr) NR="$2"; shift 2;;
@@ -21,7 +25,17 @@ while [ $# -gt 0 ]; do
     *) echo "unknown arg $1" >&2; exit 2;;
   esac
 done
-chain="pan=mono|c0=c0,highpass=f=90,afftdn=nf=-48:nr=${NR}:tn=1"
+pre=""
+if [ "${OFFSET:-0}" != "0" ]; then
+  # positive: the track starts late, lead with silence; negative: the track starts early, drop its head.
+  if awk "BEGIN{exit !($OFFSET > 0)}"; then
+    ms=$(awk "BEGIN{printf \"%d\", $OFFSET*1000}")
+    pre="adelay=delays=${ms}:all=1,"
+  else
+    pre="atrim=start=$(awk "BEGIN{printf \"%.3f\", -($OFFSET)}"),asetpts=PTS-STARTPTS,"
+  fi
+fi
+chain="${pre}pan=mono|c0=c0,highpass=f=90,afftdn=nf=-48:nr=${NR}:tn=1"
 [ "$NLM" != "0" ] && chain="$chain,anlmdn=s=${NLM}:p=0.002:r=0.006"
 for w in "${WIN[@]:-}"; do
   [ -n "$w" ] || continue; a="${w%%:*}"; b="${w##*:}"; en="enable='between(t,${a},${b})'"

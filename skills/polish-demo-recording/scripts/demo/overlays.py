@@ -6,6 +6,8 @@ from demo.render import fs, sx, sy, tw
 
 
 def load_words(ctx):
+    if not ctx.transcript:
+        return []
     d = json.load(open(ctx.transcript))
     return [(w['start'], w['end'], w['word'].strip()) for s in d['segments'] for w in s.get('words', [])]
 
@@ -13,6 +15,8 @@ def load_words(ctx):
 def gaps(ctx, boundaries):
     """Print every narration gap of 1.2 s or more with a suggested treatment (card, speed-up), plus clip boundaries."""
     rows = [(b, f'{b:9.2f} {b:9.2f}   0.0  clip boundary') for b in boundaries]
+    if ctx.transcript is None:
+        print('no transcript (voice: none); clip boundaries only')
     words = load_words(ctx)
     for i in range(1, len(words)):
         g = words[i][0] - words[i - 1][1]

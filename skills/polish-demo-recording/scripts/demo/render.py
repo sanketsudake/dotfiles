@@ -49,9 +49,11 @@ def master_vf(ctx):
 
 def master(ctx):
     raw = prepare(ctx)
-    voice = ctx.voice_wav
     ff('-i', raw, '-vf', master_vf(ctx), '-an', '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p', 'master_v.mp4')
-    ff('-i', 'master_v.mp4', '-i', voice, '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
+    if ctx.voice_mode == 'none':
+        ff('-i', 'master_v.mp4', '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
+    else:
+        ff('-i', 'master_v.mp4', '-i', ctx.voice_wav, '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
     print('master.mov', dur(ctx.master))
 
 
