@@ -44,7 +44,7 @@ BASELINE_DIR = REPO_ROOT / "skills" / ".security" / "skillspector"
 INSTALL_HINT = "make skillspector-install (pinned to SKILLSPECTOR_REF in the Makefile)"
 # Local build/cache artifacts: gitignored, never installed, but a scan of the
 # live tree would flag them (a .pyc next to clean sources is a supply-chain hit).
-EXPORT_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "node_modules", ".venv")
+EXPORT_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "node_modules", ".venv", ".work")
 FAIL_SEVERITIES = {"HIGH", "CRITICAL"}
 
 

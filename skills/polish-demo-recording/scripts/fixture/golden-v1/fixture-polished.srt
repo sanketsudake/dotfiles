@@ -1,0 +1,16 @@
+1
+00:00:03,049 --> 00:00:06,500
+Welcome to the Acme Console demo.
+
+2
+00:00:08,050 --> 00:00:11,499
+First we open the models page.
+
+3
+00:00:13,750 --> 00:00:16,700
+Now the chat playground answers.
+
+4
+00:00:18,683 --> 00:00:22,083
+Thanks for watching today.
+

@@ -1,0 +1,97 @@
+[
+ {
+  "kind": "card",
+  "img": "cards/open.png",
+  "dur": 3.2,
+  "file": "seg/000.mp4",
+  "len": 3.2,
+  "out": 0.0
+ },
+ {
+  "kind": "src",
+  "a": 0.2,
+  "b": 5.6,
+  "speed": 1,
+  "badge": false,
+  "zoom": null,
+  "file": "seg/001.mp4",
+  "len": 5.4,
+  "out": 2.75
+ },
+ {
+  "kind": "src",
+  "a": 5.6,
+  "b": 8.9,
+  "speed": 1,
+  "badge": false,
+  "zoom": [
+   1.25,
+   960,
+   540
+  ],
+  "file": "seg/002.mp4",
+  "len": 3.3,
+  "out": 8.15
+ },
+ {
+  "kind": "src",
+  "a": 8.9,
+  "b": 9.2,
+  "speed": 1,
+  "badge": false,
+  "zoom": null,
+  "file": "seg/003.mp4",
+  "len": 0.3,
+  "out": 11.45
+ },
+ {
+  "kind": "card",
+  "img": "cards/ch1.png",
+  "dur": 2.4,
+  "chapter": 1,
+  "file": "seg/004.mp4",
+  "len": 2.4,
+  "out": 11.3
+ },
+ {
+  "kind": "src",
+  "a": 11.5,
+  "b": 15.5,
+  "speed": 1,
+  "badge": false,
+  "zoom": null,
+  "file": "seg/005.mp4",
+  "len": 4.0,
+  "out": 13.250000000000002
+ },
+ {
+  "kind": "src",
+  "a": 15.5,
+  "b": 19.6,
+  "speed": 4,
+  "badge": true,
+  "zoom": null,
+  "file": "seg/006.mp4",
+  "len": 1.033333,
+  "out": 17.25
+ },
+ {
+  "kind": "src",
+  "a": 19.6,
+  "b": 23.8,
+  "speed": 1,
+  "badge": false,
+  "zoom": null,
+  "file": "seg/007.mp4",
+  "len": 4.2,
+  "out": 18.283333
+ },
+ {
+  "kind": "card",
+  "img": "cards/end.png",
+  "dur": 5.0,
+  "file": "seg/008.mp4",
+  "len": 5.0,
+  "out": 22.033333
+ }
+]
