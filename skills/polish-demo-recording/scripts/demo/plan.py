@@ -17,6 +17,7 @@ TOP_KEYS = {
     'caption_fixes', 'captions', 'music', 'timing', 'out_prefix', 'redactions', 'bumpers', 'loudness', 'exports',
 }
 STRIP_MODES = ('crop', 'pad', 'none')
+SPEEDUP_MIN_SPAN = 0.95  # seconds; see the speedups check in validate()
 THEMES = {
     'light': {'ink': '#0b1220', 'muted': '#788296', 'card_bg': '#f8fafc', 'light': '#d5d9e2', 'tile_bg': '#ffffff', 'tile_outline': '#e2e6ee'},
     'dark': {'ink': '#f8fafc', 'muted': '#9aa4b8', 'card_bg': '#0b1220', 'light': '#243046', 'tile_bg': '#111a2e', 'tile_outline': '#2a3650'},
@@ -40,6 +41,17 @@ def validate(plan, base_dir):
         for k in keys:
             if k not in obj:
                 e.append(f'{path}.{k}: required')
+
+    def nums(obj, path, keys):
+        """Every present key must hold a number; a wrong type is reported here, not as a crash in the timeline."""
+        for k in keys:
+            if k in obj and not _num(obj[k]):
+                e.append(f'{path}.{k}: must be a number, got {obj[k]!r}')
+
+    def texts(obj, path, keys):
+        for k in keys:
+            if k in obj and not isinstance(obj[k], str):
+                e.append(f'{path}.{k}: must be a string, got {obj[k]!r}')
 
     def num_range(v, path, lo, hi):
         if not _num(v):
@@ -90,6 +102,8 @@ def validate(plan, base_dir):
     brand = plan.get('brand')
     if not isinstance(brand, dict) or not brand.get('name'):
         e.append('brand.name: required')
+    elif not isinstance(brand['name'], str):
+        e.append(f'brand.name: must be a string, got {brand["name"]!r}')
     bump = plan.get('bumpers', {})
     if not isinstance(bump, dict):
         e.append('bumpers: must be {"intro": path|null, "outro": path|null}')
@@ -127,6 +141,7 @@ def validate(plan, base_dir):
         e.append('range: required, {"start": s, "end": s}')
     else:
         need(rng, 'range', ['start', 'end'])
+        nums(rng, 'range', ['start', 'end'])
         span(rng, 'range', 'start', 'end')
     def items(key):
         """Yield (index, item) for a list of objects; a non-object item (a v1 positional array) is reported and skipped."""
@@ -151,6 +166,8 @@ def validate(plan, base_dir):
     ops = []  # (start, end, path) on the master axis, the same windows timeline.build_timeline uses
     for i, c in items('chapters'):
         need(c, f'chapters[{i}]', ['cut', 'title'])
+        nums(c, f'chapters[{i}]', ['cut', 'resume'])
+        texts(c, f'chapters[{i}]', ['title', 'subtitle', 'label'])
         if 'resume' in c and _num(c.get('cut')) and _num(c['resume']) and c['resume'] < c['cut']:
             e.append(f'chapters[{i}].resume: must not be before cut')
         if _num(c.get('cut')):
@@ -158,18 +175,28 @@ def validate(plan, base_dir):
             ops.append((c['cut'], c.get('resume', c['cut']) if _num(c.get('resume')) else c['cut'], f'chapters[{i}]'))
     for i, l in items('labels'):
         need(l, f'labels[{i}]', ['at', 'text'])
+        nums(l, f'labels[{i}]', ['at'])
+        texts(l, f'labels[{i}]', ['text'])
         inside(l.get('at'), f'labels[{i}].at')
     for i, s in items('speedups'):
         need(s, f'speedups[{i}]', ['from', 'to', 'factor'])
+        nums(s, f'speedups[{i}]', ['from', 'to'])
         span(s, f'speedups[{i}]')
         if 'factor' in s:
             num_range(s['factor'], f'speedups[{i}].factor', 1.5, 8)
-        if _num(s.get('from')) and _num(s.get('to')):
+        if 'badge' in s and not isinstance(s['badge'], bool):
+            e.append(f'speedups[{i}].badge: must be true or false, got {s["badge"]!r}')
+        if _num(s.get('from')) and _num(s.get('to')) and s['to'] > s['from']:
+            # The timeline keeps 0.5 s of lead-in and 0.4 s of tail at normal speed; a shorter span would invert the
+            # fast segment (to - 0.4 < from + 0.5) and duplicate source. 0.95 also clears src()'s 0.05 s minimum.
+            if s['to'] - s['from'] <= SPEEDUP_MIN_SPAN:
+                e.append(f'speedups[{i}]: must span more than {SPEEDUP_MIN_SPAN} s (0.5 s lead-in and 0.4 s tail stay at normal speed), got {s["to"] - s["from"]:g}')
             inside(s['from'], f'speedups[{i}].from')
             inside(s['to'], f'speedups[{i}].to')
             ops.append((s['from'] + 0.5, s['to'] - 0.4, f'speedups[{i}]'))
     for i, z in items('zooms'):
         need(z, f'zooms[{i}]', ['from', 'to', 'factor', 'cx', 'cy'])
+        nums(z, f'zooms[{i}]', ['from', 'to', 'cx', 'cy'])
         span(z, f'zooms[{i}]')
         if 'factor' in z:
             num_range(z['factor'], f'zooms[{i}].factor', 1.0, 2.0)
@@ -179,6 +206,7 @@ def validate(plan, base_dir):
             ops.append((z['from'], z['to'], f'zooms[{i}]'))
     for i, c in items('cuts'):
         need(c, f'cuts[{i}]', ['from', 'to'])
+        nums(c, f'cuts[{i}]', ['from', 'to'])
         span(c, f'cuts[{i}]')
         if _num(c.get('from')) and _num(c.get('to')):
             inside(c['from'], f'cuts[{i}].from')
@@ -186,6 +214,7 @@ def validate(plan, base_dir):
             ops.append((c['from'], c['to'], f'cuts[{i}]'))
     for i, h in items('holds'):
         need(h, f'holds[{i}]', ['at', 'dur'])
+        nums(h, f'holds[{i}]', ['at'])
         if 'dur' in h:
             num_range(h['dur'], f'holds[{i}].dur', 0.2, 30)
         if _num(h.get('at')) and _num(h.get('dur')):
@@ -195,6 +224,7 @@ def validate(plan, base_dir):
     frame = (int(video['width']), int(video['height'])) if _num(video.get('width')) and _num(video.get('height')) else None
     for i, r in items('redactions'):
         need(r, f'redactions[{i}]', ['from', 'to', 'x', 'y', 'w', 'h'])
+        nums(r, f'redactions[{i}]', ['from', 'to', 'x', 'y', 'w', 'h'])
         span(r, f'redactions[{i}]')
         mode = r.get('mode', 'blur')
         if mode not in ('blur', 'box'):
@@ -208,11 +238,15 @@ def validate(plan, base_dir):
                 e.append(f'redactions[{i}]: box {r["x"]},{r["y"]} {r["w"]}x{r["h"]} lies outside the {frame[0]}x{frame[1]} frame')
     for i, c in items('callouts'):
         need(c, f'callouts[{i}]', ['at', 'text'])
+        nums(c, f'callouts[{i}]', ['at'])
+        texts(c, f'callouts[{i}]', ['text'])
+        nums(c, f'callouts[{i}]', ['dur'])
         inside(c.get('at'), f'callouts[{i}].at')
-        if 'text' in c and len(str(c['text'])) > 60:
+        if isinstance(c.get('text'), str) and len(c['text']) > 60:
             e.append(f'callouts[{i}].text: longer than 60 characters')
     for i, f in items('caption_fixes'):
         need(f, f'caption_fixes[{i}]', ['find', 'replace'])
+        texts(f, f'caption_fixes[{i}]', ['find', 'replace'])
     ops.sort()
     for (a1, b1, p1), (a2, b2, p2) in zip(ops, ops[1:]):
         if a2 < b1:
@@ -231,6 +265,8 @@ def validate(plan, base_dir):
     for k in ('card_dur', 'open_dur', 'end_dur', 'xfade'):
         if k in plan.get('timing', {}):
             num_range(plan['timing'][k], f'timing.{k}', 0.1, 30)
+    nums(plan, 'plan', ['callout_dur'])
+    texts(plan, 'plan', ['first_label', 'out_prefix'])
     loud = plan.get('loudness', {})
     if not isinstance(loud, dict):
         e.append('loudness: must be {"target": -14|-16|-23}')
@@ -252,6 +288,7 @@ def validate(plan, base_dir):
             e.append('exports.preview: must be {"from": s, "to": s} in output seconds')
         else:
             need(pv, 'exports.preview', ['from', 'to'])
+            nums(pv, 'exports.preview', ['from', 'to'])
             span(pv, 'exports.preview')
     fmts = ex.get('formats', ['srt'])
     if not isinstance(fmts, list) or any(f not in ('srt', 'vtt', 'txt', 'chapters') for f in fmts):

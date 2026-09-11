@@ -99,6 +99,8 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 ## Operations (chapters, labels, speedups, zooms, callouts, caption_fixes)
 
 All times below are master seconds and must lie inside `range`.
+Every field is checked for type as well as presence:
+a string where a number is due (`"cut": "later"`) is reported as `chapters[0].cut: must be a number`, not as a crash in the timeline.
 `chapters`, `speedups`, `zooms`, `cuts` and `holds` share one axis of non-overlapping windows:
 chapters `[cut, resume]`, speed-ups `[from + 0.5, to − 0.4]`, zooms `[from, to]`, cuts `[from, to]`, holds `[at, at + dur]`;
 validation sorts them by start and rejects any pair that overlaps.
@@ -125,7 +127,7 @@ validation sorts them by start and rejects any pair that overlaps.
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `from` | number, seconds | required | master second the fast section starts |
-| `to` | number, seconds | required | master second it ends; must be greater than `from` |
+| `to` | number, seconds | required | master second it ends; must be more than 0.95 s after `from` (0.5 s of lead-in and 0.4 s of tail stay at normal speed, so a shorter span would invert the fast segment) |
 | `factor` | number, 1.5..8 | required | playback speed multiplier; kept as the JSON value (`atempo`/`setpts` read it verbatim) |
 | `badge` | bool | `false` | show the "Nx fast forward" badge |
 
@@ -202,7 +204,7 @@ Phase 3.
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `intro` | path or null | none | clip placed before the open card, normalized to the master frame (see [sources](#sources)) and level-matched with `loudnorm`, joined with the same dissolve as a card |
+| `intro` | path or null | none | clip placed before the open card, normalized to the master frame (see [sources](#sources)) and level-matched with `loudnorm` to `loudness.target`, joined with the same dissolve as a card |
 | `outro` | path or null | none | clip placed after the end card, same treatment |
 
 Cached at `bumper/<intro|outro>.mov`, keyed by the `bumpers` key name, not the file path;
