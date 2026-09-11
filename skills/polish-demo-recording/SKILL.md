@@ -61,6 +61,7 @@ Decide from numbers:
 | noise floor vs speech RMS gap < 25 dB | audible hiss or room tone | keep the default denoiser (`--nr 12 --nlm 2`) |
 | `chrome-top.png` shows tabs and an address bar | browser chrome in frame | measure its height in px (64 on Chrome/Helium at 1080p) and set `chrome_top` and `video.strip.mode: crop`; a terminal or IDE recording with no chrome takes `strip.mode: pad` to keep the header, or `none` |
 | silences > 4 s | waiting on the UI | fast-forward candidates, not cuts |
+| `== audio: none` | the recording has no audio stream | set `voice` to `"none"`, or record the narration separately and use `voice: {path, offset}` |
 | `pixel_scale: 2` | a 2x Retina capture | `video.width/height` still default to the source's native size, so pixels stay 1:1; set them smaller only to downscale on purpose |
 
 ### 2. Transcribe with word timestamps
@@ -114,7 +115,7 @@ Fill the rest of `plan.json` from the gap list and the transcript:
 - **Redactions** blur or box a region in master pixels for a window;
   measure the box on a direct-seek frame.
   They live in the master, so a re-plan never moves them.
-- **Bumpers** are intro and outro clips normalized to the frame and level-matched.
+- **Bumpers** are intro and outro clips normalized to the frame and level-matched to the plan's loudness target.
   A changed bumper file keeps its old render until `bumper/` is deleted, like `norm/`.
 - **Logo** replaces the product name on chapter and end cards, joins the hero name on the open card, and sits in the strip.
 - **Theme** `dark` swaps the card palette; `accent` stays.
