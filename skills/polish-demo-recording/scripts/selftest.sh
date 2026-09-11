@@ -96,12 +96,36 @@ json.dump(p, open(sys.argv[2], 'w'))
 PY
 if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/overlap.json" gaps 2> "$WORK/overlap.txt"; then fail "overlapping ops were accepted"; fi
 grep -q 'zooms\[1\]: overlaps speedups\[0\]' "$WORK/overlap.txt" || fail "overlap message missing: $(cat "$WORK/overlap.txt")"
+# Wrong field types must be reported as rules, not as a crash in the timeline arithmetic.
+python3 - "$WORK/plan.json" "$WORK/types.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+p['chapters'] = [{'cut': 'later', 'title': 7}]
+p['labels'] = [{'at': '3', 'text': 'x'}]
+p['zooms'] = [{'from': 5.6, 'to': 8.9, 'factor': 1.25, 'cx': '960', 'cy': 540}]
+p['callouts'] = [{'at': 1.0, 'text': 'x', 'dur': 'long'}]
+p['redactions'] = [{'from': 1, 'to': 2, 'x': 'left', 'y': 0, 'w': 50, 'h': 50}]
+json.dump(p, open(sys.argv[2], 'w'))
+PY
+if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/types.json" gaps 2> "$WORK/types.txt"; then fail "wrong field types were accepted"; fi
+for msg in 'chapters\[0\].cut: must be a number' 'chapters\[0\].title: must be a string' 'labels\[0\].at: must be a number' 'zooms\[0\].cx: must be a number' 'callouts\[0\].dur: must be a number' 'redactions\[0\].x: must be a number'; do
+  grep -q "$msg" "$WORK/types.txt" || fail "type message missing ($msg): $(cat "$WORK/types.txt")"
+done
+grep -q Traceback "$WORK/types.txt" && fail "type validation crashed instead of reporting"
+# A speed-up shorter than its 0.5 s + 0.4 s edge guards would invert and duplicate source; validation must refuse it.
+python3 - "$WORK/plan.json" "$WORK/short.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+p['speedups'] = [{'from': 15.0, 'to': 15.9, 'factor': 4}]
+json.dump(p, open(sys.argv[2], 'w'))
+PY
+if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/short.json" gaps 2> "$WORK/short.txt"; then fail "a 0.9 s speed-up was accepted"; fi
+grep -q 'speedups\[0\]: must span more than 0.95 s' "$WORK/short.txt" || fail "short speed-up message missing: $(cat "$WORK/short.txt")"
 
 cd "$WORK"
 BUILD="uv run --with pillow>=10 $HERE/build_demo.py"
 $BUILD plan.json gaps > gaps.txt
-$BUILD plan.json > build.txt
-$BUILD plan.json verify > verify.txt
+$BUILD plan.json > build.txt  # every stage, verify included
 
 # ---- structural asserts
 python3 - "$WORK" <<'PY'
@@ -128,7 +152,7 @@ for name in ['fixture-polished.mp4', 'fixture-polished-no-music.mp4', 'fixture-p
         check(abs(dur(name, 'v:0') - dur(name, 'a:0')) <= 0.05, f'{name}: video and audio durations differ by more than 50 ms')
 voice = lufs('voice.wav')
 check(abs(voice + 16.0) <= 1.5, f'voice.wav integrated loudness {voice}, expected -16 +/- 1.5')
-check(re.search(r'^loudness: I -?[\d.]+ LUFS, target -16 \(ok\)', open('verify.txt').read(), re.M) is not None, 'verify: loudness line missing or off target')
+check(re.search(r'^loudness: I -?[\d.]+ LUFS, target -16 \(ok\)', open('build.txt').read(), re.M) is not None, 'verify: loudness line missing or off target')
 check(count('overlays.ass', 'Hdr') == 2, 'overlays.ass: expected 2 Hdr events (one per source run)')
 check(count('overlays.ass', 'LT') == 2, 'overlays.ass: expected 2 LT events (two callouts)')
 check(count('overlays.ass', 'Badge') == 1, 'overlays.ass: expected 1 Badge event (one fast-forward)')
@@ -231,6 +255,16 @@ mkdir -p "$WORK/probe"
 bash "$HERE/probe.sh" "$WORK/fixture.mp4" "$WORK/probe" > "$WORK/probe/out.txt" 2>&1 || fail "probe.sh failed: $(tail -5 "$WORK/probe/out.txt")"
 grep -q 'pixel_scale: 1' "$WORK/probe/out.txt" || fail "probe: pixel_scale line missing"
 [ -s "$WORK/probe/frame30.png" ] && [ -s "$WORK/probe/chrome-top.png" ] || fail "probe: frames missing"
+# No audio stream (a voice: "none" recording): the audio analyses are skipped, the frames still come out.
+mkdir -p "$WORK/probe-noaudio"
+bash "$HERE/probe.sh" "$WORK/noaudio.mp4" "$WORK/probe-noaudio" > "$WORK/probe-noaudio/out.txt" 2>&1 || fail "probe.sh failed on a silent-video file: $(tail -5 "$WORK/probe-noaudio/out.txt")"
+grep -q '== audio: none' "$WORK/probe-noaudio/out.txt" || fail "probe: no-audio line missing"
+[ -s "$WORK/probe-noaudio/montage.png" ] && [ -s "$WORK/probe-noaudio/chrome-top.png" ] || fail "probe: frames missing for the no-audio file"
+# A continuous tone has no silence over 1.5 s; "none found" is a result, not a failure.
+mkdir -p "$WORK/probe-tone"
+bash "$HERE/probe.sh" "$WORK/tone12.mp4" "$WORK/probe-tone" > "$WORK/probe-tone/out.txt" 2>&1 || fail "probe.sh failed on a clip without silences: $(tail -5 "$WORK/probe-tone/out.txt")"
+grep -q '== silences' "$WORK/probe-tone/out.txt" && grep -q 'pixel_scale: 1' "$WORK/probe-tone/out.txt" || fail "probe: tone clip output incomplete"
+grep -q 'start:' "$WORK/probe-tone/out.txt" && fail "probe: a silence was reported on a continuous tone"
 echo "transcribe + probe: ok"
 
 if [ "$VARIANTS" = 1 ]; then
@@ -240,6 +274,7 @@ if [ "$VARIANTS" = 1 ]; then
     mkdir -p "$v"
     ln -sf "$WORK/fixture.mp4" "$v/src.mov"
     ln -sf "$WORK/a.mp4" "$v/a.mp4"; ln -sf "$WORK/b.mp4" "$v/b.mp4"; ln -sf "$WORK/vo.wav" "$v/vo.wav"
+    ln -sf "$WORK/vo-short.wav" "$v/vo-short.wav"
     ln -sf "$WORK/bumper.mp4" "$v/bumper.mp4"
     cp "$FIX/whisper.json" "$v/whisper.json"
     uv run --with pillow python3 -c "from PIL import Image; Image.new('RGBA', (200, 60), (255, 0, 0, 255)).save('$v/logo.png')"
@@ -263,10 +298,10 @@ PY
     ) || fail "variant $name"
   }
   variant multi "p['sources'] = [{'path': 'a.mp4'}, {'path': 'b.mp4'}]" "master cards segs concat ass" "cut.mp4 overlays.ass var-multi.srt"
-  variant voice-file "p['voice'] = {'path': 'vo.wav', 'offset': -0.35}" "master cards segs concat ass" "cut.mp4 overlays_cc.ass"
+  variant voice-file "p['voice'] = {'path': 'vo-short.wav', 'offset': -0.35}" "master cards segs concat ass" "cut.mp4 overlays_cc.ass"
   variant no-voice "p['voice'] = 'none'; p['transcript'] = None" "master cards segs concat ass final" "var-no-voice.mp4 var-no-voice-no-music.mp4"
-  variant ops "p['cuts'] = [{'from': 20.5, 'to': 21.5}]; p['holds'] = [{'at': 2.0, 'dur': 1.0}]; p['redactions'] = [{'from': 1.0, 'to': 4.0, 'x': 100, 'y': 200, 'w': 300, 'h': 80}, {'from': 5.0, 'to': 6.0, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}]; p['bumpers'] = {'intro': 'bumper.mp4'}; p['brand']['logo'] = 'logo.png'; p['brand']['theme'] = 'dark'" "master cards segs concat ass final verify" "cut.mp4 var-ops.mp4 verify.png"
-  variant exports "p['loudness'] = {'target': -14}; p['exports'] = {'height': 720, 'preview': {'from': 3.0, 'to': 8.0}, 'formats': ['srt', 'vtt', 'txt', 'chapters']}" "master cards segs concat ass final" "var-exports.mp4 var-exports-720p.mp4 var-exports-preview.mp4 var-exports.vtt var-exports.txt var-exports-chapters.txt var-exports.srt"
+  variant ops "p['cuts'] = [{'from': 20.5, 'to': 21.5}]; p['holds'] = [{'at': 2.0, 'dur': 1.0}]; p['redactions'] = [{'from': 1.0, 'to': 4.0, 'x': 100, 'y': 200, 'w': 300, 'h': 80}, {'from': 5.0, 'to': 6.0, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}]; p['bumpers'] = {'intro': 'bumper.mp4'}; p['brand']['logo'] = 'logo.png'; p['brand']['theme'] = 'dark'; p['loudness'] = {'target': -23}" "master cards segs concat ass final verify" "cut.mp4 var-ops.mp4 verify.png"
+  variant exports "p['loudness'] = {'target': -14}; p['chapters'][0]['title'] = 'Models = v2; #1'; p['exports'] = {'height': 720, 'preview': {'from': 3.0, 'to': 8.0}, 'formats': ['srt', 'vtt', 'txt', 'chapters']}" "master cards segs concat ass final" "var-exports.mp4 var-exports-720p.mp4 var-exports-preview.mp4 var-exports.vtt var-exports.txt var-exports-chapters.txt var-exports.srt"
   python3 - "$WORK" "$HERE/build_demo.py" <<'PY'
 import json, os, re, subprocess, sys
 work, build_py = sys.argv[1], sys.argv[2]
@@ -313,11 +348,36 @@ err = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', os.path.join(w
 m = re.search(r'silence_end: ([\d.]+)', err)
 if not m or abs(float(m.group(1)) - 0.5) > 0.1:
     fails.append(f'voice-file: first silence_end {m.group(1) if m else "missing"}, expected 0.50 +/- 0.10')
+# voice-file: the track ends 4 s before the video; the master mux pads it, so the video keeps its full length.
+v = os.path.join(work, 'var-voice-file')
+def dur_a(path):
+    return float(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=duration', '-of', 'default=nw=1:nk=1', path]).strip())
+mv, ma = dur(os.path.join(v, 'master.mov')), dur_a(os.path.join(v, 'master.mov'))
+if abs(mv - 24.0) > 0.1 or abs(ma - mv) > 0.05:
+    fails.append(f'voice-file: master.mov video {mv:.2f}s, audio {ma:.2f}s; expected both 24.0 (short voice padded, video not truncated)')
+if 'clamped to' in open(os.path.join(v, 'build.txt')).read():
+    fails.append('voice-file: src_end was clamped to a master shortened by the voice track')
+# ops: bumpers follow the plan's loudness target (-23 here), like the narration.
+def lufs(path):
+    err = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', path, '-af', 'ebur128', '-f', 'null', '-'], capture_output=True, text=True).stderr
+    return float(re.search(r'^\s+I:\s+(-?[\d.]+) LUFS', err, re.M).group(1))
+v = os.path.join(work, 'var-ops')
+for name, want in (('voice.wav', -23.0), (os.path.join('bumper', 'intro.mov'), -23.0)):
+    got = lufs(os.path.join(v, name))
+    if abs(got - want) > 1.5:
+        fails.append(f'ops: {name} at {got} LUFS, expected {want} +/- 1.5')
 # voice-offset.py must recover the fixture's known offset from the two files.
 out = subprocess.run(['uv', 'run', '--with', 'numpy', os.path.join(os.path.dirname(build_py), 'voice-offset.py'), os.path.join(work, 'fixture.mp4'), os.path.join(work, 'vo.wav')], capture_output=True, text=True).stdout
 m = re.search(r'offset: (-?[\d.]+)', out)
 if not m or abs(float(m.group(1)) + 0.35) > 0.02:
     fails.append(f'voice-offset.py: {out.strip()!r}, expected offset: -0.350 +/- 0.02')
+# A track that starts late (positive offset) with a --window whose matching sound lies before the window in track time
+# (master 12 s is track 10 s). The window starts on the burst, like a clap or a first word; the fixture's bursts are the
+# same tone, so a wider window that let the 20 s burst into the track span would lock on it instead.
+out = subprocess.run(['uv', 'run', '--with', 'numpy', os.path.join(os.path.dirname(build_py), 'voice-offset.py'), os.path.join(work, 'fixture.mp4'), os.path.join(work, 'vo-late.wav'), '--window', '12:14'], capture_output=True, text=True).stdout
+m = re.search(r'offset: (-?[\d.]+)', out)
+if not m or abs(float(m.group(1)) - 2.0) > 0.02:
+    fails.append(f'voice-offset.py --window 12:14 on a late track: {out.strip()!r}, expected offset: 2.000 +/- 0.02')
 v = os.path.join(work, 'var-exports')
 def probe_h(path):
     return int(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'default=nw=1:nk=1', path]).strip())
@@ -333,11 +393,12 @@ txt = open(os.path.join(v, 'var-exports.txt')).read().strip().splitlines()
 if len(txt) != 4 or not txt[0].startswith('[00:03] Welcome'):
     fails.append(f'exports: txt lines {txt[:2]}')
 ch = open(os.path.join(v, 'var-exports-chapters.txt')).read().splitlines()
-if len(ch) != 2 or not ch[0].startswith('00:00 Acme Console') or not ch[1].endswith(' Models'):
+if len(ch) != 2 or not ch[0].startswith('00:00 Acme Console') or not ch[1].endswith(' Models = v2; #1'):
     fails.append(f'exports: chapter list {ch}')
-chapters = subprocess.check_output(['ffprobe', '-v', 'error', '-show_chapters', '-of', 'csv=p=0', os.path.join(v, 'var-exports.mp4')]).decode().strip().splitlines()
-if len(chapters) != 2:
-    fails.append(f'exports: {len(chapters)} mp4 chapters, expected 2')
+chapters = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_chapters', '-of', 'json', os.path.join(v, 'var-exports.mp4')]))['chapters']
+titles = [c.get('tags', {}).get('title') for c in chapters]
+if titles != ['Acme Console', 'Models = v2; #1']:
+    fails.append(f'exports: mp4 chapter titles {titles} (FFMETADATA escaping of = ; #)')
 # loudness target -14 on the voice chain
 err = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', os.path.join(v, 'voice.wav'), '-af', 'ebur128', '-f', 'null', '-'], capture_output=True, text=True).stderr
 lufs = float(re.search(r'^\s+I:\s+(-?[\d.]+) LUFS', err, re.M).group(1))

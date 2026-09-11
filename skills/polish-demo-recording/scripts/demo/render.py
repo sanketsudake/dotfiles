@@ -72,7 +72,11 @@ def master(ctx):
     if ctx.voice_mode == 'none':
         ff('-i', 'master_v.mp4', '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
     else:
-        ff('-i', 'master_v.mp4', '-i', ctx.voice_wav, '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
+        # A voice track that ends early (separate recorder, negative offset) is padded with silence up to the video's
+        # length, so the video always sets the master duration and no tail of the screen recording is dropped.
+        # whole_dur ends the audio exactly there; plain apad + -shortest leaves the audio ~75 ms short of the video.
+        # -shortest still trims a track that runs past the video.
+        ff('-i', 'master_v.mp4', '-i', ctx.voice_wav, '-af', f'apad=whole_dur={dur("master_v.mp4"):.3f}', '-c:v', 'copy', '-c:a', 'pcm_s16le', '-shortest', ctx.master)
     print('master.mov', dur(ctx.master))
 
 

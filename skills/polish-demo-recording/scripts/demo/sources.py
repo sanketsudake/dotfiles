@@ -46,7 +46,7 @@ def normalize_clip(ctx, path, out, seek=(), loudnorm=False):
     if not info['has_audio']:
         inputs += ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']
         maps = ['-map', '0:v', '-map', '1:a', '-shortest']
-    af = ['-af', 'loudnorm=I=-16:TP=-1.5'] if (loudnorm and info['has_audio']) else []
+    af = ['-af', f'loudnorm=I={ctx.loudness_target:g}:TP=-1.5'] if (loudnorm and info['has_audio']) else []
     vf = f'fps={ctx.fps},{fit_vf(ctx)},format=yuv420p'
     ff(*inputs, *maps, '-vf', vf, *af, '-c:v', 'libx264', '-crf', '15', '-preset', 'fast', '-pix_fmt', 'yuv420p',
        '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '2', out)
@@ -54,7 +54,7 @@ def normalize_clip(ctx, path, out, seek=(), loudnorm=False):
 
 
 def bumper(ctx, which):
-    """Normalize bumpers.<which> into bumper/<which>.mov (level-matched); None when not set."""
+    """Normalize bumpers.<which> into bumper/<which>.mov, level-matched to loudness.target; None when not set."""
     path = ctx.bumpers.get(which)
     if not path:
         return None

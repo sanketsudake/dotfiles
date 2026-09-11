@@ -16,7 +16,7 @@ import json
 import sys
 from demo import exports, overlays, plan, render, sources, timeline, verify
 
-DEFAULT_STAGES = ['master', 'cards', 'segs', 'concat', 'ass', 'final']
+DEFAULT_STAGES = ['master', 'cards', 'segs', 'concat', 'ass', 'final', 'verify']
 
 
 def main(argv=None):

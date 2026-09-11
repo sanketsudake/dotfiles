@@ -33,6 +33,12 @@ def write_txt(ctx, tm):
     open(f'{ctx.out}.txt', 'w').write('\n'.join(lines) + '\n')
 
 
+def _ffmeta_escape(s):
+    """FFMETADATA1 value: backslash-escape '=', ';', '#' and '\\', and flatten newlines (a raw one would end the entry)."""
+    s = ' '.join(str(s).splitlines())
+    return ''.join('\\' + ch if ch in '\\=;#' else ch for ch in s)
+
+
 def write_chapters(ctx, tl, tm):
     """YouTube form (`MM:SS Title`, first at 00:00) and an ffmetadata file for mp4 chapters. Returns the ffmeta path."""
     marks = [(0.0, ctx.brand['name'])]
@@ -44,7 +50,7 @@ def write_chapters(ctx, tl, tm):
     meta = [';FFMETADATA1']
     for i, (t, title) in enumerate(marks):
         end = marks[i + 1][0] if i + 1 < len(marks) else total
-        meta += ['[CHAPTER]', 'TIMEBASE=1/1000', f'START={int(t * 1000)}', f'END={int(end * 1000)}', f'title={title}']
+        meta += ['[CHAPTER]', 'TIMEBASE=1/1000', f'START={int(t * 1000)}', f'END={int(end * 1000)}', f'title={_ffmeta_escape(title)}']
     path = f'{ctx.out}-chapters.ffmeta'
     open(path, 'w').write('\n'.join(meta) + '\n')
     return path
