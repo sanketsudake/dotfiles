@@ -94,6 +94,7 @@ def validate(plan, base_dir):
             e.append('transcript: must be null when voice is "none"')
     elif isinstance(voice, dict):
         need(voice, 'voice', ['path'])
+        texts(voice, 'voice', ['path'])
         exists(voice.get('path'), 'voice.path')
         if 'offset' in voice and not _num(voice['offset']):
             e.append('voice.offset: must be a number (seconds; the master time at which the track starts, negative when the track starts early)')
@@ -252,6 +253,9 @@ def validate(plan, base_dir):
         if a2 < b1:
             e.append(f'{p2}: overlaps {p1} ({a1}..{b1} and {a2}..{b2})')
     caps = plan.get('captions', {})
+    if not isinstance(caps, dict):
+        e.append('captions: must be an object')
+        caps = {}
     if 'max_width_frac' in caps:
         num_range(caps['max_width_frac'], 'captions.max_width_frac', 0.3, 1.0)
     music = plan.get('music')
@@ -262,11 +266,17 @@ def validate(plan, base_dir):
             exists(music['path'], 'music.path')
             if 'volume' in music:
                 num_range(music['volume'], 'music.volume', 0.0, 1.0)
+    timing = plan.get('timing', {})
+    if not isinstance(timing, dict):
+        e.append('timing: must be an object')
+        timing = {}
     for k in ('card_dur', 'open_dur', 'end_dur', 'xfade'):
-        if k in plan.get('timing', {}):
-            num_range(plan['timing'][k], f'timing.{k}', 0.1, 30)
+        if k in timing:
+            num_range(timing[k], f'timing.{k}', 0.1, 30)
     nums(plan, 'plan', ['callout_dur'])
-    texts(plan, 'plan', ['first_label', 'out_prefix'])
+    texts(plan, 'plan', ['first_label', 'out_prefix', 'workdir', 'voice_wav'])
+    if plan.get('transcript') is not None and not isinstance(plan['transcript'], str):
+        e.append(f'transcript: must be a path or null, got {plan["transcript"]!r}')
     loud = plan.get('loudness', {})
     if not isinstance(loud, dict):
         e.append('loudness: must be {"target": -14|-16|-23}')

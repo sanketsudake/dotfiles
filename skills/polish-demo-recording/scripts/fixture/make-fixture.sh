@@ -27,12 +27,20 @@ ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -vn -af "adelay=del
 # The same early track cut to 20.35 s, so after the -0.35 trim the voice ends 4 s before the video: the master mux must
 # pad it with silence, not truncate the video to it.
 ffmpeg -hide_banner -loglevel error -y -i "$out/vo.wav" -t 20.35 -c:a pcm_s16le "$out/vo-short.wav"
-# A track that starts 2 s late (head dropped), for the positive-offset check: voice.offset = +2.0.
-ffmpeg -hide_banner -loglevel error -y -ss 2.0 -i "$out/fixture.mp4" -vn -c:a pcm_s16le "$out/vo-late.wav"
+# Pair for the positive-offset check: seeded pink noise gated into the same bursts, and a copy that starts 2 s late
+# (voice.offset = +2.0). Noise, not the tone: the tone repeats every 0.25 s, so its correlation has near-equal peaks
+# one AM cycle apart and a different decoder can tip the argmax; noise has one peak. PCM both, so no AAC priming.
+ffmpeg -hide_banner -loglevel error -y -f lavfi -i "anoisesrc=color=pink:seed=7:r=48000:a=0.5" \
+  -af "volume='${gate}':eval=frame" -t 24 -c:a pcm_s16le "$out/noise-ref.wav"
+ffmpeg -hide_banner -loglevel error -y -ss 2.0 -i "$out/noise-ref.wav" -c:a pcm_s16le "$out/noise-late.wav"
 # probe.sh edge cases: a recording with no audio stream, and a 12 s clip with a continuous tone (no silence at all).
 ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -an -c:v copy "$out/noaudio.mp4"
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i "testsrc2=size=640x360:rate=30" -f lavfi -i "sine=f=440:r=48000" \
   -t 12 -c:v libx264 -crf 24 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 96k -ac 2 "$out/tone12.mp4"
+# A 540x960 portrait copy of the fixture (letterboxed, same audio) for the vertical-video variant.
+ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" \
+  -vf "scale=540:960:force_original_aspect_ratio=decrease,pad=540:960:(ow-iw)/2:(oh-ih)/2" \
+  -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a copy "$out/portrait.mp4"
 # A 2 s bumper (solid colour with a tone) for the ops variant.
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i "color=c=0x3b5bfd:s=1920x1080:r=30" -f lavfi -i "sine=f=440:r=48000" \
   -t 2 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/bumper.mp4"

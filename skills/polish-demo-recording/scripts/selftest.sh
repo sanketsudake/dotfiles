@@ -105,10 +105,12 @@ p['labels'] = [{'at': '3', 'text': 'x'}]
 p['zooms'] = [{'from': 5.6, 'to': 8.9, 'factor': 1.25, 'cx': '960', 'cy': 540}]
 p['callouts'] = [{'at': 1.0, 'text': 'x', 'dur': 'long'}]
 p['redactions'] = [{'from': 1, 'to': 2, 'x': 'left', 'y': 0, 'w': 50, 'h': 50}]
+p['captions'] = None
+p['timing'] = 'fast'
 json.dump(p, open(sys.argv[2], 'w'))
 PY
 if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/types.json" gaps 2> "$WORK/types.txt"; then fail "wrong field types were accepted"; fi
-for msg in 'chapters\[0\].cut: must be a number' 'chapters\[0\].title: must be a string' 'labels\[0\].at: must be a number' 'zooms\[0\].cx: must be a number' 'callouts\[0\].dur: must be a number' 'redactions\[0\].x: must be a number'; do
+for msg in 'chapters\[0\].cut: must be a number' 'chapters\[0\].title: must be a string' 'labels\[0\].at: must be a number' 'zooms\[0\].cx: must be a number' 'callouts\[0\].dur: must be a number' 'redactions\[0\].x: must be a number' 'captions: must be an object' 'timing: must be an object'; do
   grep -q "$msg" "$WORK/types.txt" || fail "type message missing ($msg): $(cat "$WORK/types.txt")"
 done
 grep -q Traceback "$WORK/types.txt" && fail "type validation crashed instead of reporting"
@@ -275,7 +277,7 @@ if [ "$VARIANTS" = 1 ]; then
     ln -sf "$WORK/fixture.mp4" "$v/src.mov"
     ln -sf "$WORK/a.mp4" "$v/a.mp4"; ln -sf "$WORK/b.mp4" "$v/b.mp4"; ln -sf "$WORK/vo.wav" "$v/vo.wav"
     ln -sf "$WORK/vo-short.wav" "$v/vo-short.wav"
-    ln -sf "$WORK/bumper.mp4" "$v/bumper.mp4"
+    ln -sf "$WORK/bumper.mp4" "$v/bumper.mp4"; ln -sf "$WORK/portrait.mp4" "$v/portrait.mp4"
     cp "$FIX/whisper.json" "$v/whisper.json"
     uv run --with pillow python3 -c "from PIL import Image; Image.new('RGBA', (200, 60), (255, 0, 0, 255)).save('$v/logo.png')"
     python3 - "$WORK/plan.json" "$v/plan.json" "$WORK/music.wav" <<PY
@@ -300,7 +302,9 @@ PY
   variant multi "p['sources'] = [{'path': 'a.mp4'}, {'path': 'b.mp4'}]" "master cards segs concat ass" "cut.mp4 overlays.ass var-multi.srt"
   variant voice-file "p['voice'] = {'path': 'vo-short.wav', 'offset': -0.35}" "master cards segs concat ass" "cut.mp4 overlays_cc.ass"
   variant no-voice "p['voice'] = 'none'; p['transcript'] = None" "master cards segs concat ass final" "var-no-voice.mp4 var-no-voice-no-music.mp4"
-  variant ops "p['cuts'] = [{'from': 20.5, 'to': 21.5}]; p['holds'] = [{'at': 2.0, 'dur': 1.0}]; p['redactions'] = [{'from': 1.0, 'to': 4.0, 'x': 100, 'y': 200, 'w': 300, 'h': 80}, {'from': 5.0, 'to': 6.0, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}]; p['bumpers'] = {'intro': 'bumper.mp4'}; p['brand']['logo'] = 'logo.png'; p['brand']['theme'] = 'dark'; p['loudness'] = {'target': -23}" "master cards segs concat ass final verify" "cut.mp4 var-ops.mp4 verify.png"
+  variant ops "p['cuts'] = [{'from': 20.5, 'to': 21.5}]; p['holds'] = [{'at': 2.0, 'dur': 1.0}]; p['redactions'] = [{'from': 1.0, 'to': 4.0, 'x': 100, 'y': 200, 'w': 300, 'h': 80}, {'from': 5.0, 'to': 6.0, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}, {'from': 20.0, 'to': 22.0, 'x': 400, 'y': 400, 'w': 100, 'h': 100}]; p['bumpers'] = {'intro': 'bumper.mp4'}; p['brand']['logo'] = 'logo.png'; p['brand']['theme'] = 'dark'; p['loudness'] = {'target': -23}" "master cards segs concat ass final verify" "cut.mp4 var-ops.mp4 verify.png"
+  # Portrait 540x960: every verify cell must share one canvas or hstack refuses the mixed 640x1138 / 640x360 inputs.
+  variant portrait "p['sources'] = [{'path': 'portrait.mp4'}]; p['video'] = {'width': 540, 'height': 960, 'chrome_top': 0, 'strip': {'mode': 'pad', 'height': 48}}; p['zooms'][0]['cx'] = 270; p['zooms'][0]['cy'] = 480" "" "var-portrait.mp4 verify.png"
   variant exports "p['loudness'] = {'target': -14}; p['chapters'][0]['title'] = 'Models = v2; #1'; p['exports'] = {'height': 720, 'preview': {'from': 3.0, 'to': 8.0}, 'formats': ['srt', 'vtt', 'txt', 'chapters']}" "master cards segs concat ass final" "var-exports.mp4 var-exports-720p.mp4 var-exports-preview.mp4 var-exports.vtt var-exports.txt var-exports-chapters.txt var-exports.srt"
   python3 - "$WORK" "$HERE/build_demo.py" <<'PY'
 import json, os, re, subprocess, sys
@@ -336,6 +340,14 @@ if len(tl) != 13 or sum(1 for s in tl if s.get('hold')) != 1 or sum(1 for s in t
 if count(os.path.join(v, 'overlays.ass'), 'Hdr') != 2:
     fails.append('ops: expected 2 Hdr events')
 log = open(os.path.join(v, 'build.txt')).read()
+# The third redaction (20-22 s) straddles the cut (20.5-21.5): its midpoint is cut away but the region is on screen
+# either side, so verify must still show it. 16 cells: 3 cards, 2 callouts, 1 badge, 1 hold, 1 bumper, 3 redactions,
+# 3 dissolves, 1 zoom pair.
+m = re.search(r'verify\.png: (\d+) frames', log)
+if not m or int(m.group(1)) != 16:
+    fails.append(f'ops: verify.png has {m.group(1) if m else "?"} frames, expected 16 (the redaction straddling the cut must keep a cell)')
+if 'warning: redaction' in log:
+    fails.append('ops: a redaction was reported as entirely inside a cut, but 20-22 s is only partly cut')
 if 'warning: callout' in log:
     fails.append('ops: a callout was dropped, but no callout sits inside the cut (TimeMap regression)')
 if 'warning: caption' in log:
@@ -372,12 +384,18 @@ m = re.search(r'offset: (-?[\d.]+)', out)
 if not m or abs(float(m.group(1)) + 0.35) > 0.02:
     fails.append(f'voice-offset.py: {out.strip()!r}, expected offset: -0.350 +/- 0.02')
 # A track that starts late (positive offset) with a --window whose matching sound lies before the window in track time
-# (master 12 s is track 10 s). The window starts on the burst, like a clap or a first word; the fixture's bursts are the
-# same tone, so a wider window that let the 20 s burst into the track span would lock on it instead.
-out = subprocess.run(['uv', 'run', '--with', 'numpy', os.path.join(os.path.dirname(build_py), 'voice-offset.py'), os.path.join(work, 'fixture.mp4'), os.path.join(work, 'vo-late.wav'), '--window', '12:14'], capture_output=True, text=True).stdout
+# (reference 12..14 s is track 10..12 s). A one-sided search from 12 s in track time has no overlap with it at all.
+out = subprocess.run(['uv', 'run', '--with', 'numpy', os.path.join(os.path.dirname(build_py), 'voice-offset.py'), os.path.join(work, 'noise-ref.wav'), os.path.join(work, 'noise-late.wav'), '--window', '12:14'], capture_output=True, text=True).stdout
 m = re.search(r'offset: (-?[\d.]+)', out)
 if not m or abs(float(m.group(1)) - 2.0) > 0.02:
     fails.append(f'voice-offset.py --window 12:14 on a late track: {out.strip()!r}, expected offset: 2.000 +/- 0.02')
+v = os.path.join(work, 'var-portrait')
+def probe_wh(path):
+    return subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', path]).decode().strip()
+if probe_wh(os.path.join(v, 'var-portrait.mp4')) != '540,960':
+    fails.append(f'portrait: output is {probe_wh(os.path.join(v, "var-portrait.mp4"))}, expected 540,960')
+if probe_wh(os.path.join(v, 'verify', '00.png')) != '640,1138':
+    fails.append(f'portrait: verify cell is {probe_wh(os.path.join(v, "verify", "00.png"))}, expected 640,1138 (one canvas in the frame aspect)')
 v = os.path.join(work, 'var-exports')
 def probe_h(path):
     return int(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'default=nw=1:nk=1', path]).strip())
