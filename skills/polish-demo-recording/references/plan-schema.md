@@ -52,8 +52,8 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `width` | int, 320..7680 | the first clip's native size (from ffprobe) | master pixel width |
-| `height` | int, 320..4320 | the first clip's native size (from ffprobe) | master pixel height |
+| `width` | even int, 320..7680 | the first clip's native size (from ffprobe), rounded down to even | master pixel width; libx264 with yuv420p refuses an odd frame, so an explicit odd value is a validation error |
+| `height` | even int, 320..4320 | the first clip's native size (from ffprobe), rounded down to even | master pixel height; same rule |
 | `fps` | int, 10..120 | `30` | constant frame rate every later stage assumes |
 | `chrome_top` | int, 0..1000 | `0` | rows of browser chrome to crop off the top of the source |
 | `strip` | object | `{}` | see `video.strip` below |
@@ -70,7 +70,7 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 
 | Key | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `name` | string | required | shown in the header strip and on every card |
+| `name` | string | required | shown in the header strip and on every card. Every `brand` key below is type-checked by `validate()`: strings, `#rrggbb` colours, `tiles` as `[title, subtitle]` pairs, `end_lines` as strings, `fonts` as an object |
 | `subtitle` | string | `Product demo` | opening-card subtitle |
 | `accent` | hex color | `#3b5bfd` | header, chapter numerals, tile stripe |
 | `ink` | hex color | `#0b1220` | primary text |
@@ -84,7 +84,7 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 | `end_title` | string | `Thank you` | end-card heading |
 | `end_lines` | list of strings | `[]` | end-card body lines |
 | `fonts` | `{bold, regular}` | see Notes | absolute font file paths; when empty or absent, `resolve()` tries this override, then Arial (macOS), then DejaVu Sans, then Liberation Sans, reusing one matched face for both bold and regular when only one is given, and exits 2 with the tried list if none match |
-| `logo` | path | none | phase 3; PNG. On chapter and end cards it replaces the small `brand.name` mark at the top left; on the open card it joins the hero `brand.name` text there instead of replacing it, because the hero text is the card's layout anchor. In the header strip it sits at the left edge at `strip.height − 16` px tall, only when a strip exists (`video.strip.mode` is not `none`) |
+| `logo` | path | none | phase 3; PNG. Every path field in the plan (`sources[].path`, `voice.path`, `transcript`, `music.path`, `bumpers.*`, this one) must be a string naming an existing file, reported as `<path>: must be a path string` otherwise. On chapter and end cards it replaces the small `brand.name` mark at the top left; on the open card it joins the hero `brand.name` text there instead of replacing it, because the hero text is the card's layout anchor. In the header strip it sits at the left edge at `strip.height − 16` px tall, only when a strip exists (`video.strip.mode` is not `none`) |
 | `theme` | `light` \| `dark` | `light` | phase 3; sets the defaults of `ink`, `muted`, `card_bg`, `light`, `tile_bg` and `tile_outline`; an explicit value for any of those keys still wins over the theme. `accent` is not affected by `theme` |
 | `tile_bg` | hex color | `#ffffff` (`light`) / `#111a2e` (`dark`) | phase 3; opening-card feature-tile background |
 | `tile_outline` | hex color | `#e2e6ee` (`light`) / `#2a3650` (`dark`) | phase 3; opening-card feature-tile border |

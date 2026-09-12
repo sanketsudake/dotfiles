@@ -5,6 +5,7 @@ so a schema change lands here and nowhere else. See ../../references/plan-schema
 """
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from PIL import Image
@@ -31,6 +32,10 @@ def hexrgb(h):
 
 def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _hex(v):
+    return isinstance(v, str) and re.fullmatch(r'#?[0-9a-fA-F]{6}', v) is not None
 
 
 def validate(plan, base_dir):
@@ -64,7 +69,12 @@ def validate(plan, base_dir):
             e.append(f'{path}: {b} must be greater than {a}')
 
     def exists(p, path):
-        if isinstance(p, str) and not os.path.exists(os.path.join(base_dir, p)):
+        """A path field: a string naming a file under base_dir. None was already reported (or allowed) by the caller."""
+        if p is None:
+            return
+        if not isinstance(p, str):
+            e.append(f'{path}: must be a path string, got {p!r}')
+        elif not os.path.exists(os.path.join(base_dir, p)):
             e.append(f'{path}: file not found: {p}')
 
     if not isinstance(plan, dict):
@@ -94,7 +104,6 @@ def validate(plan, base_dir):
             e.append('transcript: must be null when voice is "none"')
     elif isinstance(voice, dict):
         need(voice, 'voice', ['path'])
-        texts(voice, 'voice', ['path'])
         exists(voice.get('path'), 'voice.path')
         if 'offset' in voice and not _num(voice['offset']):
             e.append('voice.offset: must be a number (seconds; the master time at which the track starts, negative when the track starts early)')
@@ -119,6 +128,28 @@ def validate(plan, base_dir):
             exists(brand['logo'], 'brand.logo')
         if brand.get('theme', 'light') not in ('light', 'dark'):
             e.append(f'brand.theme: must be light or dark, got {brand.get("theme")!r}')
+        texts(brand, 'brand', ['subtitle', 'tagline', 'blurb', 'footer', 'end_title'])
+        for k in ('accent', 'ink', 'muted', 'card_bg', 'light', 'tile_bg', 'tile_outline'):
+            if k in brand and not _hex(brand[k]):
+                e.append(f'brand.{k}: must be a hex colour like #3b5bfd, got {brand[k]!r}')
+        tiles = brand.get('tiles', [])
+        if not isinstance(tiles, list):
+            e.append('brand.tiles: must be a list of [title, subtitle] pairs')
+        else:
+            for i, t in enumerate(tiles):
+                if not (isinstance(t, list) and len(t) == 2 and all(isinstance(x, str) for x in t)):
+                    e.append(f'brand.tiles[{i}]: must be [title, subtitle], two strings')
+        lines = brand.get('end_lines', [])
+        if not isinstance(lines, list) or not all(isinstance(x, str) for x in lines):
+            e.append('brand.end_lines: must be a list of strings')
+        fonts = brand.get('fonts')
+        if fonts is not None:
+            if not isinstance(fonts, dict):
+                e.append('brand.fonts: must be {"bold": path, "regular": path}')
+            else:
+                for k in sorted(set(fonts) - {'bold', 'regular'}):
+                    e.append(f'brand.fonts.{k}: unknown key')
+                texts(fonts, 'brand.fonts', ['bold', 'regular'])
     video = plan.get('video', {})
     if not isinstance(video, dict):
         e.append('video: must be an object')
@@ -126,6 +157,10 @@ def validate(plan, base_dir):
     for k, lo, hi in (('width', 320, 7680), ('height', 320, 4320), ('fps', 10, 120), ('chrome_top', 0, 1000)):
         if k in video:
             num_range(video[k], f'video.{k}', lo, hi)
+    for k in ('width', 'height'):
+        v = video.get(k)
+        if _num(v) and (v != int(v) or int(v) % 2):
+            e.append(f'video.{k}: must be an even integer (libx264 with yuv420p needs even frame sizes), got {v!r}')
     strip = video.get('strip', {})
     if not isinstance(strip, dict):
         e.append('video.strip: must be an object')
@@ -275,8 +310,6 @@ def validate(plan, base_dir):
             num_range(timing[k], f'timing.{k}', 0.1, 30)
     nums(plan, 'plan', ['callout_dur'])
     texts(plan, 'plan', ['first_label', 'out_prefix', 'workdir', 'voice_wav'])
-    if plan.get('transcript') is not None and not isinstance(plan['transcript'], str):
-        e.append(f'transcript: must be a path or null, got {plan["transcript"]!r}')
     loud = plan.get('loudness', {})
     if not isinstance(loud, dict):
         e.append('loudness: must be {"target": -14|-16|-23}')
@@ -374,7 +407,8 @@ def build(plan, work):
     if 'width' not in video or 'height' not in video:
         from demo.sources import probe  # local import: sources imports ffmpeg only, but keep plan.py free of a module-level cycle
         info = probe(plan['sources'][0]['path'])
-        video = dict(video, width=video.get('width', info['width']), height=video.get('height', info['height']))
+        # a native odd size (some window captures) is rounded down to even: libx264 with yuv420p refuses odd frames
+        video = dict(video, width=video.get('width', info['width'] // 2 * 2), height=video.get('height', info['height'] // 2 * 2))
     height = int(video['height'])
     strip = video.get('strip', {})
     mode = strip.get('mode', 'crop')
@@ -465,7 +499,9 @@ def build(plan, work):
 def load(path):
     """Read, validate (exit 2 with one 'path: rule' line per error), enter the work dir, and build the Ctx."""
     plan = json.load(open(path))
-    work = os.path.abspath(plan.get('workdir', os.path.dirname(os.path.abspath(path))) if isinstance(plan, dict) else '.')
+    here = os.path.dirname(os.path.abspath(path))
+    workdir = plan.get('workdir') if isinstance(plan, dict) else None
+    work = os.path.abspath(workdir if isinstance(workdir, str) else here)  # a bad workdir is reported by validate()
     errors = validate(plan, work)
     if errors:
         print('plan.json is not valid:', file=sys.stderr)

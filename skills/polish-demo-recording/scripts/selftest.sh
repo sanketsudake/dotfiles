@@ -107,10 +107,16 @@ p['callouts'] = [{'at': 1.0, 'text': 'x', 'dur': 'long'}]
 p['redactions'] = [{'from': 1, 'to': 2, 'x': 'left', 'y': 0, 'w': 50, 'h': 50}]
 p['captions'] = None
 p['timing'] = 'fast'
+p['workdir'] = None
+p['music']['path'] = False
+p['video']['width'] = 321
+p['brand']['accent'] = 'red'
+p['brand']['fonts'] = 'Arial'
+p['brand']['tiles'] = ['x']
 json.dump(p, open(sys.argv[2], 'w'))
 PY
 if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/types.json" gaps 2> "$WORK/types.txt"; then fail "wrong field types were accepted"; fi
-for msg in 'chapters\[0\].cut: must be a number' 'chapters\[0\].title: must be a string' 'labels\[0\].at: must be a number' 'zooms\[0\].cx: must be a number' 'callouts\[0\].dur: must be a number' 'redactions\[0\].x: must be a number' 'captions: must be an object' 'timing: must be an object'; do
+for msg in 'chapters\[0\].cut: must be a number' 'chapters\[0\].title: must be a string' 'labels\[0\].at: must be a number' 'zooms\[0\].cx: must be a number' 'callouts\[0\].dur: must be a number' 'redactions\[0\].x: must be a number' 'captions: must be an object' 'timing: must be an object' 'plan.workdir: must be a string' 'music.path: must be a path string' 'video.width: must be an even integer' 'brand.accent: must be a hex colour' 'brand.fonts: must be' 'brand.tiles\[0\]: must be'; do
   grep -q "$msg" "$WORK/types.txt" || fail "type message missing ($msg): $(cat "$WORK/types.txt")"
 done
 grep -q Traceback "$WORK/types.txt" && fail "type validation crashed instead of reporting"
@@ -218,6 +224,17 @@ assert ctx.logo_w == 160, f'logo_w: got {ctx.logo_w}, want 160'
 got = render.master_vf(ctx)
 want_tail = '[m],movie=logo.png,scale=-1:48[lg];[m][lg]overlay=x=40:y=8,format=yuv420p'
 assert got.endswith(want_tail), f'master_vf with logo:\n  got  {got}\n  want ...{want_tail}'
+
+# Card text fits the frame width: a 16:9 frame keeps the designed size, a 540x960 portrait frame shrinks the hero title.
+land = plan.build(copy.deepcopy(base), '.')
+assert render.fit(land, 'Acme Console', land.fb, 180, render.sx(land, 146)).size == render.fs(land, 180), 'fit shrank a 16:9 hero title'
+port_plan = copy.deepcopy(base)
+port_plan['video'] = {'width': 540, 'height': 960, 'chrome_top': 0, 'strip': {'mode': 'pad', 'height': 48}}
+port = plan.build(port_plan, '.')
+f = render.fit(port, 'Acme Console', port.fb, 180, render.sx(port, 146))
+assert f.size < render.fs(port, 180), 'fit did not shrink the hero title on a portrait frame'
+assert render.sx(port, 146) + f.getlength('Acme Console') <= 540 - int(540 * render.CARD_MARGIN), f'portrait hero title still clips at {f.size} px'
+print('card fit: ok')
 
 dark_plan = copy.deepcopy(base)
 dark_plan['brand']['theme'] = 'dark'

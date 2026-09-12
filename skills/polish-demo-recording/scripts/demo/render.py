@@ -18,6 +18,7 @@ def tw(text, p, s):
 
 
 REF_W, REF_H = 1920, 1080  # the layout was designed at 1080p; every literal below is a 1080p value
+CARD_MARGIN = 0.04  # of the frame width, kept clear at the right edge of every card text
 
 
 def sx(ctx, v):
@@ -33,6 +34,19 @@ def sy(ctx, v):
 def fs(ctx, v):
     """Font size designed at 1080 px, scaled to the frame height."""
     return int(round(v * ctx.H / REF_H))
+
+
+def fit(ctx, text, path, size, x, max_w=None):
+    """Font at fs(size), shrunk in 2 px steps until `text` fits between x and the right margin (or within max_w).
+
+    The layout was designed at 16:9; a portrait frame scales heights well but is far narrower, so a hero title at
+    the height-derived size would run off the card. 16:9 frames never shrink: their texts fit at the designed size."""
+    if max_w is None:
+        max_w = ctx.W - x - int(ctx.W * CARD_MARGIN)
+    s = fs(ctx, size)
+    while s > 8 and tw(text, path, s) > max_w:
+        s -= 2
+    return font(path, s)
 
 
 def redact_vf(ctx):
@@ -105,10 +119,10 @@ def make_cards(ctx):
             d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 52)), fill=ctx.accent)
         d.text((sx(ctx, 156), sy(ctx, 330)), 'CHAPTER', font=font(ctx.fr, fs(ctx, 40)), fill=ctx.muted)
         d.text((sx(ctx, 150), sy(ctx, 360)), f'{i:02d}', font=font(ctx.fb, fs(ctx, 200)), fill=ctx.light)
-        d.text((sx(ctx, 156), sy(ctx, 620)), c['title'], font=font(ctx.fb, fs(ctx, 96)), fill=ctx.ink)
+        d.text((sx(ctx, 156), sy(ctx, 620)), c['title'], font=fit(ctx, c['title'], ctx.fb, 96, sx(ctx, 156)), fill=ctx.ink)
         d.rectangle([sx(ctx, 160), sy(ctx, 770), sx(ctx, 600), sy(ctx, 780)], fill=ctx.accent)
         if c.get('subtitle'):
-            d.text((sx(ctx, 160), sy(ctx, 815)), c['subtitle'], font=font(ctx.fr, fs(ctx, 40)), fill=ctx.muted)
+            d.text((sx(ctx, 160), sy(ctx, 815)), c['subtitle'], font=fit(ctx, c['subtitle'], ctx.fr, 40, sx(ctx, 160)), fill=ctx.muted)
         im.save(f'cards/ch{i}.png')
     im = Image.new('RGB', (ctx.W, ctx.H), ctx.bg)
     d = ImageDraw.Draw(im)
@@ -116,11 +130,11 @@ def make_cards(ctx):
     d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand.get('subtitle', 'Product demo'), font=font(ctx.fr, fs(ctx, 40)), fill=ctx.muted)
     if ctx.logo:
         paste_logo(ctx, im, sx(ctx, 150), sy(ctx, 60), fs(ctx, 40))
-    d.text((sx(ctx, 146), sy(ctx, 300)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 180)), fill=ctx.accent)
+    d.text((sx(ctx, 146), sy(ctx, 300)), ctx.brand['name'], font=fit(ctx, ctx.brand['name'], ctx.fb, 180, sx(ctx, 146)), fill=ctx.accent)
     if ctx.brand.get('tagline'):
-        d.text((sx(ctx, 156), sy(ctx, 520)), ctx.brand['tagline'], font=font(ctx.fb, fs(ctx, 58)), fill=ctx.ink)
+        d.text((sx(ctx, 156), sy(ctx, 520)), ctx.brand['tagline'], font=fit(ctx, ctx.brand['tagline'], ctx.fb, 58, sx(ctx, 156)), fill=ctx.ink)
     if ctx.brand.get('blurb'):
-        d.text((sx(ctx, 158), sy(ctx, 605)), ctx.brand['blurb'], font=font(ctx.fr, fs(ctx, 36)), fill=ctx.muted)
+        d.text((sx(ctx, 158), sy(ctx, 605)), ctx.brand['blurb'], font=fit(ctx, ctx.brand['blurb'], ctx.fr, 36, sx(ctx, 158)), fill=ctx.muted)
     tiles = ctx.brand.get('tiles', [])
     if tiles:
         x, y, th, gap = sx(ctx, 160), sy(ctx, 760), sy(ctx, 150), sx(ctx, 22)
@@ -128,8 +142,9 @@ def make_cards(ctx):
         for t, s in tiles:
             rounded(d, [x, y, x + tw_, y + th], sy(ctx, 18), ctx.tile_bg, outline=ctx.tile_outline, width=sy(ctx, 2))
             d.rectangle([x, y, x + sx(ctx, 6), y + th], fill=ctx.accent)
-            d.text((x + sx(ctx, 28), y + sy(ctx, 36)), t, font=font(ctx.fb, fs(ctx, 30)), fill=ctx.ink)
-            d.text((x + sx(ctx, 28), y + sy(ctx, 84)), s, font=font(ctx.fr, fs(ctx, 24)), fill=ctx.muted)
+            inner = tw_ - sx(ctx, 56)
+            d.text((x + sx(ctx, 28), y + sy(ctx, 36)), t, font=fit(ctx, t, ctx.fb, 30, 0, inner), fill=ctx.ink)
+            d.text((x + sx(ctx, 28), y + sy(ctx, 84)), s, font=fit(ctx, s, ctx.fr, 24, 0, inner), fill=ctx.muted)
             x += tw_ + gap
     if ctx.brand.get('footer'):
         d.text((sx(ctx, 160), sy(ctx, 980)), ctx.brand['footer'], font=font(ctx.fb, fs(ctx, 34)), fill=ctx.ink)
@@ -141,10 +156,11 @@ def make_cards(ctx):
         paste_logo(ctx, im, sx(ctx, 150), sy(ctx, 110), fs(ctx, 52))
     else:
         d.text((sx(ctx, 150), sy(ctx, 110)), ctx.brand['name'], font=font(ctx.fb, fs(ctx, 52)), fill=ctx.accent)
-    d.text((sx(ctx, 150), sy(ctx, 360)), ctx.brand.get('end_title', 'Thank you'), font=font(ctx.fb, fs(ctx, 150)), fill=ctx.ink)
+    end_title = ctx.brand.get('end_title', 'Thank you')
+    d.text((sx(ctx, 150), sy(ctx, 360)), end_title, font=fit(ctx, end_title, ctx.fb, 150, sx(ctx, 150)), fill=ctx.ink)
     d.rectangle([sx(ctx, 160), sy(ctx, 560), sx(ctx, 600), sy(ctx, 570)], fill=ctx.accent)
     for k, line in enumerate(ctx.brand.get('end_lines', [])):
-        d.text((sx(ctx, 160), sy(ctx, 610) + sy(ctx, 55) * k), line, font=font(ctx.fr, fs(ctx, 40)), fill=ctx.muted)
+        d.text((sx(ctx, 160), sy(ctx, 610) + sy(ctx, 55) * k), line, font=fit(ctx, line, ctx.fr, 40, sx(ctx, 160)), fill=ctx.muted)
     if ctx.brand.get('footer'):
         d.text((sx(ctx, 160), sy(ctx, 980)), ctx.brand['footer'], font=font(ctx.fb, fs(ctx, 34)), fill=ctx.ink)
     im.save('cards/end.png')

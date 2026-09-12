@@ -119,6 +119,7 @@ Fill the rest of `plan.json` from the gap list and the transcript:
   A changed bumper file keeps its old render until `bumper/` is deleted, like `norm/`.
 - **Logo** replaces the product name on chapter and end cards, joins the hero name on the open card, and sits in the strip.
 - **Theme** `dark` swaps the card palette; `accent` stays.
+- **Card text fits the width**: the layout is designed at 16:9, so on a portrait frame each card title, tagline, blurb, tile and end line is shrunk until it fits between its left edge and a 4 % right margin; 16:9 frames keep the designed sizes.
 
 ### 5. Build
 
