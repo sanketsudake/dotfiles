@@ -112,7 +112,7 @@ Fill the rest of `plan.json` from the gap list and the transcript:
   A cue that started before the cut keeps its words on screen until the cut start.
 - **Holds** freeze the frame while the narration continues:
   for a result the presenter talks over while the screen keeps scrolling.
-- **Redactions** blur or box a region in master pixels for a window;
+- **Redactions** box a region in master pixels for a window (opaque by default; `blur` only for cosmetic masking, since a blur can be read back);
   measure the box on a direct-seek frame.
   They live in the master, so a re-plan never moves them.
 - **Bumpers** are intro and outro clips normalized to the frame and level-matched to the plan's loudness target.

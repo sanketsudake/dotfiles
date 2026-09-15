@@ -204,12 +204,15 @@ for (mode, ct), exp in want.items():
 print('strip modes: ok')
 
 p = copy.deepcopy(base)
-p['redactions'] = [{'from': 1, 'to': 4, 'x': 100, 'y': 200, 'w': 301, 'h': 80},
-                   {'from': 5, 'to': 6, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'}]
+# blur is opt-in (cosmetic masking); a redaction with no mode is an opaque box, which leaves nothing to recover.
+p['redactions'] = [{'from': 1, 'to': 4, 'x': 100, 'y': 200, 'w': 301, 'h': 80, 'mode': 'blur'},
+                   {'from': 5, 'to': 6, 'x': 10, 'y': 10, 'w': 50, 'h': 20, 'mode': 'box'},
+                   {'from': 7, 'to': 8, 'x': 20, 'y': 20, 'w': 40, 'h': 16}]
 got = render.master_vf(plan.build(p, '.'))
 exp = ("fps=30,crop=1920:1016:0:64,pad=1920:1080:0:64:color=0x0b1220"
        ",split[m0][r0];[r0]crop=300:80:100:200,avgblur=sizeX=20:sizeY=20[b0];[m0][b0]overlay=x=100:y=200:enable='between(t,1.000,4.000)'"
-       ",drawbox=x=10:y=10:w=50:h=20:color=0x0b1220:t=fill:enable='between(t,5.000,6.000)',format=yuv420p")
+       ",drawbox=x=10:y=10:w=50:h=20:color=0x0b1220:t=fill:enable='between(t,5.000,6.000)'"
+       ",drawbox=x=20:y=20:w=40:h=16:color=0x0b1220:t=fill:enable='between(t,7.000,8.000)',format=yuv420p")
 assert got == exp, f'redactions:\n  got  {got}\n  want {exp}'
 bad = copy.deepcopy(base)
 bad['redactions'] = [{'from': 1, 'to': 4, 'x': 1900, 'y': 0, 'w': 100, 'h': 10}]

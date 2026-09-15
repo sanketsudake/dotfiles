@@ -31,7 +31,8 @@ box:  drawbox=x=x:y=y:w=w:h=h:color=0x<strip_color>:t=fill:enable='between(t,a,b
 - `avgblur=sizeX=20:sizeY=20`, not `boxblur=20:2`: `boxblur` refuses a radius of 20 on any region under 80 px in either direction, because its chroma planes are half-size, and a redaction box is often a single 30 px line of text.
 `avgblur` carries no such radius-vs-size limit.
 - The crop is rounded down to even sizes (`w - w % 2`, `h - h % 2`) before the blur: yuv420p chroma planes are half-resolution, and an odd crop size would misalign them against the luma plane.
-- `box` mode fills with the strip colour instead of blurring, so a redaction on a brand-coloured background reads as intentional chrome, not a glitch.
+- `box` is the default: it fills with the strip colour, so nothing of the region survives and it reads as intentional chrome, not a glitch.
+`blur` is opt-in for cosmetic masking only; `avgblur` keeps low-frequency shape that a reader or OCR can recover from, so it is not a redaction of a secret.
 - The region is measured in master pixels, before any zoom: a zoom over a redacted region magnifies the blur, which is the intended, not accidental, result.
 
 ## Normalize a clip (`demo/sources.py`)

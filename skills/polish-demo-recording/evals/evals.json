@@ -40,7 +40,7 @@
       "id": "redact-token",
       "name": "Hide an API key that is visible on screen",
       "prompt": "In my demo ~/Desktop/api-demo.mov an API key is visible in the settings page from about 0:40 to 0:52. Polish the video and make sure the key cannot be read.",
-      "expected_output": "Seeks frames at 40 and 52 s to measure the key's box in master pixels, adds one redactions entry (blur by default, box if the blur still shows shape) in master time, rebuilds only master and segs, and shows the redacted region in a direct-seek frame before delivering. Does not cut the section.",
+      "expected_output": "Seeks frames at 40 and 52 s to measure the key's box in master pixels, adds one redactions entry in master time with the default opaque box (never blur for a secret), rebuilds only master and segs, and shows the redacted region in a direct-seek frame before delivering. Does not cut the section.",
       "files": []
     },
     {

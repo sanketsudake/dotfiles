@@ -31,7 +31,7 @@ Keys not listed here are refused (`<key>: unknown key`).
 | `captions` | object | `{}` | see [captions](#captions-music-timing) |
 | `music` | `{path, volume}` or null | null | background bed, sidechain-ducked under narration |
 | `timing` | object | `{}` | see [timing](#captions-music-timing) |
-| `redactions` | list of objects | `[]` | phase 3; blur or box a region for a window, in master time; see [redactions](#redactions) |
+| `redactions` | list of objects | `[]` | phase 3; box (or blur) a region for a window, in master time; see [redactions](#redactions) |
 | `bumpers` | `{intro, outro}` | `{}` | phase 3; intro and outro clips; see [bumpers](#bumpers) |
 | `loudness` | `{target}` | `{}` | phase 4; integrated loudness target for `voice-chain.sh`; see [loudness](#loudness) |
 | `exports` | object | `{}` | phase 4; extra deliverables next to the final mix; see [exports](#exports) |
@@ -182,7 +182,9 @@ No badge is shown.
 ## redactions
 
 Phase 3.
-Applied at the master stage, in master pixels and master time, before any zoom — a zoom over a redacted region magnifies the blur, which is the intended result.
+Applied at the master stage, in master pixels and master time, before any zoom — a zoom over a redacted region magnifies the box or blur, which is the intended result.
+The default is an opaque `box`: a blur keeps low-frequency shape that a reader or OCR can recover from, so it is never the default for a secret;
+ask for `blur` explicitly, and only for cosmetic masking of non-sensitive UI.
 Redactions are not checked against `range` and do not share the chapters/speedups/zooms/cuts/holds overlap axis: a wrong region is fixed by re-running `master` and `segs`, not by re-planning.
 
 | Key | Type | Default | Notes |
@@ -193,7 +195,7 @@ Redactions are not checked against `range` and do not share the chapters/speedup
 | `y` | int, master pixels | required | top edge; must not be negative |
 | `w` | int, master pixels, ≥ 8 | required | width; below 8 px is refused |
 | `h` | int, master pixels, ≥ 8 | required | height; below 8 px is refused |
-| `mode` | `blur` \| `box` | `blur` | `blur`: `avgblur=sizeX=20:sizeY=20` on the cropped region; `box`: `drawbox` filled with the strip colour |
+| `mode` | `box` \| `blur` | `box` | `box`: `drawbox` filled with the strip colour, nothing of the region survives; `blur`: `avgblur=sizeX=20:sizeY=20` on the cropped region, cosmetic only, not for secrets |
 
 `x + w` and `y + h` are checked against the frame only when `video.width` and `video.height` are both in the plan; otherwise the bounds check is skipped and an out-of-frame box is caught only visually, in `verify.png`.
 

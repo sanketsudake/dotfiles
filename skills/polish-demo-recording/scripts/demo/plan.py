@@ -19,6 +19,9 @@ TOP_KEYS = {
 }
 STRIP_MODES = ('crop', 'pad', 'none')
 SPEEDUP_MIN_SPAN = 0.95  # seconds; see the speedups check in validate()
+# An opaque box destroys the pixels; a blur keeps low-frequency shape a reader or OCR can recover from, so it is
+# never the default for something called a redaction. Blur stays opt-in for cosmetic masking of non-sensitive UI.
+REDACTION_DEFAULT = 'box'
 THEMES = {
     'light': {'ink': '#0b1220', 'muted': '#788296', 'card_bg': '#f8fafc', 'light': '#d5d9e2', 'tile_bg': '#ffffff', 'tile_outline': '#e2e6ee'},
     'dark': {'ink': '#f8fafc', 'muted': '#9aa4b8', 'card_bg': '#0b1220', 'light': '#243046', 'tile_bg': '#111a2e', 'tile_outline': '#2a3650'},
@@ -262,9 +265,9 @@ def validate(plan, base_dir):
         need(r, f'redactions[{i}]', ['from', 'to', 'x', 'y', 'w', 'h'])
         nums(r, f'redactions[{i}]', ['from', 'to', 'x', 'y', 'w', 'h'])
         span(r, f'redactions[{i}]')
-        mode = r.get('mode', 'blur')
+        mode = r.get('mode', REDACTION_DEFAULT)
         if mode not in ('blur', 'box'):
-            e.append(f'redactions[{i}].mode: must be blur or box, got {mode!r}')
+            e.append(f'redactions[{i}].mode: must be box or blur, got {mode!r}')
         if all(_num(r.get(k)) for k in ('x', 'y', 'w', 'h')):
             if r['w'] < 8 or r['h'] < 8:
                 e.append(f'redactions[{i}]: w and h must be at least 8 px')
@@ -486,7 +489,7 @@ def build(plan, work):
         zooms=[(float(z['from']), float(z['to']), z['factor'], z['cx'], z['cy']) for z in plan.get('zooms', [])],
         cuts=[(float(c['from']), float(c['to'])) for c in plan.get('cuts', [])],
         holds=[(float(h['at']), float(h['dur'])) for h in plan.get('holds', [])],
-        redactions=[(float(r['from']), float(r['to']), int(r['x']), int(r['y']), int(r['w']), int(r['h']), r.get('mode', 'blur')) for r in plan.get('redactions', [])],
+        redactions=[(float(r['from']), float(r['to']), int(r['x']), int(r['y']), int(r['w']), int(r['h']), r.get('mode', REDACTION_DEFAULT)) for r in plan.get('redactions', [])],
         callouts=[(float(c['at']), str(c['text']), float(c.get('dur', callout_dur))) for c in plan.get('callouts', [])],
         caption_fixes=[(f['find'], f['replace']) for f in plan.get('caption_fixes', [])],
         music=plan.get('music'),
