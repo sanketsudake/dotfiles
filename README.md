@@ -134,7 +134,7 @@ Everyday targets — `CLAUDE.md` carries the full `<resource>-<action>` referenc
 | `skills-update[-all]` | Re-fetch vendored skills whose upstream moved. |
 | `plugins-check` / `plugins-sync` | Report plugin drift per profile / emit the `/plugin install` lines. |
 
-Two gotchas: vendored `skills/` and `pi/extensions/` are overwritten on re-sync — diverge intentionally and note it durably; and use `SUBPATH=`, never `PATH=`, on fetch targets (the latter clobbers the shell `PATH`).
+Two gotchas: vendored `skills/` and `packages/pi/extensions/` are overwritten on re-sync — diverge intentionally and note it durably; and use `SUBPATH=`, never `PATH=`, on fetch targets (the latter clobbers the shell `PATH`).
 Plugin installation stays manual per profile — Claude Code has no headless `/plugin install`.
 
 ### Plan review with Plannotator
@@ -144,7 +144,8 @@ It has three parts, pinned to the same release:
 the binary (`nix/home/plannotator.nix`),
 the `plannotator@plannotator` plugin that adds the `ExitPlanMode` hook (first run `/plugin marketplace add backnotprop/plannotator`),
 and the vendored `plannotator-review`, `plannotator-annotate`, and `plannotator-last` skills.
-`00-env.zsh` selects Helium, keeps the server on `127.0.0.1`, and turns off share links and AI features.
+The nix wrapper selects Helium, keeps the server on `127.0.0.1`, and turns off share links and AI features;
+set a `PLANNOTATOR_*` variable in the environment to override one.
 
 The review loop:
 

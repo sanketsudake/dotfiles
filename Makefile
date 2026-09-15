@@ -53,7 +53,7 @@ SKILLS_VENDOR := $(CURDIR)/scripts/skills-vendor.sh
 PI_MONO_REPO := https://github.com/badlogic/pi-mono
 PI_MONO_CACHE := /tmp/pi-mono
 PI_MONO_EXTENSIONS_SRC := $(PI_MONO_CACHE)/packages/coding-agent/examples/extensions
-PI_EXTENSIONS_DIR := $(CURDIR)/pi/extensions
+PI_EXTENSIONS_DIR := $(CURDIR)/packages/pi/extensions
 
 PI_EXTENSIONS := \
 	confirm-destructive.ts \
