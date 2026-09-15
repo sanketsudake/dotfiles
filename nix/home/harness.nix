@@ -40,13 +40,11 @@ let
       name = ".pi/${dir}/${name}";
       value.source = link "packages/pi/${dir}/${name}";
     }) (builtins.attrNames (builtins.readDir (../../packages/pi + "/${dir}")));
-  piLinks =
-    lib.listToAttrs (piPerFile "agent" ++ piPerFile "extensions")
-    // {
-      ".pi/prompts".source = link "packages/pi/prompts";
-      ".pi/skills".source = link "packages/pi/skills";
-      ".pi/README.md".source = link "packages/pi/README.md";
-    };
+  piLinks = lib.listToAttrs (piPerFile "agent" ++ piPerFile "extensions") // {
+    ".pi/prompts".source = link "packages/pi/prompts";
+    ".pi/skills".source = link "packages/pi/skills";
+    ".pi/README.md".source = link "packages/pi/README.md";
+  };
 
   # Devin reads personal skills from ~/.agents/skills. Copilot 0.0.417 does not
   # scan that path yet (its /skills list names ~/.copilot/skills, ~/.claude/skills
@@ -54,9 +52,9 @@ let
   # links never collide: each CLI reads only its own path, so no skill is
   # discovered twice.
   agentNames = map (lib.removeSuffix ".md") (
-    builtins.attrNames (lib.filterAttrs (n: _: lib.hasSuffix ".md" n) (
-      builtins.readDir ../../packages/claude/agents
-    ))
+    builtins.attrNames (
+      lib.filterAttrs (n: _: lib.hasSuffix ".md" n) (builtins.readDir ../../packages/claude/agents)
+    )
   );
   # Devin takes Claude's agent format as-is; Copilot wants the same file under
   # a `<name>.agent.md` name, hence the per-file rename here.

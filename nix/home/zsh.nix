@@ -18,7 +18,8 @@
     ".config/zsh/40-tools.zsh".source = ../../packages/zsh/dot-config/zsh/40-tools.zsh;
     ".config/zsh/50-harness.zsh".source = ../../packages/zsh/dot-config/zsh/50-harness.zsh;
     ".config/zsh/90-local.zsh.example".source = ../../packages/zsh/dot-config/zsh/90-local.zsh.example;
-    ".config/zsh/95-syntax-highlighting.zsh".source = ../../packages/zsh/dot-config/zsh/95-syntax-highlighting.zsh;
+    ".config/zsh/95-syntax-highlighting.zsh".source =
+      ../../packages/zsh/dot-config/zsh/95-syntax-highlighting.zsh;
 
     # Nix-store plugin sources replace the Homebrew share/ paths (the brew
     # lines in 40/95 are [ -r ]-guarded, so they go inert when those formulas

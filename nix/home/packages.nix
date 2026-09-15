@@ -75,7 +75,7 @@ in
     uv
     pipx
     virtualenv
-    python313
+    python314
     rustup # toolchains live in ~/.rustup; run `rustup default stable` once
     nodejs # replaces nvm; npm -g installs go to ~/.npm-globals (NPM_CONFIG_PREFIX)
 
