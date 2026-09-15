@@ -4,6 +4,9 @@ When to hand work to a subagent instead of doing it inline:
 
 - Broad multi-file searches or "how does X work across the repo" → Explore agent; keep only the conclusion in context.
 - A written implementation plan, before executing it → `plan-reviewer` agent; act on its REVISE issues before starting.
+  In plan mode, run it before the first `ExitPlanMode`; Plannotator then opens the plan for human review.
+  After Plannotator feedback, revise the same plan and keep its first `#` heading (the version diff keys on it);
+  re-run `plan-reviewer` only when the revision changes steps, files, or approach.
 - Repetitive mechanical batches where every decision is already made → `bulk-mechanic` agent (haiku); give it the exact transform and file list.
 - Post-implementation PR follow-through (push, CI, bot review threads) → `pr-shepherd` agent.
 - New or vendored skills before committing → `skill-auditor` agent.

@@ -188,6 +188,12 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - **`plugins.txt` is desired-state only.**
   Installation is manual per-profile; the Makefile only reports drift.
   Lines are `<name>@<marketplace>`; blanks and `#` comments are ignored.
+- **Plannotator is three pinned parts that move together.**
+  The binary is a fetched release asset in `nix/home/plannotator.nix` — not `install.sh`, which would write skills into the symlinked `skills/` tree and configure other agents.
+  The `ExitPlanMode` review hook comes from the `plannotator@plannotator` plugin in `manifests/claude-plugins.txt`; its marketplace (`backnotprop/plannotator`) is added by hand per profile.
+  The `plannotator-review`, `plannotator-annotate`, and `plannotator-last` skills are vendored at the same tag.
+  To upgrade: bump `version` + `hash`, re-fetch the skills with the new `REF` and `FORCE=1`, compare the plugin's `apps/hook/hooks/hooks.json` at the tag with `main`, then run `/plugin marketplace update` in each profile.
+  The `PLANNOTATOR_*` exports live in `packages/zsh/dot-config/zsh/00-env.zsh`, so a Claude Code started outside zsh does not get them.
 - **Several `.gitignore`'d paths live in the tree but are not checked in.**
   The vendored skill dirs (a managed block in `.gitignore`, one `/skills/<name>/` line each — rewritten by `resource-manager.sh`) are materialized from `sources.toml`, so after a fresh clone they're absent until `make install` (or `make skills-materialize`) reconstructs them.
   `docs/superpowers/` holds local-only design artifacts (brainstorming specs, implementation plans).
@@ -222,6 +228,6 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
   The harness links (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file because those tools write state beside them.
 - File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`), mapped by the `home.file` entries in `nix/home/`.
 - Never add packages for credential-bearing dirs or files: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`, `~/.copilot/config.json`.
-- `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`.
+- `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`; the one prebuilt-binary exception is `nix/home/plannotator.nix` (a pinned GitHub release asset, not in nixpkgs).
 - `bootstrap.sh` is the new-Mac entry point; keep it idempotent, check-then-act.
 - To add a new tool config, follow the numbered recipe in README.md § "Adding a new tool config"; it is the canonical version.

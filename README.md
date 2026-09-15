@@ -137,6 +137,29 @@ Everyday targets — `CLAUDE.md` carries the full `<resource>-<action>` referenc
 Two gotchas: vendored `skills/` and `pi/extensions/` are overwritten on re-sync — diverge intentionally and note it durably; and use `SUBPATH=`, never `PATH=`, on fetch targets (the latter clobbers the shell `PATH`).
 Plugin installation stays manual per profile — Claude Code has no headless `/plugin install`.
 
+### Plan review with Plannotator
+
+[Plannotator](https://github.com/backnotprop/plannotator) opens each Claude Code plan in Helium before Claude may leave plan mode.
+It has three parts, pinned to the same release:
+the binary (`nix/home/plannotator.nix`),
+the `plannotator@plannotator` plugin that adds the `ExitPlanMode` hook (first run `/plugin marketplace add backnotprop/plannotator`),
+and the vendored `plannotator-review`, `plannotator-annotate`, and `plannotator-last` skills.
+`00-env.zsh` selects Helium, keeps the server on `127.0.0.1`, and turns off share links and AI features.
+
+The review loop:
+
+1. Claude runs `plan-reviewer`, then calls `ExitPlanMode`; Helium opens the plan.
+2. Annotate — delete, comment, labels, global comments, or direct edits — then click **Send Feedback**.
+3. Claude revises and resubmits.
+   The `+N/-M` badge shows the diff; the Version Browser compares any earlier version.
+4. Repeat.
+   Click **Approve** only when nothing needs action:
+   Approve drops unsent notes and sets the session permission mode (select `auto` in the first-run dialog).
+
+Also: `/plannotator-review [PR URL]` for code review, `/plannotator-annotate <file>` for a Markdown file, `/plannotator-last` for Claude's last reply, and `plannotator archive` for past decisions.
+These three skills work in Claude Code only:
+they use its `` !`command` `` injection, so pi, Devin, and Copilot see them as inert text.
+
 ## Machine setup
 
 | Target | Does |

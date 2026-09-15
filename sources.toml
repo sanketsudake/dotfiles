@@ -283,6 +283,33 @@ category = "documents"
 description = "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables from PDFs, combining or merging multiple PDFs into one, splitting PDFs apart, rotating pages, adding watermarks, creating new PDFs, filling PDF forms, encrypting/decrypting PDFs, extracting images, and OCR on scanned PDFs to make them searchable. If the user mentions a .pdf file or asks to produce one, use this skill."
 
 [[skill]]
+name = "plannotator-annotate"
+repo = "https://github.com/backnotprop/plannotator"
+subpath = "apps/skills/claude/plannotator-annotate"
+ref = "v0.27.14"
+commit = "421c6af4cde06e8c12e75b3c6a86e6765f469009"
+category = "planning"
+description = "Open Plannotator's annotation UI for a markdown file, HTML file, URL, or folder and then respond to the returned annotations."
+
+[[skill]]
+name = "plannotator-last"
+repo = "https://github.com/backnotprop/plannotator"
+subpath = "apps/skills/claude/plannotator-last"
+ref = "v0.27.14"
+commit = "421c6af4cde06e8c12e75b3c6a86e6765f469009"
+category = "planning"
+description = "Open Plannotator on the latest rendered assistant message and use the returned annotations to revise that message or continue."
+
+[[skill]]
+name = "plannotator-review"
+repo = "https://github.com/backnotprop/plannotator"
+subpath = "apps/skills/claude/plannotator-review"
+ref = "v0.27.14"
+commit = "421c6af4cde06e8c12e75b3c6a86e6765f469009"
+category = "planning"
+description = "Open Plannotator's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back."
+
+[[skill]]
 name = "polish-demo-recording"
 category = "media"
 note = "Local skill, maintained in this repo"

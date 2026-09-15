@@ -7,3 +7,5 @@ superpowers@claude-plugins-official
 context7@claude-plugins-official
 gopls-lsp@claude-plugins-official
 pr-review-toolkit@claude-plugins-official
+# plannotator: third-party marketplace — first run `/plugin marketplace add backnotprop/plannotator`.
+plannotator@plannotator

@@ -10,6 +10,7 @@
     ./bin.nix
     ./zsh.nix
     ./packages.nix
+    ./plannotator.nix
     ./harness.nix
   ];
 }
