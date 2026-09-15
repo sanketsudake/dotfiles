@@ -18,7 +18,22 @@ let
     # skip fixup too, so the installed bytes match the release asset.
     dontStrip = true;
     dontFixup = true;
-    installPhase = "install -Dm755 $src $out/bin/plannotator";
+    # Safe defaults live in a binary wrapper, so the hook and the /plannotator-*
+    # skills get them however Claude Code was started, not only from zsh.
+    # --set-default: a value already in the environment still wins.
+    #   BROWSER=Helium  -> `open -a Helium <url>`; also skips Glimpse
+    #   SHARE=disabled  -> no share links to share.plannotator.ai / paste service
+    #   REMOTE=0        -> always bind 127.0.0.1; the server has no auth (#956)
+    #   AI=disabled     -> no Ask AI / review agents shelling out to `claude`
+    nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+    installPhase = ''
+      install -Dm755 $src $out/bin/plannotator
+      wrapProgram $out/bin/plannotator \
+        --set-default PLANNOTATOR_BROWSER Helium \
+        --set-default PLANNOTATOR_SHARE disabled \
+        --set-default PLANNOTATOR_REMOTE 0 \
+        --set-default PLANNOTATOR_AI disabled
+    '';
     meta.platforms = [ "aarch64-darwin" ];
   };
 in
