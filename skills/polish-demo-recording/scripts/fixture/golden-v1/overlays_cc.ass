@@ -1,0 +1,35 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Hdr,Arial,30,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: HdrMuted,Arial,26,&H00B8C0CC,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,6,0,0,0,1
+Style: Box,Arial,20,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: LT,Arial,34,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: Badge,Arial,26,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
+Style: Cap,Arial,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H90000000,0,0,0,0,100,100,0,0,3,10,0,2,60,60,42,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 2,0:00:02.75,0:00:11.75,Hdr,,0,0,0,,{\an4\pos(40,32)\1c&HFD5B3B&}Acme Console{\1c&HB8C0CC&\fs26}   Product demo
+Dialogue: 2,0:00:02.75,0:00:11.75,HdrMuted,,0,0,0,,{\an6\pos(1880,32)}Welcome
+Dialogue: 2,0:00:13.25,0:00:22.48,Hdr,,0,0,0,,{\an4\pos(40,32)\1c&HFD5B3B&}Acme Console{\1c&HB8C0CC&\fs26}   Product demo
+Dialogue: 2,0:00:13.25,0:00:18.68,HdrMuted,,0,0,0,,{\an6\pos(1880,32)}Models
+Dialogue: 2,0:00:18.68,0:00:22.48,HdrMuted,,0,0,0,,{\an6\pos(1880,32)}Wrap up
+Dialogue: 3,0:00:03.55,0:00:06.55,Box,,0,0,0,,{\fad(250,250)}{\an7\pos(0,0)\p1\1c&H20120B&\1a&H30&\bord0\shad0}m 60 800 l 361 800 361 876 60 876{\p0}
+Dialogue: 4,0:00:03.55,0:00:06.55,Box,,0,0,0,,{\fad(250,250)}{\an7\pos(0,0)\p1\1c&HFD5B3B&\1a&H00&\bord0\shad0}m 60 800 l 70 800 70 876 60 876{\p0}
+Dialogue: 5,0:00:03.55,0:00:06.55,LT,,0,0,0,,{\fad(250,250)}{\an4\pos(102,838)}Single sign-on
+Dialogue: 3,0:00:13.95,0:00:16.95,Box,,0,0,0,,{\fad(250,250)}{\an7\pos(0,0)\p1\1c&H20120B&\1a&H30&\bord0\shad0}m 60 800 l 394 800 394 876 60 876{\p0}
+Dialogue: 4,0:00:13.95,0:00:16.95,Box,,0,0,0,,{\fad(250,250)}{\an7\pos(0,0)\p1\1c&HFD5B3B&\1a&H00&\bord0\shad0}m 60 800 l 70 800 70 876 60 876{\p0}
+Dialogue: 5,0:00:13.95,0:00:16.95,LT,,0,0,0,,{\fad(250,250)}{\an4\pos(102,838)}Chat playground
+Dialogue: 3,0:00:17.25,0:00:18.28,Box,,0,0,0,,{\an7\pos(0,0)\p1\1c&H20120B&\1a&H30&\bord0\shad0}m 1626 992 l 1860 992 1860 1040 1626 1040{\p0}
+Dialogue: 5,0:00:17.25,0:00:18.28,Badge,,0,0,0,,{\an5\pos(1743,1016)}4x  fast forward
+Dialogue: 6,0:00:03.05,0:00:06.50,Cap,,0,0,0,,Welcome to the Acme Console demo.
+Dialogue: 6,0:00:08.05,0:00:11.50,Cap,,0,0,0,,First we open the models page.
+Dialogue: 6,0:00:13.75,0:00:16.70,Cap,,0,0,0,,Now the chat playground answers.
+Dialogue: 6,0:00:18.68,0:00:22.08,Cap,,0,0,0,,Thanks for watching today.

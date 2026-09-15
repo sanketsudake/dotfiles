@@ -44,7 +44,20 @@ BASELINE_DIR = REPO_ROOT / "skills" / ".security" / "skillspector"
 INSTALL_HINT = "make skillspector-install (pinned to SKILLSPECTOR_REF in the Makefile)"
 # Local build/cache artifacts: gitignored, never installed, but a scan of the
 # live tree would flag them (a .pyc next to clean sources is a supply-chain hit).
-EXPORT_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "node_modules", ".venv")
+_PATTERN_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", "node_modules", ".venv")
+# Self-test scratch dirs, excluded by exact location only. A repository-wide name filter (".work") would let a
+# vendored skill ship uninspected content under that name; these paths are gitignored by the skill itself.
+SCRATCH_DIRS = {SKILLS_DIR / "polish-demo-recording" / "scripts" / "fixture" / ".work"}
+
+
+def export_ignore(src, names):
+    """copytree ignore callback: the name patterns above plus the exact scratch dirs."""
+    ignored = set(_PATTERN_IGNORE(src, names))
+    ignored.update(n for n in names if Path(src, n).resolve() in SCRATCH_DIRS)
+    return ignored
+
+
+EXPORT_IGNORE = export_ignore
 FAIL_SEVERITIES = {"HIGH", "CRITICAL"}
 
 

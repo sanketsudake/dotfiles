@@ -1,0 +1,54 @@
+{
+  "skill_name": "polish-demo-recording",
+  "evals": [
+    {
+      "id": "polish-raw-mov",
+      "name": "Polish a raw macOS screen recording for a customer",
+      "prompt": "Here is my demo recording ~/Documents/Screen Recording 2026-09-08 at 5.21.57 PM.mov. Keep the original, make a copy that looks and sounds good enough to send to a customer.",
+      "expected_output": "Runs scripts/probe.sh first and reads the numbers (VFR, dual mono, noise floor, chrome height from chrome-top.png), transcribes with word timestamps, processes the voice with scripts/voice-chain.sh and confirms loudness and floor, writes a plan.json with chapters in real pauses, speed-ups for waits and a few callouts, builds with build_demo.py, reads verify.png before delivering, and places the variants next to the original. Does not narrate with TTS, does not cut the raw VFR file directly, does not pitch-shift.",
+      "files": []
+    },
+    {
+      "id": "remove-rumble-window",
+      "name": "Remove a passing-vehicle rumble at a known time",
+      "prompt": "There is bike noise from 3:02 to 3:05 in the polished video, can you remove it?",
+      "expected_output": "Maps the output time back to source seconds through timeline.json, inspects the band with showspectrumpic/astats, re-runs voice-chain.sh with --window (and --dip on a silent gap), re-muxes the master, deletes only the affected seg/*.mp4 files, rebuilds concat/ass/final, and reports the before/after band level in dB.",
+      "files": []
+    },
+    {
+      "id": "terminal-no-chrome",
+      "name": "Polish a terminal session recording with no browser chrome",
+      "prompt": "This is a recording of me running the CLI in iTerm, ~/Desktop/cli-demo.mov. Make it presentable for the docs page; keep the product header at the top like the other demos.",
+      "expected_output": "Reads probe output, sees no browser chrome, sets video.chrome_top 0 and video.strip.mode pad (not crop) so the header strip stays, keeps the content 1:1 apart from the few-percent pad scale, and verifies the strip in verify.png.",
+      "files": []
+    },
+    {
+      "id": "vertical-phone",
+      "name": "Polish a vertical phone screen recording",
+      "prompt": "Here is a 1080x1920 screen recording from my phone, ~/Downloads/app-walkthrough.mp4, with my narration. Same treatment as the desktop demos please.",
+      "expected_output": "Takes width and height from the probe (1080x1920), leaves video.width/height at the native size, chooses strip.mode pad or none, and checks that cards and lower-thirds lay out at that size in verify.png; no 1920x1080 constant appears in the plan.",
+      "files": []
+    },
+    {
+      "id": "separate-voice-track",
+      "name": "Video with a voice track recorded on a phone",
+      "prompt": "The screen capture is ~/Desktop/demo.mov and the audio is ~/Desktop/demo-voice.wav from my phone mic; I clapped once at the start of both. Sync them and polish it.",
+      "expected_output": "Sets voice to {path, offset}, measures offset with scripts/voice-offset.py on a window around the clap (never guesses), runs voice-chain.sh with --offset after the two positional arguments, and confirms the words in the transcript line up with the picture in verify.png before building.",
+      "files": []
+    },
+    {
+      "id": "redact-token",
+      "name": "Hide an API key that is visible on screen",
+      "prompt": "In my demo ~/Desktop/api-demo.mov an API key is visible in the settings page from about 0:40 to 0:52. Polish the video and make sure the key cannot be read.",
+      "expected_output": "Seeks frames at 40 and 52 s to measure the key's box in master pixels, adds one redactions entry in master time with the default opaque box (never blur for a secret), rebuilds only master and segs, and shows the redacted region in a direct-seek frame before delivering. Does not cut the section.",
+      "files": []
+    },
+    {
+      "id": "cut-mistake",
+      "name": "Remove a wrong page from the recording",
+      "prompt": "Around 3:20 in ~/Desktop/demo.mov I opened the wrong page for about ten seconds before going back. Take that out and polish the rest.",
+      "expected_output": "Finds the range from the transcript gaps and frames, adds one cuts entry with from/to in master seconds, checks that no chapter card or speed-up sits inside it (validation refuses that), reports any callout the cut drops, and confirms in verify.png that the picture and narration line up after the cut.",
+      "files": []
+    }
+  ]
+}

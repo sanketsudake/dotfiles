@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "sources": [{"path": "src.mov"}],
+  "voice_wav": "voice.wav",
+  "transcript": "whisper/audio16k.json",
+  "video": {"width": 1920, "height": 1080, "fps": 30, "chrome_top": 64, "strip": {"mode": "crop", "height": 64, "color": "0b1220"}},
+  "brand": {
+    "name": "Acme Console",
+    "subtitle": "Product demo",
+    "accent": "#3b5bfd",
+    "tagline": "Your models. Your cluster. One control plane.",
+    "blurb": "Deploy models, notebooks and vector databases on your own Kubernetes.",
+    "tiles": [["Models", "Deploy and serve"], ["Chat", "Playground and API"], ["Notebooks", "Jupyter, VS Code"]],
+    "footer": "Acme Corp",
+    "end_title": "Thank you",
+    "end_lines": ["One control plane for models, chat and notebooks,", "with single sign-on, budgets and audit log built in."]
+  },
+  "range": {"start": 1.0, "end": 437.3},
+  "first_label": "Welcome",
+  "chapters": [
+    {"cut": 27.5, "resume": 28.1, "title": "Models", "subtitle": "Catalog, registry and hosted providers", "label": "Models"},
+    {"cut": 111.3, "resume": 113.4, "title": "Chat playground", "subtitle": "Open-source and hosted models, side by side", "label": "Chat playground"}
+  ],
+  "labels": [{"at": 176.0, "text": "Usage and budgets"}],
+  "speedups": [{"from": 156.14, "to": 159.82, "factor": 4, "badge": true}, {"from": 126.92, "to": 129.54, "factor": 3, "badge": false}],
+  "zooms": [{"from": 99.0, "to": 110.5, "factor": 1.28, "cx": 960, "cy": 600}],
+  "callouts": [{"at": 9.6, "text": "Single sign-on with Keycloak"}, {"at": 94.0, "text": "OpenAI-compatible API: works with any OpenAI SDK"}],
+  "callout_dur": 5.0,
+  "caption_fixes": [{"find": "HuggingFest", "replace": "Hugging Face"}, {"find": "Olama", "replace": "Ollama"}],
+  "music": {"path": "/path/to/track.mp3", "volume": 0.17},
+  "timing": {"card_dur": 2.4, "open_dur": 3.2, "end_dur": 5.0, "xfade": 0.45},
+  "out_prefix": "acme-demo-polished"
+}
