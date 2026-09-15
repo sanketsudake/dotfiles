@@ -244,6 +244,9 @@ def concat(ctx, tl):
         ff('-f', 'concat', '-safe', '0', '-i', lst, '-c', 'copy', out)
         files.append(out)
     lens = [dur(f) for f in files]
+    for f, length in zip(files, lens):
+        if length <= ctx.xf:
+            raise SystemExit(f'concat: {f} is {length:.2f} s, not longer than the {ctx.xf:g} s dissolve; move the chapter cut or shorten timing.xfade')
     inputs = []
     fc = []
     chain = lens[0]

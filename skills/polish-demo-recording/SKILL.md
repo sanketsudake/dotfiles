@@ -31,7 +31,7 @@ Read that file before changing a filter value.
 
 ## Inputs to ask for, or assume
 
-- The recording path. macOS names carry U+202F (narrow no-break space) before "PM", so a typed path does not match; pass it from a glob. `probe.sh` refuses a missing path and copies the file to `src.mov` so nothing downstream has to quote it.
+- The recording path. macOS names carry U+202F (narrow no-break space) before "PM", so a typed path does not match; pass it from a glob. `probe.sh` refuses a missing path and copies the file to `src.mov` so nothing downstream has to quote it; a reused work dir gets a fresh copy when the recording differs.
 - Product name, one-line tagline, footer (company), accent colour. Default to what the UI shows.
 - Music: a track the user supplies, or none. Never generate narration with TTS; synthetic voices read as robotic and get rejected.
 - Output name. Default `<name>-polished.mp4` beside the original, plus `-no-music`, `-captions` and `.srt`.

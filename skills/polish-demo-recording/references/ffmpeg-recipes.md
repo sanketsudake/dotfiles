@@ -60,7 +60,7 @@ The voice chain keeps two-pass because narration runs minutes and needs the tigh
 
 | Stage | Setting | Why |
 | --- | --- | --- |
-| `pan=mono` | collapse dual mono | halves the noise work, no imaging to lose |
+| `aformat=channel_layouts=mono` | standard downmix, (L+R)/2 | halves the noise work, no imaging to lose; keeps narration that sits on one channel (`pan=mono|c0=c0` would drop the right channel) |
 | `highpass=f=90` | | desk rumble, HVAC |
 | `afftdn=nf=-48:nr=12:tn=1` | spectral denoise, tracking | main hiss removal |
 | `anlmdn=s=2:p=0.002:r=0.006` | non-local means | without it, gaps sit at −31 dB after make-up gain; with it −46 dB |

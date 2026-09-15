@@ -22,6 +22,10 @@ SPEEDUP_MIN_SPAN = 0.95  # seconds; see the speedups check in validate()
 # An opaque box destroys the pixels; a blur keeps low-frequency shape a reader or OCR can recover from, so it is
 # never the default for something called a redaction. Blur stays opt-in for cosmetic masking of non-sensitive UI.
 REDACTION_DEFAULT = 'box'
+MIN_CONTENT_H = 16  # px of content that must remain under the strip or chrome crop
+# Names the build writes into the work dir (ffmpeg -y), checked against every input path in validate().
+OUTPUT_SUFFIXES = ('.mp4', '-captions.mp4', '-no-music.mp4', '.srt', '.vtt', '.txt', '-chapters.txt', '-chapters.ffmeta', '-preview.mp4')
+INTERMEDIATES = ('master_v.mp4', 'master.mov', 'cut.mp4', 'timeline.json', 'overlays.ass', 'overlays_cc.ass')
 THEMES = {
     'light': {'ink': '#0b1220', 'muted': '#788296', 'card_bg': '#f8fafc', 'light': '#d5d9e2', 'tile_bg': '#ffffff', 'tile_outline': '#e2e6ee'},
     'dark': {'ink': '#f8fafc', 'muted': '#9aa4b8', 'card_bg': '#0b1220', 'light': '#243046', 'tile_bg': '#111a2e', 'tile_outline': '#2a3650'},
@@ -175,6 +179,20 @@ def validate(plan, base_dir):
         num_range(strip['height'], 'video.strip.height', 0, 1000)
     if mode == 'crop' and 'height' in strip and 'chrome_top' in video and strip['height'] != video['chrome_top']:
         e.append('video.strip.height: in crop mode the strip replaces the chrome, so it must equal video.chrome_top')
+    # The strip and chrome are checked against the frame height the build will use: explicit, else the first clip's
+    # native height (probed, like build() does), so an impossible crop is caught here and not inside ffmpeg.
+    frame_h = video['height'] if _num(video.get('height')) else None
+    if frame_h is None and isinstance(srcs, list) and srcs and isinstance(srcs[0], dict) and isinstance(srcs[0].get('path'), str) \
+            and os.path.exists(os.path.join(base_dir, srcs[0]['path'])):
+        from demo.sources import probe  # local import: keeps plan.py free of a module-level cycle
+        frame_h = probe(os.path.join(base_dir, srcs[0]['path']))['height'] // 2 * 2
+    if frame_h is not None:
+        ct = video.get('chrome_top', 0)
+        if _num(ct) and mode in ('crop', 'none') and frame_h - ct < MIN_CONTENT_H:
+            e.append(f'video.chrome_top: {ct:g} leaves {frame_h - ct:g} px of content in a {frame_h:g} px frame (at least {MIN_CONTENT_H})')
+        sh = strip.get('height', round(64 * frame_h / 1080)) if mode == 'pad' else 0
+        if _num(sh) and mode == 'pad' and frame_h - sh < MIN_CONTENT_H:
+            e.append(f'video.strip.height: {sh:g} leaves {frame_h - sh:g} px of content in a {frame_h:g} px frame (at least {MIN_CONTENT_H})')
     rng = plan.get('range')
     if not isinstance(rng, dict):
         e.append('range: required, {"start": s, "end": s}')
@@ -311,6 +329,13 @@ def validate(plan, base_dir):
     for k in ('card_dur', 'open_dur', 'end_dur', 'xfade'):
         if k in timing:
             num_range(timing[k], f'timing.{k}', 0.1, 30)
+    xf = timing.get('xfade', 0.45)
+    if _num(xf):
+        # every card dissolves in and out, so its hold must cover both overlaps or the xfade offset goes negative
+        for k, default in (('card_dur', 2.4), ('open_dur', 3.2), ('end_dur', 5.0)):
+            d = timing.get(k, default)
+            if _num(d) and d < 2 * xf:
+                e.append(f'timing.{k}: {d:g} s is shorter than two dissolves (2 x timing.xfade = {2 * xf:g} s)')
     nums(plan, 'plan', ['callout_dur'])
     texts(plan, 'plan', ['first_label', 'out_prefix', 'workdir', 'voice_wav'])
     loud = plan.get('loudness', {})
@@ -341,6 +366,21 @@ def validate(plan, base_dir):
         e.append('exports.formats: must be a list drawn from srt, vtt, txt, chapters')
     if 'transcript' in plan and plan['transcript'] is not None:
         exists(plan['transcript'], 'transcript')
+    # Every render runs ffmpeg -y, so an output or intermediate that resolves to an input would overwrite it silently.
+    out = plan.get('out_prefix')
+    if isinstance(out, str):
+        produced = {f'{out}{suf}' for suf in OUTPUT_SUFFIXES} | set(INTERMEDIATES) | {plan.get('voice_wav', 'voice.wav')}
+        if _num(ex.get('height')):
+            produced.add(f'{out}-{int(ex["height"])}p.mp4')
+        inputs = [(s.get('path'), f'sources[{i}].path') for i, s in enumerate(srcs) if isinstance(s, dict)] if isinstance(srcs, list) else []
+        inputs += [(voice.get('path') if isinstance(voice, dict) else None, 'voice.path'), (plan.get('transcript'), 'transcript'),
+                   (music.get('path') if isinstance(music, dict) else None, 'music.path'),
+                   (brand.get('logo') if isinstance(brand, dict) else None, 'brand.logo'),
+                   (bump.get('intro'), 'bumpers.intro'), (bump.get('outro'), 'bumpers.outro')]
+        real = {os.path.realpath(os.path.join(base_dir, p)): p for p in produced if isinstance(p, str)}
+        for value, path in inputs:
+            if isinstance(value, str) and os.path.realpath(os.path.join(base_dir, value)) in real:
+                e.append(f'out_prefix: {real[os.path.realpath(os.path.join(base_dir, value))]} would overwrite the input {path} ({value}); inputs are never modified')
     return e
 
 

@@ -38,7 +38,9 @@ if [ "${OFFSET:-0}" != "0" ]; then
     pre="atrim=start=$(awk "BEGIN{printf \"%.3f\", -($OFFSET)}"),asetpts=PTS-STARTPTS,"
   fi
 fi
-chain="${pre}pan=mono|c0=c0,highpass=f=90,afftdn=nf=-48:nr=${NR}:tn=1"
+# aformat mono is the standard downmix (L+R)/2: pan=mono|c0=c0 kept only the first channel and silenced a track
+# whose narration sits on the right; a mono input passes through unchanged.
+chain="${pre}aformat=channel_layouts=mono,highpass=f=90,afftdn=nf=-48:nr=${NR}:tn=1"
 [ "$NLM" != "0" ] && chain="$chain,anlmdn=s=${NLM}:p=0.002:r=0.006"
 for w in "${WIN[@]:-}"; do
   [ -n "$w" ] || continue; a="${w%%:*}"; b="${w##*:}"; en="enable='between(t,${a},${b})'"

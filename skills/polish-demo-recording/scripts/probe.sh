@@ -11,7 +11,12 @@ if [ ! -f "$raw" ]; then
   echo "macOS names carry U+202F before PM; a typed space does not match. Pass the path from a glob, e.g. \"\$(ls ~/Documents/Screen*Recording*5.21*.mov)\"" >&2
   exit 1
 fi
-mkdir -p "$work"; [ -f "$work/src.mov" ] || cp "$raw" "$work/src.mov"
+mkdir -p "$work"
+# A reused work dir keeps its src.mov only while it is still this recording; otherwise it is replaced, so no
+# measurement below can describe a previous input. The same-file case (raw is src.mov itself) copies nothing.
+if [ -f "$work/src.mov" ] && [ "$raw" -ef "$work/src.mov" ]; then :
+elif [ -f "$work/src.mov" ] && cmp -s "$raw" "$work/src.mov"; then :
+else cp -f "$raw" "$work/src.mov"; fi
 cd "$work"
 echo "== streams"
 ffprobe -v error -show_entries format=duration,size,bit_rate \

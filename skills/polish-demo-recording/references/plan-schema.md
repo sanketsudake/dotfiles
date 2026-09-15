@@ -35,7 +35,7 @@ Keys not listed here are refused (`<key>: unknown key`).
 | `bumpers` | `{intro, outro}` | `{}` | phase 3; intro and outro clips; see [bumpers](#bumpers) |
 | `loudness` | `{target}` | `{}` | phase 4; integrated loudness target for `voice-chain.sh`; see [loudness](#loudness) |
 | `exports` | object | `{}` | phase 4; extra deliverables next to the final mix; see [exports](#exports) |
-| `out_prefix` | string | required | `<out_prefix>.mp4`, `-no-music`, `-captions`, `.srt` |
+| `out_prefix` | string | required | `<out_prefix>.mp4`, `-no-music`, `-captions`, `.srt`; refused when any derived output, or a fixed intermediate (`master.mov`, `cut.mp4`, `voice.wav`, …), resolves to an input file, because every render runs `ffmpeg -y` |
 
 ## sources
 
@@ -55,7 +55,7 @@ One clip that already matches the frame and carries no `start`/`end` is used as 
 | `width` | even int, 320..7680 | the first clip's native size (from ffprobe), rounded down to even | master pixel width; libx264 with yuv420p refuses an odd frame, so an explicit odd value is a validation error |
 | `height` | even int, 320..4320 | the first clip's native size (from ffprobe), rounded down to even | master pixel height; same rule |
 | `fps` | int, 10..120 | `30` | constant frame rate every later stage assumes |
-| `chrome_top` | int, 0..1000 | `0` | rows of browser chrome to crop off the top of the source |
+| `chrome_top` | int, 0..1000 | `0` | rows of browser chrome to crop off the top of the source; must leave at least 16 px of content in the frame (explicit or probed height), like `strip.height` in `pad` mode |
 | `strip` | object | `{}` | see `video.strip` below |
 
 ### video.strip
@@ -255,4 +255,4 @@ Phase 4.
 | `card_dur` | number, 0.1..30 | `2.4` | chapter-card hold, seconds |
 | `open_dur` | number, 0.1..30 | `3.2` | opening-card hold, seconds |
 | `end_dur` | number, 0.1..30 | `5.0` | end-card hold, seconds |
-| `xfade` | number, 0.1..30 | `0.45` | dissolve duration between pieces, seconds |
+| `xfade` | number, 0.1..30 | `0.45` | dissolve duration between pieces, seconds; `card_dur`, `open_dur` and `end_dur` must each be at least `2 × xfade` (a card dissolves in and out), and a source run or bumper shorter than `xfade` stops `concat` with a message naming it |

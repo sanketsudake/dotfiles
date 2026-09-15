@@ -120,6 +120,24 @@ for msg in 'chapters\[0\].cut: must be a number' 'chapters\[0\].title: must be a
   grep -q "$msg" "$WORK/types.txt" || fail "type message missing ($msg): $(cat "$WORK/types.txt")"
 done
 grep -q Traceback "$WORK/types.txt" && fail "type validation crashed instead of reporting"
+# An output name that resolves to an input must be refused: every render runs ffmpeg -y.
+python3 - "$WORK/plan.json" "$WORK/clash.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+p['sources'] = [{'path': 'src.mov'}]
+p['music']['path'] = 'fixture-polished-no-music.mp4'
+p['voice'] = {'path': 'master.mov', 'offset': 0}
+p['video']['chrome_top'] = 1070            # 10 px of content left in a 1080 px frame
+p['video']['strip'] = {'mode': 'crop', 'height': 1070}
+p['timing']['open_dur'] = 0.1              # shorter than two 0.45 s dissolves
+json.dump(p, open(sys.argv[2], 'w'))
+PY
+if uv run --with "pillow>=10" "$HERE/build_demo.py" "$WORK/clash.json" gaps 2> "$WORK/clash.txt"; then fail "an output name that overwrites an input was accepted"; fi
+for msg in 'video.chrome_top: 1070 leaves 10 px' 'timing.open_dur: 0.1 s is shorter than two dissolves'; do
+  grep -q "$msg" "$WORK/clash.txt" || fail "geometry/timing message missing ($msg): $(cat "$WORK/clash.txt")"
+done
+grep -q 'out_prefix: fixture-polished-no-music.mp4 would overwrite the input music.path' "$WORK/clash.txt" || fail "music collision message missing: $(cat "$WORK/clash.txt")"
+grep -q 'out_prefix: master.mov would overwrite the input voice.path' "$WORK/clash.txt" || fail "intermediate collision message missing: $(cat "$WORK/clash.txt")"
 # A speed-up shorter than its 0.5 s + 0.4 s edge guards would invert and duplicate source; validation must refuse it.
 python3 - "$WORK/plan.json" "$WORK/short.json" <<'PY'
 import json, sys
@@ -299,6 +317,14 @@ mkdir -p "$WORK/probe-tone"
 bash "$HERE/probe.sh" "$WORK/tone12.mp4" "$WORK/probe-tone" > "$WORK/probe-tone/out.txt" 2>&1 || fail "probe.sh failed on a clip without silences: $(tail -5 "$WORK/probe-tone/out.txt")"
 grep -q '== silences' "$WORK/probe-tone/out.txt" && grep -q 'pixel_scale: 1' "$WORK/probe-tone/out.txt" || fail "probe: tone clip output incomplete"
 grep -q 'start:' "$WORK/probe-tone/out.txt" && fail "probe: a silence was reported on a continuous tone"
+# A reused work dir must measure the new recording, not the src.mov left by the previous one.
+bash "$HERE/probe.sh" "$WORK/noaudio.mp4" "$WORK/probe" > "$WORK/probe/out2.txt" 2>&1 || fail "probe.sh failed on a reused work dir: $(tail -5 "$WORK/probe/out2.txt")"
+cmp -s "$WORK/probe/src.mov" "$WORK/noaudio.mp4" || fail "probe: reused work dir kept the previous src.mov"
+grep -q '== audio: none' "$WORK/probe/out2.txt" || fail "probe: reused work dir still measured the previous recording"
+# voice-chain.sh keeps narration that sits on the right channel only (a first-channel pick would silence it).
+bash "$HERE/voice-chain.sh" "$WORK/vo-right.wav" "$WORK/voice-right.wav" 2> "$WORK/voice-right.txt" || fail "voice-chain on a right-only track: $(tail -3 "$WORK/voice-right.txt")"
+right_i=$(ffmpeg -hide_banner -nostats -i "$WORK/voice-right.wav" -af ebur128 -f null - 2>&1 | grep -E '^\s+I:' | grep -oE -- '-?[0-9.]+' | head -1)
+awk -v i="$right_i" 'BEGIN{ exit !(i > -17.5 && i < -14.5) }' || fail "voice-chain on a right-only track landed at ${right_i:-?} LUFS, expected -16 +/- 1.5"
 echo "transcribe + probe: ok"
 
 if [ "$VARIANTS" = 1 ]; then

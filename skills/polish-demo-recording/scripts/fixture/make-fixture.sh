@@ -24,6 +24,8 @@ ffmpeg -hide_banner -loglevel error -y \
 ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -t 12 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/a.mp4"
 ffmpeg -hide_banner -loglevel error -y -ss 12 -i "$out/fixture.mp4" -t 12 -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "$out/b.mp4"
 ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -vn -af "adelay=delays=350:all=1" -c:a pcm_s16le "$out/vo.wav"
+# The voice on the right channel only (left silent): the chain's mono collapse must keep it.
+ffmpeg -hide_banner -loglevel error -y -i "$out/fixture.mp4" -vn -af "pan=stereo|c1=c0" -c:a pcm_s16le "$out/vo-right.wav"
 # The same early track cut to 20.35 s, so after the -0.35 trim the voice ends 4 s before the video: the master mux must
 # pad it with silence, not truncate the video to it.
 ffmpeg -hide_banner -loglevel error -y -i "$out/vo.wav" -t 20.35 -c:a pcm_s16le "$out/vo-short.wav"
