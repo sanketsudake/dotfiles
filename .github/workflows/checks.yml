@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/nix-installer-action@v23
       - run: nix flake check
       # Pure eval type-checks every host's darwin + home-manager module tree;
       # no macOS runner needed, and new hosts are covered automatically.
