@@ -2,10 +2,13 @@
 at every card, callout, badge, zoom (before/after pair at 1:1) and dissolve midpoint.
 
 select=eq(n,..) contact sheets on the xfade output come out time-shifted; only direct seeks are trusted."""
+import json
 import os
 import re
 import subprocess
 from demo.ffmpeg import ff
+
+AV_TOLERANCE = 0.05  # seconds; video and audio of the deliverable must end together
 
 
 def visible_point(tm, a, b, step=0.1):
@@ -34,7 +37,18 @@ def verify(ctx, tl, tm):
     """Direct -ss seeks only: select=eq(n,..) contact sheets come out time-shifted on xfade output."""
     name = f'{ctx.out}.mp4'
     cw, chh = cell_size(ctx)
-    print(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,duration,r_frame_rate', '-of', 'csv=p=0', name]).decode())
+    info = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,duration,r_frame_rate', '-of', 'json', name]))
+    durs = {}
+    for s in info['streams']:
+        durs[s['codec_type']] = float(s.get('duration', 'nan'))
+        print(f"{s['codec_type']}: {durs[s['codec_type']]:.3f}s" + (f", {s['r_frame_rate']} fps" if s['codec_type'] == 'video' else ''))
+    if 'video' in durs and 'audio' in durs:
+        delta = abs(durs['video'] - durs['audio'])
+        ok = delta <= AV_TOLERANCE
+        print(('' if ok else 'warning: ') + f'streams: video {durs["video"]:.3f}s, audio {durs["audio"]:.3f}s, '
+              + (f'within {AV_TOLERANCE * 1000:.0f} ms' if ok else f'differ by {delta * 1000:.0f} ms (limit {AV_TOLERANCE * 1000:.0f} ms)'))
+    else:
+        print('warning: streams: the deliverable does not carry both a video and an audio stream')
     out = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-i', name, '-af', 'ebur128=peak=true', '-f', 'null', '-'], capture_output=True, text=True).stderr
     print('\n'.join(l for l in out.splitlines() if re.match(r'^\s+(I|LRA|Peak):', l)))
     m = re.search(r'^\s+I:\s+(-?[\d.]+) LUFS', out, re.M)

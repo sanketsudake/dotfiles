@@ -133,7 +133,7 @@ Delete `seg/NNN.mp4` for a segment whose source range changed; unchanged segment
 
 ### 6. Verify before delivering
 
-`verify` prints stream durations (video and audio within 50 ms), integrated loudness and true peak, and writes `verify.png`: direct-seek frames at every card, callout, badge, hold, bumper, zoom, dissolve and redaction (its midpoint, or the first point of it still on screen when a cut removes the midpoint).
+`verify` prints the stream durations and flags a video/audio difference over 50 ms with a `warning:` prefix, prints integrated loudness and true peak, and writes `verify.png`: direct-seek frames at every card, callout, badge, hold, bumper, zoom, dissolve and redaction (its midpoint, or the first point of it still on screen when a cut removes the midpoint).
 The redacted region must be unreadable in the frame at the window's midpoint.
 The loudness line names the plan's target and flags a difference over 1 LU with a `warning:` prefix, not a failure.
 Read the image.

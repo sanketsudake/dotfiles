@@ -161,6 +161,7 @@ for name in ['fixture-polished.mp4', 'fixture-polished-no-music.mp4', 'fixture-p
 voice = lufs('voice.wav')
 check(abs(voice + 16.0) <= 1.5, f'voice.wav integrated loudness {voice}, expected -16 +/- 1.5')
 check(re.search(r'^loudness: I -?[\d.]+ LUFS, target -16 \(ok\)', open('build.txt').read(), re.M) is not None, 'verify: loudness line missing or off target')
+check(re.search(r'^streams: video [\d.]+s, audio [\d.]+s, within 50 ms', open('build.txt').read(), re.M) is not None, 'verify: A/V duration line missing or over 50 ms')
 check(count('overlays.ass', 'Hdr') == 2, 'overlays.ass: expected 2 Hdr events (one per source run)')
 check(count('overlays.ass', 'LT') == 2, 'overlays.ass: expected 2 LT events (two callouts)')
 check(count('overlays.ass', 'Badge') == 1, 'overlays.ass: expected 1 Badge event (one fast-forward)')
