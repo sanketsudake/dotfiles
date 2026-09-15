@@ -240,6 +240,17 @@ assert f.size < render.fs(port, 180), 'fit did not shrink the hero title on a po
 assert render.sx(port, 146) + f.getlength('Acme Console') <= 540 - int(540 * render.CARD_MARGIN), f'portrait hero title still clips at {f.size} px'
 print('card fit: ok')
 
+# verify.visible_point: exact intersection with the source segments, so a survivor shorter than any sampling step counts.
+from demo import timeline, verify
+tl = [{'kind': 'src', 'a': 0.0, 'b': 1.0, 'speed': 1, 'out': 0.0, 'len': 1.0},
+      {'kind': 'src', 'a': 1.05, 'b': 2.0, 'speed': 1, 'out': 1.0, 'len': 0.95}]
+tm = timeline.TimeMap(tl, [(1.0, 1.05)])
+t = verify.visible_point(tm, 1.00, 1.09)
+assert t is not None and abs(t - 1.02) < 1e-6, f'visible_point kept {t}, expected 1.02 (the 1.05..1.09 survivor)'
+assert verify.visible_point(tm, 1.00, 1.04) is None, 'a redaction entirely inside the cut must report None'
+assert abs(verify.visible_point(tm, 0.2, 0.6) - 0.4) < 1e-6, 'an uncut redaction must map its midpoint'
+print('visible point: ok')
+
 dark_plan = copy.deepcopy(base)
 dark_plan['brand']['theme'] = 'dark'
 dark_ctx = plan.build(dark_plan, '.')

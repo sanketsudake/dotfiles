@@ -11,20 +11,19 @@ from demo.ffmpeg import ff
 AV_TOLERANCE = 0.05  # seconds; video and audio of the deliverable must end together
 
 
-def visible_point(tm, a, b, step=0.1):
-    """Output time of the midpoint of a..b, or of the first point from a onwards that survives the cuts; None when none does.
+def visible_point(tm, a, b):
+    """Output time at the middle of the longest part of a..b that is in the output, or None when no part of it is.
 
-    A redaction may straddle a cut: its midpoint can lie inside the cut while the region is still on screen either side."""
-    t = tm.out((a + b) / 2)
-    if t is not None:
-        return t
-    x = a
-    while x < b:
-        t = tm.out(x)
-        if t is not None:
-            return t
-        x += step
-    return None
+    Exact intersection with the timeline's source segments, not sampling: a redaction may straddle a cut, and the part
+    that survives can be shorter than any sampling step (1.00..1.09 with a cut 1.00..1.05 keeps 1.05..1.09)."""
+    best = None
+    for s in tm.tl:
+        if s['kind'] != 'src':
+            continue
+        lo, hi = max(a, s['a']), min(b, s['b'])
+        if hi > lo and (best is None or hi - lo > best[1] - best[0]):
+            best = (lo, hi)
+    return None if best is None else tm.out((best[0] + best[1]) / 2)
 
 
 def cell_size(ctx, width=640):
