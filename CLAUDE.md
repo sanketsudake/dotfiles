@@ -85,7 +85,8 @@ Targets (each `skills-*` has an `agents-*` twin taking the same variables):
 - `make agents-fetch REPO=owner/name SUBPATH=path/to/agent.md [REF=main] [NAME=…] [FORCE=1]` — same, but the subpath is a `.md` file (NAME defaults to its basename minus `.md`), copied into `packages/claude/agents/<NAME>.md`.
   Accepts a `/blob/` URL too.
   `fetch` also takes an optional `CATEGORY=…` to tag the manifest entry on the way in.
-- `make skills-list` / `make agents-list` — every resource with its status (`remote`/`local`/`unmanaged`) and source, grouped under a `<category> (<count>)` header (uncategorized last-ish, sorted).
+- `make skills-list` / `make agents-list` — every resource with its status and source, grouped under a `<category> (<count>)` header (uncategorized last-ish, sorted).
+  Skill statuses are `materialized` or `pinned` (vendored, with or without its dir on disk), `local` (authored), and `unmanaged`; agent statuses are `remote`, `local`, and `unmanaged`.
 - `make skills-category NAME=… CATEGORY=…` / `make agents-category NAME=… CATEGORY=…` — set/replace a resource's category on its `sources.toml` entry (creating a minimal authored entry if none exists).
   Use kebab-case slugs that match the README's domain groups.
 - `make skills-update NAME=…` / `make agents-update NAME=…` — re-resolve the recorded `ref`; if the upstream commit moved, pin the new commit and re-copy, else report up to date (prints `old→new`, preserving `category`).
@@ -149,7 +150,7 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
 ## Architecture notes that are easy to miss
 
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
-  `scripts/claude-multi-account.sh` is documentation (shell-function snippets to copy into `~/.zprofile`), not something that runs.
+  `scripts/claude-multi-account.sh` defines the shell functions, and `packages/zsh/dot-config/zsh/50-harness.zsh` sources it in every interactive zsh (skipped silently until the repo is cloned).
   The `pclaude`/`wclaude` wrappers set `CLAUDE_CONFIG_DIR` to `~/.claude-personal` or `~/.claude-work`.
   Both dirs share the same `CLAUDE.md` and `skills/` via symlinks maintained by the Makefile — changes to `packages/claude/CLAUDE.md` or `skills/` immediately apply to both profiles.
 - **`packages/claude/CLAUDE.md` is the shared global user CLAUDE.md**, not this file.
@@ -193,7 +194,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
   The `ExitPlanMode` review hook comes from the `plannotator@plannotator` plugin in `manifests/claude-plugins.txt`; its marketplace (`backnotprop/plannotator`) is added by hand per profile.
   The `plannotator-review`, `plannotator-annotate`, and `plannotator-last` skills are vendored at the same tag.
   To upgrade: bump `version` + `hash`, re-fetch the skills with the new `REF` and `FORCE=1`, compare the plugin's `apps/hook/hooks/hooks.json` at the tag with `main`, then run `/plugin marketplace update` in each profile.
-  The `PLANNOTATOR_*` exports live in `packages/zsh/dot-config/zsh/00-env.zsh`, so a Claude Code started outside zsh does not get them.
+  Its safe defaults (`PLANNOTATOR_BROWSER=Helium`, `PLANNOTATOR_SHARE=disabled`, `PLANNOTATOR_REMOTE=0`, `PLANNOTATOR_AI=disabled`) are baked into a binary wrapper with `--set-default`, so they apply however Claude Code starts; a value set in the environment still wins.
 - **Several `.gitignore`'d paths live in the tree but are not checked in.**
   The vendored skill dirs (a managed block in `.gitignore`, one `/skills/<name>/` line each — rewritten by `resource-manager.sh`) are materialized from `sources.toml`, so after a fresh clone they're absent until `make install` (or `make skills-materialize`) reconstructs them.
   `docs/superpowers/` holds local-only design artifacts (brainstorming specs, implementation plans).
