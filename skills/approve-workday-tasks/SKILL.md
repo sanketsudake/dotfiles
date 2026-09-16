@@ -12,7 +12,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Approve Workday Tasks
@@ -78,6 +78,8 @@ For each item the user selected, and only those:
    Event approved" page is a dead end — no navigation, no auto-advance.
    Run `chrome-cdp nav "<Workday home>" --json` (the `WORKDAY_HOME_URL` from `login-microsoft-sso`'s config), then `chrome-cdp wait --idle` and `wait --stable`, then `chrome-cdp click --by name "Go to My Tasks" --match contains --role button --json` (the count is part of the name, so match by prefix).
    The count N decrements by one per approval — an independent check the item cleared.
+   When the queue is empty, the count goes away and the control's name is just `"My Tasks Items"`, so the `"Go to My Tasks"` match finds nothing on the last pass.
+   If that click finds no control, run `chrome-cdp find "my tasks" --role button --json` and read the name: `"My Tasks Items"` means every item is done.
    Reopening My Tasks auto-opens the first remaining item, so the next iteration starts at step 2, not step 1.
    Steps 3–4 plus the next item's identity reads are the recipe **`workday-approve-and-return`**:
 

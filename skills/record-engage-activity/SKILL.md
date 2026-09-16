@@ -17,7 +17,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Record Engage Activity
@@ -82,7 +82,9 @@ Run `chrome-cdp use <id>` so later commands skip `--target`.
 
 Run `chrome-cdp open "$ENGAGE_ACTIVITY_URL" --json` (or `nav` in an existing tab), then `chrome-cdp wait --idle --json` (network-settle, not a fixed sleep).
 **Confirm you're in by content, not URL** — Engage serves a **"Login with Improving"** view *at the activity URL* even when unauthenticated: `chrome-cdp snap --grep "Log ?in" --json`.
-If a login control shows: `chrome-cdp click --by name "Login with Improving" --json`, `wait --idle`, then re-check (Phase 1 / `login-microsoft-sso` handles this).
+An empty grep is not proof: in a live run the grep was empty, and then the app went to `/account/login` a moment later.
+So also run `chrome-cdp eval "location.href" --json` and look for an `/account/login` path; after `wait --idle` settles again, do both checks again.
+If a login control or the `/account/login` path shows: `chrome-cdp click --by name "Login with Improving" --json`, `wait --idle`, then re-check (Phase 1 / `login-microsoft-sso` handles this).
 Once the form loads, note the controls: **Activity Category**, **Activity Type**, **Date**, **Quantity**, **Notes**, submit ("Add N points").
 
 **Skip `snap --region "Add Activity"`** — it's a heading, not a container; the filter returns only its two `StaticText` nodes, not the form.
@@ -124,6 +126,13 @@ Otherwise determine each field, asking where not implied:
 - **Date** — default today.
 - **Quantity** — default 1.
 
+**Before you fill anything, make sure the entry is not already recorded.**
+Read **Current Activities** (`text --article`, as in the catch-up section) and look for a row with the same type and period.
+A live run found the target week already recorded; a submission without this check would claim it twice.
+
+For `billed-week`, also compare with Workday: a week with approved leave is not a 40-billable-hour week.
+Read the worker's absences (Menu > Time > `My Time Off`) before you claim it — the Safety section of **`fill-workday-timesheet`** tells how to read that table.
+
 ## Phase 4 — Fill the form
 
 The whole fill is the recipe **`engage-fill-activity`** — it fills, closes the date picker, and reads back the form and the submit button's `Add N points`; it does **not** submit:
@@ -142,6 +151,9 @@ Address them by **visible label** via `--by label` (select's native-`<select>` s
    Then **Activity Type**: `chrome-cdp select --by label "Activity Type" "<Type label>" --option-match exact --json` (`--option-match exact` avoids a substring collision, e.g. `40 Billable Hour Week` vs `OVER 40 Billable Hour Week`).
 3. **Date** (if not default), **Quantity**, **Notes**: set each with **`fill --by label`**, which *replaces* the existing value: `chrome-cdp fill --by label "Notes" "<value>" --json`, `chrome-cdp fill --by label "Date" "MM/DD/YYYY" --json`.
    (`--by name` also works for these three — see Phase 2 — but `--by label` holds either way.)
+   - **If a `--by label` step sets the wrong control**: the page also has filter `<select>`s with similar labels, and a 2026-07-28 run found the label match ambiguous.
+     Then use the form's own controls with an explicit `--by css` (without it, `select`/`fill` look for an accessible name and fail with `field "..." not found`): Category `[name=QuickAddActivityCategory]`, Type `[name=QuickAddActivityDefinition]`, Date `#Activity_OccuranceDate`, Quantity `#Activity_Quantity`, Notes `#Activity_Notes`.
+     Example: `chrome-cdp select --by css "[name=QuickAddActivityCategory]" "<Category label>" --json`.
    - **Date shift — expect −1 day on typed dates; verify, never pre-compensate.**
      Every date typed via `fill` has stored the **previous day**: `07/10` → `7/9` (2026-07-16), `08/07` → `8/6` and `08/14` → `8/13` (2026-08-16) — six of six billed-week rows now sit on Thursdays for Friday-entered weeks (local-midnight-to-UTC).
      The one run that did **not** shift (2026-07-29) came through a `?guid=` share link, where the date arrived prefilled rather than typed.
