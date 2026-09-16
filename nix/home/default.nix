@@ -3,6 +3,7 @@
   home.stateVersion = "26.05";
 
   imports = [
+    ./options.nix
     ./git.nix
     ./atuin.nix
     ./btop.nix

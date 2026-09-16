@@ -12,6 +12,11 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 home_packages="$(sed -n 's/^HM_PACKAGES := //p' "$repo_root/Makefile")"
 [ -n "$home_packages" ] || { echo "managed-targets: HM_PACKAGES not found in Makefile" >&2; exit 1; }
 cd "$repo_root/packages"
+# Omarchy owns btop's config (theme switcher) and has no use for the macOS-only
+# bin/ helpers, so nix/home skips both there (dotfiles.omarchy); mirror that.
+if [ -d /usr/share/omarchy ]; then
+  home_packages="$(printf '%s\n' $home_packages | grep -vxE 'btop|bin' | tr '\n' ' ')"
+fi
 # shellcheck disable=SC2086
 find $home_packages -mindepth 1 \( -type f -o -type l \) \
   | sed -E 's#^[^/]+/##' \

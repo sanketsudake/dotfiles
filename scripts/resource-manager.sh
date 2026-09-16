@@ -32,6 +32,13 @@
 #
 set -euo pipefail
 
+# Byte-order collation for every sort: macOS and CI already sort this way, and
+# a Linux en_US.UTF-8 locale would reorder the generated catalog (e.g.
+# grill-with-docs vs grilling) and fail the doctor. Only collation changes;
+# LC_ALL would override LC_COLLATE, so fold it into LANG first.
+if [ -n "${LC_ALL:-}" ]; then export LANG="$LC_ALL"; unset LC_ALL; fi
+export LC_COLLATE=C
+
 # Prefer the nix per-user profile python (hooks and CI invoke these scripts
 # without the interactive shell's PATH); no-op where the profile is absent.
 [ -d "/etc/profiles/per-user/$USER/bin" ] && PATH="/etc/profiles/per-user/$USER/bin:$PATH"

@@ -11,6 +11,11 @@
 # an entry for its LocalHostName in flake.nix (mkDarwinHost) before running.
 set -euo pipefail
 
+if [ "$(uname -s)" != Darwin ]; then
+  echo "bootstrap.sh is macOS-only; on Omarchy (Arch Linux) run bootstrap-omarchy.sh" >&2
+  exit 1
+fi
+
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/personal/dotfiles}"
 DOTFILES_SSH="git@github.com:sanketsudake/dotfiles.git"
 DOTFILES_HTTPS="https://github.com/sanketsudake/dotfiles.git"

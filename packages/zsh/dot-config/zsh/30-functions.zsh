@@ -33,16 +33,20 @@ pdfunlock() {
     fi
 }
 
-# Copy an image file to the macOS clipboard as PNG data (pasteable into Docs, Slack, etc.)
+# Copy an image file to the clipboard as PNG data (pasteable into Docs, Slack, etc.)
+# macOS via osascript; Wayland (Omarchy) via wl-copy.
 imgcopy() {
-    if ! command -v osascript >/dev/null; then
-        echo "imgcopy: needs osascript (macOS only)" >&2
-        return 127
-    fi
     if [[ ! -f "$1" ]]; then
         echo "imgcopy: no such file: $1" >&2
         return 1
     fi
-    osascript -e "set the clipboard to (read (POSIX file \"$(realpath "$1")\") as «class PNGf»)" \
-        && echo "copied: $1"
+    if command -v osascript >/dev/null; then
+        osascript -e "set the clipboard to (read (POSIX file \"$(realpath "$1")\") as «class PNGf»)" \
+            && echo "copied: $1"
+    elif command -v wl-copy >/dev/null; then
+        wl-copy --type image/png < "$1" && echo "copied: $1"
+    else
+        echo "imgcopy: needs osascript (macOS) or wl-copy (Wayland)" >&2
+        return 127
+    fi
 }

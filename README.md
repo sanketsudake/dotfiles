@@ -16,6 +16,15 @@ The script is idempotent: Xcode CLT, Homebrew, and Determinate Nix if missing, c
 Afterwards run the printed manual steps (`gh auth login`, `atuin login`, `git lfs install`) and open a new terminal.
 On an existing machine, clone the repo and run `make install`.
 
+## Omarchy (Arch Linux) quick start
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/sanketsudake/dotfiles/main/bootstrap-omarchy.sh -o /tmp/bootstrap-omarchy.sh
+bash /tmp/bootstrap-omarchy.sh
+```
+
+Same repo, same `make install`, different system layer — see [Omarchy host](#omarchy-host).
+
 ## Ideas worth stealing
 
 - **One source of truth, many harnesses.**
@@ -197,6 +206,23 @@ Homebrew remains for casks/taps/mas (declared in `nix/darwin/homebrew.nix`, appl
 Two rules with no exceptions:
 flakes only see git-tracked files, so `git add` new `.nix` files before building;
 and never let home-manager own a directory that holds mutable files.
+
+### Omarchy host
+
+A Linux laptop running [Omarchy](https://omarchy.org) is a `homeConfigurations."<user>@<hostname>"` entry (`mkHomeHost` in `flake.nix`, host module in `nix/hosts/`):
+**standalone home-manager** on top of the distro, not NixOS and not a system module.
+The split is deliberate:
+
+- **Nix** (Determinate installer, as on the Mac) owns the user CLI set in `nix/home/packages.nix` and every dotfile/harness link — the same modules the Mac uses. Mac-only packages sit behind `pkgs.stdenv.hostPlatform.isDarwin`; `targets.genericLinux.enable` supplies the non-NixOS session glue.
+- **pacman/yay and Omarchy** own the kernel, drivers, Hyprland and the desktop, GUI apps, docker, and the login shell. `manifests/arch-packages.txt` (`make pacman-install`) declares the few system packages this repo needs, starting with `zsh`.
+- **mise** keeps Omarchy's language runtimes and the `claude`/`codex` CLIs; `05-omarchy.zsh` activates it ahead of the nix profile and ports the rest of Omarchy's bash rc (env bootstrap, editor/browser exports, starship, eza aliases). The module is a no-op on macOS.
+
+Omarchy-owned paths are never linked over: `~/.config/hypr` and the desktop, `~/.config/git/config` (Omarchy writes it; `~/.gitconfig` wins), and `btop.conf` (its theme switcher repoints `color_theme`) — `dotfiles.omarchy = true` skips btop and the macOS-only `bin/` helpers.
+Omarchy also seeds `~/.agents/skills` with its own skills, so there the skills are linked **per skill** (names from `sources.toml`, plus Omarchy's `omarchy` and `diagnose-crash`) into a directory that stays real; a newly fetched skill shows up after the next `make nix-switch`.
+The Claude profiles are per host too (`dotfiles.claudeProfiles`); the laptop has only `~/.claude-personal`, and plain `claude` goes straight to it.
+
+`make nix-switch` runs the flake-pinned home-manager (`switch -b hm-backup`), `make nix-build` previews, and `nix run .#home-manager -- generations` lists what to roll back to.
+CI evaluates every `homeConfigurations` entry alongside the darwin hosts.
 
 ### Harness links
 

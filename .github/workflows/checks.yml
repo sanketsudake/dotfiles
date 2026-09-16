@@ -44,7 +44,7 @@ jobs:
         run: make skills-scan QUIET=1
 
   nix:
-    name: nix (flake check, darwin eval, statix)
+    name: nix (flake check, darwin + home eval, statix)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,4 +56,7 @@ jobs:
       # valid YAML, and GitHub answers an unparsable workflow with a 0-job run.
       - run: |
           nix eval .#darwinConfigurations --apply 'cfgs: builtins.mapAttrs (_: c: c.system.drvPath) cfgs'
+      # Same for the standalone home-manager (Linux) hosts.
+      - run: |
+          nix eval .#homeConfigurations --apply 'cfgs: builtins.mapAttrs (_: c: c.activationPackage.drvPath) cfgs'
       - run: nix run nixpkgs#statix -- check nix/

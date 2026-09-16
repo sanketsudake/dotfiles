@@ -64,8 +64,13 @@ wclaude() {
   _claude_with_profile "$HOME/.claude-work" "$@"
 }
 
-# Prompt to choose profile when invoking plain `claude`
+# Prompt to choose profile when invoking plain `claude`; a machine with only
+# the personal profile (no ~/.claude-work) goes straight to pclaude.
 claude() {
+  if [[ ! -d "$HOME/.claude-work" ]]; then
+    pclaude "$@"
+    return
+  fi
   echo "Which Claude account do you want to use?"
   echo "  1) pclaude (Personal)"
   echo "  2) wclaude (Work)"
