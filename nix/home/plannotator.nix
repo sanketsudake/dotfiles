@@ -5,13 +5,13 @@
 # together with the REF of the vendored plannotator-* skills.
 { pkgs, ... }:
 let
-  version = "0.27.14";
+  version = "0.27.15";
   plannotator = pkgs.stdenvNoCC.mkDerivation {
     pname = "plannotator";
     inherit version;
     src = pkgs.fetchurl {
       url = "https://github.com/backnotprop/plannotator/releases/download/v${version}/plannotator-darwin-arm64";
-      hash = "sha256-Hp9w9FTTkwKPLW/hLaiqq5MbNZH9NBqtNCgP8ZgepNA=";
+      hash = "sha256-8z4RRFH9GWv/xGqiF0kvxyT+FYKM6GAHYJz+vAitUwQ=";
     };
     dontUnpack = true;
     # Bun single-file executable: strip would corrupt the embedded payload;
