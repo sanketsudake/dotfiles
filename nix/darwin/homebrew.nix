@@ -60,6 +60,7 @@
     masApps = {
       "1Password for Safari" = 1569813296;
       "Numbers" = 361304891;
+      "WireGuard" = 1451685025;
     };
 
     vscode = [
