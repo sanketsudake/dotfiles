@@ -1,6 +1,6 @@
 # CLI packages from nixpkgs (was homebrew brews), migrated in batches —
 # see the Nix migration plan. Grouped to mirror the old Brewfile sections.
-{ pkgs, inputs, ... }:
+{ lib, pkgs, inputs, ... }:
 let
   system = pkgs.stdenv.hostPlatform.system;
 in
@@ -78,11 +78,21 @@ in
     python314
     rustup # toolchains live in ~/.rustup; run `rustup default stable` once
     nodejs # replaces nvm; npm -g installs go to ~/.npm-globals (NPM_CONFIG_PREFIX)
-
+  ])
+  # macOS only (here and below): the colima-backed docker client — on Omarchy
+  # pacman's docker provides client + engine — and GUI apps with no Linux
+  # build. Spliced in at their original positions so the Mac's package order,
+  # and with it its home-path derivation, stays unchanged.
+  ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin (
+    with pkgs;
+    [
+      colima
+      docker-client # brew's "docker" formula is the client too; engine runs in colima
+      docker-buildx
+    ]
+  )
+  ++ (with pkgs; [
     # --- containers & kubernetes + cloud (batch 4) ---
-    colima
-    docker-client # brew's "docker" formula is the client too; engine runs in colima
-    docker-buildx
     cosign
     kubernetes-helm
     k9s
@@ -106,12 +116,17 @@ in
     minio-client
     cloudflared
     hugo
-
-    # --- GUI apps (small tools where nixpkgs update lag is harmless;
-    # the rest stay casks for timely self-updates) ---
-    itsycal
-    raycast # launcher + clipboard history + window snapping + extensions
-
+  ])
+  ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin (
+    with pkgs;
+    [
+      # --- GUI apps (small tools where nixpkgs update lag is harmless;
+      # the rest stay casks for timely self-updates) ---
+      itsycal
+      raycast # launcher + clipboard history + window snapping + extensions
+    ]
+  )
+  ++ (with pkgs; [
     # --- go tools (was manifests/go-tools.txt; the unpackaged rest stays
     # there via make go-install) ---
     delve

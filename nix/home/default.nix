@@ -3,6 +3,7 @@
   home.stateVersion = "26.05";
 
   imports = [
+    ./options.nix
     ./git.nix
     ./atuin.nix
     ./btop.nix
@@ -12,5 +13,6 @@
     ./packages.nix
     ./plannotator.nix
     ./harness.nix
+    ./omarchy.nix
   ];
 }

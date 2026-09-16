@@ -11,6 +11,8 @@
     ".zprofile".source = ../../packages/zsh/dot-zprofile;
 
     ".config/zsh/00-env.zsh".source = ../../packages/zsh/dot-config/zsh/00-env.zsh;
+    # Inert unless Omarchy is installed; linked everywhere to keep one module set.
+    ".config/zsh/05-omarchy.zsh".source = ../../packages/zsh/dot-config/zsh/05-omarchy.zsh;
     ".config/zsh/10-path.zsh".source = ../../packages/zsh/dot-config/zsh/10-path.zsh;
     ".config/zsh/20-aliases.zsh".source = ../../packages/zsh/dot-config/zsh/20-aliases.zsh;
     ".config/zsh/30-functions.zsh".source = ../../packages/zsh/dot-config/zsh/30-functions.zsh;

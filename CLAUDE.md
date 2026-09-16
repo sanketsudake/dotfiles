@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 One repo for the whole machine:
 
 - **macOS system** — a nix-darwin + home-manager flake (`flake.nix`, `nix/`): `nix/darwin/` declares macOS defaults and every Homebrew formula/cask/mas/vscode entry, `nix/home/` declares dotfile links and CLI packages. Dotfile sources live under `packages/` (stow-style `dot-` names, linked per-file by home-manager); tool manifests under `manifests/`; `bootstrap.sh` for new Macs; `macos/defaults.sh` is Helium-browser-only.
+- **Omarchy (Arch Linux) laptop** — the same `nix/home` tree as a standalone home-manager config (`homeConfigurations."chronin@chronin"` via `mkHomeHost`, host module `nix/hosts/omarchy.nix`) on top of pacman/yay; `bootstrap-omarchy.sh` for new installs. See README.md § "Omarchy host".
 - **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is linked into `~/.pi` by home-manager (`nix/home/harness.nix`).
 - **Devin CLI and GitHub Copilot CLI** — each CLI's user-editable config lives under `packages/devin/` and `packages/copilot/`, its global rules in the shared `packages/agents/AGENTS.md`, and each reads the repo's `skills/` tree through its own link — `~/.agents/skills` for Devin, `~/.copilot/skills` for Copilot (`nix/home/harness.nix`).
 - **Claude Code** — a shared global `CLAUDE.md`, `skills/`, `commands/`, `rules/`, `scripts/`, and `agents/` are symlinked into `~/.claude-personal/` and `~/.claude-work/`.
@@ -14,6 +15,7 @@ One repo for the whole machine:
 There is no application to build/test/lint.
 The `Makefile` is the primary interface; targets follow `<resource>-<action>` naming (`nix-switch`, `skills-fetch`).
 `make nix-switch` is the apply verb for the declared system (build-only preview: `make nix-build`; rollback: `make nix-rollback`).
+On Linux the same verbs drive standalone home-manager (the Makefile branches on `uname -s`); macOS-only targets (`brew-*`, `macos-apply`, …) print "macOS only" there.
 Two hard nix rules: flakes only see git-tracked files (`git add` new `.nix` files before building), and home-manager must never own a directory holding mutable files (manage files individually).
 
 ## Makefile targets
@@ -222,6 +224,15 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `skills/.security/skillspector/<skill>.json`.
 - Before committing any change, run the pre-flight gate: `make preflight` (both doctors — which cover the catalog, suites, and the context budget — plus `bash -n`/`py_compile` over every script) and `make test` (every `scripts/test-*.{sh,py}`).
   The gate is defined once in the Makefile and enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while `make preflight` fails, and `.github/workflows/checks.yml` runs `make preflight`, `make test`, and the SkillSpector scan on push and PR.
+
+## Cross-platform rules (Mac + Omarchy)
+
+- The Mac's evaluated system must not change by accident: before merging a change to `nix/` or `flake.nix`, compare `nix eval --raw .#darwinConfigurations.Sankets-MacBook-Air.system.drvPath` against `main` (pure eval works on Linux, as in CI); any difference must be intended.
+- Platform-specific packages go behind `pkgs.stdenv.hostPlatform.isDarwin`/`isLinux`; host-specific behavior goes behind the `dotfiles.*` options in `nix/home/options.nix` (`omarchy`, `claudeProfiles`), set in `nix/hosts/*.nix`. Mac defaults must reproduce today's behavior.
+- Shell modules must be inert where their tool is absent (guard with `command -v`/`[ -r … ]`); `05-omarchy.zsh` is the Omarchy-only one.
+- Never link over an Omarchy-owned path (`~/.config/hypr`, `~/.config/git/config`, `btop.conf`, Omarchy's own entries in `~/.agents/skills`).
+  The one exception is a personal-override file Omarchy loads after its defaults (today `~/.config/hypr/input.lua`, in `nix/home/omarchy.nix`): link it per file, out of store, never the whole `~/.config/hypr`.
+- `scripts/doctor.sh`, `drift.sh`, and `managed-targets.sh` branch on `uname -s` / `/usr/share/omarchy`; keep new checks platform-guarded.
 
 ## Dotfiles conventions
 

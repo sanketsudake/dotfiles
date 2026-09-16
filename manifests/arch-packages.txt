@@ -1,0 +1,7 @@
+# System packages for Linux (Omarchy/Arch) hosts, installed by `make pacman-install`
+# (yay -S --needed). Only what nix should NOT own: the login shell (must be a
+# /etc/shells path), and anything needing system integration. User CLI tools
+# go in nix/home/packages.nix so the Mac and Linux share one list.
+# Omarchy already provides docker, mise, starship, wl-clipboard, and the desktop.
+
+zsh

@@ -18,18 +18,43 @@ let
     "agents"
     "skills"
   ];
-  claudeProfiles = [
-    ".claude-personal"
-    ".claude-work"
+  inherit (config.dotfiles) claudeProfiles omarchy;
+
+  # On Omarchy, skills/ is linked per skill into dirs that stay real: Omarchy
+  # seeds ~/.agents/skills with its own skills, and a whole-dir link would hide
+  # them and let omarchy-update write its symlinks into the repo. Names come
+  # from sources.toml, which lists every skill; the gitignored vendored dirs
+  # are invisible to the flake, their manifest entries are not. A new skill
+  # appears after the next switch. The Mac keeps whole-dir links.
+  skillNames = map (s: s.name) (builtins.fromTOML (builtins.readFile ../../sources.toml)).skill;
+  omarchySkills = [
+    "omarchy"
+    "diagnose-crash"
   ];
+  skillEntryLinks =
+    dir:
+    lib.listToAttrs (
+      map (n: {
+        name = "${dir}/${n}";
+        value.source = link "skills/${n}";
+      }) skillNames
+      ++ map (n: {
+        name = "${dir}/${n}";
+        value.source = config.lib.file.mkOutOfStoreSymlink "/usr/share/omarchy/default/agents/skills/${n}";
+      }) omarchySkills
+    );
+
   claudeLinks = lib.listToAttrs (
     lib.concatMap (
       prof:
       map (e: {
         name = "${prof}/${e}";
         value.source = link "packages/claude/${e}";
-      }) claudeEntries
+      }) (if omarchy then lib.remove "skills" claudeEntries else claudeEntries)
     ) claudeProfiles
+  )
+  // lib.optionalAttrs omarchy (
+    lib.mergeAttrsList (map (prof: skillEntryLinks "${prof}/skills") claudeProfiles)
   );
 
   # Entry names come from the package dir itself, so a vendored addition is
@@ -73,14 +98,16 @@ let
   # Only the user-editable config of each CLI is managed. ~/.copilot/config.json
   # (login state), and both herdr-installed hook scripts, stay local files.
   cliLinks = {
-    ".agents/skills".source = link "skills";
     ".copilot/skills".source = link "skills";
     ".config/devin/config.json".source = link "packages/devin/config.json";
     ".config/devin/AGENTS.md".source = link "packages/agents/AGENTS.md";
     ".copilot/settings.json".source = link "packages/copilot/settings.json";
     ".copilot/copilot-instructions.md".source = link "packages/agents/AGENTS.md";
   };
+  agentsSkillLinks =
+    if omarchy then skillEntryLinks ".agents/skills" else { ".agents/skills".source = link "skills"; };
 in
 {
-  home.file = claudeLinks // piLinks // devinAgentLinks // copilotAgentLinks // cliLinks;
+  home.file =
+    claudeLinks // piLinks // devinAgentLinks // copilotAgentLinks // cliLinks // agentsSkillLinks;
 }

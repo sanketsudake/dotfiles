@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drift report: recorded configuration (nix/darwin/homebrew.nix, manifests/, macos/defaults.sh)
+# Drift report: recorded configuration (nix/darwin/homebrew.nix or manifests/arch-packages.txt, manifests/, macos/defaults.sh)
 # vs the live system, in both directions. Prints the reconcile command for every
 # finding. Exit 1 if any drift; Spotlight-lagged mas entries are warnings only.
 set -uo pipefail
@@ -7,6 +7,7 @@ set -uo pipefail
 # Prefer the nix per-user profile (hooks and CI invoke this without the
 # interactive shell's PATH); no-op where the profile is absent.
 [ -d "/etc/profiles/per-user/$USER/bin" ] && PATH="/etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:$PATH"
+[ -d "$HOME/.nix-profile/bin" ] && PATH="$HOME/.nix-profile/bin:$PATH"
 # npm globals live in a writable prefix (node is in the read-only store).
 export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$HOME/.npm-globals}"
 PATH="$HOME/.npm-globals/bin:$PATH"
@@ -32,43 +33,55 @@ normalize_bundle() {
   ' "$1" | sort -u
 }
 
-echo "== brew (formulae, casks, taps, mas, vscode) =="
-BREWFILE="$("$REPO_DIR/scripts/nix-brewfile.sh")"
-dump="$(mktemp)"
-trap 'rm -f "$dump"' EXIT
-if brew bundle dump --file="$dump" --force >/dev/null 2>&1; then
-  declared="$(normalize_bundle "$BREWFILE")"
-  installed="$(normalize_bundle "$dump")"
-  missing="$(comm -23 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed"))"
-  extra="$(comm -13 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed"))"
-  # mas can't see App Store apps when the Spotlight index lags; if the app
-  # bundle exists on disk, downgrade declared-but-missing mas rows to warnings.
-  if [ -n "$missing" ]; then
-    real_missing=""
-    while IFS= read -r row; do
-      [ -z "$row" ] && continue
-      kind="${row%% *}"; name="${row#* }"
-      if [ "$kind" = "mas" ]; then
-        app_line="$(grep -E "^mas \"[^\"]+\", id: .*$" "$BREWFILE" | grep -F "$name" || true)"
-        app_name="$(printf '%s' "$app_line" | sed -E 's/^mas "([^"]+)".*/\1/')"
-        if [ -n "$app_name" ] && [ -d "/Applications/$app_name.app" ]; then
-          warn "mas $app_name unmet only per Spotlight index; app present on disk"
-          continue
+if [ "$(uname -s)" = Darwin ]; then
+  echo "== brew (formulae, casks, taps, mas, vscode) =="
+  BREWFILE="$("$REPO_DIR/scripts/nix-brewfile.sh")"
+  dump="$(mktemp)"
+  trap 'rm -f "$dump"' EXIT
+  if brew bundle dump --file="$dump" --force >/dev/null 2>&1; then
+    declared="$(normalize_bundle "$BREWFILE")"
+    installed="$(normalize_bundle "$dump")"
+    missing="$(comm -23 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed"))"
+    extra="$(comm -13 <(printf '%s\n' "$declared") <(printf '%s\n' "$installed"))"
+    # mas can't see App Store apps when the Spotlight index lags; if the app
+    # bundle exists on disk, downgrade declared-but-missing mas rows to warnings.
+    if [ -n "$missing" ]; then
+      real_missing=""
+      while IFS= read -r row; do
+        [ -z "$row" ] && continue
+        kind="${row%% *}"; name="${row#* }"
+        if [ "$kind" = "mas" ]; then
+          app_line="$(grep -E "^mas \"[^\"]+\", id: .*$" "$BREWFILE" | grep -F "$name" || true)"
+          app_name="$(printf '%s' "$app_line" | sed -E 's/^mas "([^"]+)".*/\1/')"
+          if [ -n "$app_name" ] && [ -d "/Applications/$app_name.app" ]; then
+            warn "mas $app_name unmet only per Spotlight index; app present on disk"
+            continue
+          fi
         fi
-      fi
-      real_missing="$real_missing$row"$'\n'
-    done <<< "$missing"
-    missing="$(printf '%s' "$real_missing")"
+        real_missing="$real_missing$row"$'\n'
+      done <<< "$missing"
+      missing="$(printf '%s' "$real_missing")"
+    fi
+    if [ -n "$missing" ]; then
+      drift "declared but not installed — run: make brew-install"$'\n'"$(printf '%s\n' "$missing" | sed 's/^/    /')"
+    fi
+    if [ -n "$extra" ]; then
+      drift "installed but not declared in nix/darwin/homebrew.nix — add there, or brew uninstall / brew untap:"$'\n'"$(printf '%s\n' "$extra" | sed 's/^/    /')"
+    fi
+    [ -z "$missing" ] && [ -z "$extra" ] && ok "homebrew.nix matches installed state"
+  else
+    drift "brew bundle dump failed — is brew healthy?"
   fi
-  if [ -n "$missing" ]; then
-    drift "declared but not installed — run: make brew-install"$'\n'"$(printf '%s\n' "$missing" | sed 's/^/    /')"
-  fi
-  if [ -n "$extra" ]; then
-    drift "installed but not declared in nix/darwin/homebrew.nix — add there, or brew uninstall / brew untap:"$'\n'"$(printf '%s\n' "$extra" | sed 's/^/    /')"
-  fi
-  [ -z "$missing" ] && [ -z "$extra" ] && ok "homebrew.nix matches installed state"
 else
-  drift "brew bundle dump failed — is brew healthy?"
+  echo "== pacman (manifests/arch-packages.txt) =="
+  # Declared-but-missing only: the rest of an Omarchy install is the distro's,
+  # not undeclared drift.
+  arch_missing="$(manifest_entries "$REPO_DIR/manifests/arch-packages.txt" | xargs pacman -T 2>/dev/null || true)"
+  if [ -n "$arch_missing" ]; then
+    drift "declared but not installed — run: make pacman-install"$'\n'"$(printf '%s\n' "$arch_missing" | sed 's/^/    /')"
+  else
+    ok "arch-packages.txt satisfied"
+  fi
 fi
 
 echo "== go tools (manifests/go-tools.txt vs ~/go/bin) =="
@@ -112,36 +125,38 @@ else
   warn "pipx not on PATH — skipping"
 fi
 
-echo "== macOS defaults (macos/defaults.sh vs live) =="
-defaults_drift=0
-# Parse each `defaults [-currentHost] write <domain> <key> -<type> <value>` line
-# and compare with the live value. Booleans normalize to 1/0.
-while IFS= read -r line; do
-  line="${line#"${line%%[![:space:]]*}"}"
-  host_flag=""
-  rest="${line#defaults }"
-  case "$rest" in
-    -currentHost\ write\ *) host_flag="-currentHost"; rest="${rest#-currentHost write }" ;;
-    write\ *) rest="${rest#write }" ;;
-    *) continue ;;
-  esac
-  domain="${rest%% *}"; rest="${rest#* }"
-  key="${rest%% *}"; rest="${rest#* }"
-  rest="${rest# }"
-  value="${rest#-* }"
-  value="${value%\"}"; value="${value#\"}"
-  value="${value//\$HOME/$HOME}"
-  case "$value" in
-    true) value=1 ;;
-    false) value=0 ;;
-  esac
-  live="$(defaults $host_flag read "$domain" "$key" 2>/dev/null || echo '<unset>')"
-  if [ "$live" != "$value" ]; then
-    drift "$domain $key: recorded '$value', live '$live' — update macos/defaults.sh, or run: make macos-apply"
-    defaults_drift=1
-  fi
-done < <(grep -E '^[[:space:]]*defaults (-currentHost )?write ' "$REPO_DIR/macos/defaults.sh")
-[ "$defaults_drift" -eq 0 ] && ok "recorded defaults match live values"
+if [ "$(uname -s)" = Darwin ]; then
+  echo "== macOS defaults (macos/defaults.sh vs live) =="
+  defaults_drift=0
+  # Parse each `defaults [-currentHost] write <domain> <key> -<type> <value>` line
+  # and compare with the live value. Booleans normalize to 1/0.
+  while IFS= read -r line; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    host_flag=""
+    rest="${line#defaults }"
+    case "$rest" in
+      -currentHost\ write\ *) host_flag="-currentHost"; rest="${rest#-currentHost write }" ;;
+      write\ *) rest="${rest#write }" ;;
+      *) continue ;;
+    esac
+    domain="${rest%% *}"; rest="${rest#* }"
+    key="${rest%% *}"; rest="${rest#* }"
+    rest="${rest# }"
+    value="${rest#-* }"
+    value="${value%\"}"; value="${value#\"}"
+    value="${value//\$HOME/$HOME}"
+    case "$value" in
+      true) value=1 ;;
+      false) value=0 ;;
+    esac
+    live="$(defaults $host_flag read "$domain" "$key" 2>/dev/null || echo '<unset>')"
+    if [ "$live" != "$value" ]; then
+      drift "$domain $key: recorded '$value', live '$live' — update macos/defaults.sh, or run: make macos-apply"
+      defaults_drift=1
+    fi
+  done < <(grep -E '^[[:space:]]*defaults (-currentHost )?write ' "$REPO_DIR/macos/defaults.sh")
+  [ "$defaults_drift" -eq 0 ] && ok "recorded defaults match live values"
+fi
 
 echo ""
 if [ "$DRIFT" -eq 0 ]; then
