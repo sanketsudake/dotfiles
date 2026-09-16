@@ -231,7 +231,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - Platform-specific packages go behind `pkgs.stdenv.hostPlatform.isDarwin`/`isLinux`; host-specific behavior goes behind the `dotfiles.*` options in `nix/home/options.nix` (`omarchy`, `claudeProfiles`), set in `nix/hosts/*.nix`. Mac defaults must reproduce today's behavior.
 - Shell modules must be inert where their tool is absent (guard with `command -v`/`[ -r … ]`); `05-omarchy.zsh` is the Omarchy-only one.
 - Never link over an Omarchy-owned path (`~/.config/hypr`, `~/.config/git/config`, `btop.conf`, Omarchy's own entries in `~/.agents/skills`).
-  The one exception is a personal-override file Omarchy loads after its defaults (today `~/.config/hypr/input.lua`, in `nix/home/omarchy.nix`): link it per file, out of store, never the whole `~/.config/hypr`.
+  The one exception is a personal-override file Omarchy loads after its defaults (today `~/.config/hypr/input.lua`, in `nix/home/omarchy.nix`): link it per file into the store (a working-tree link breaks Hyprland when a git checkout removes the file), never the whole `~/.config/hypr`.
 - `scripts/doctor.sh`, `drift.sh`, and `managed-targets.sh` branch on `uname -s` / `/usr/share/omarchy`; keep new checks platform-guarded.
 
 ## Dotfiles conventions

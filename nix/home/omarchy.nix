@@ -1,18 +1,16 @@
 # Omarchy-only desktop tweaks. Omarchy owns ~/.config/hypr, so only its
-# personal-override files are linked, one per file, and out of store: an
-# `omarchy-refresh-hyprland` writes through the link and shows up as a git diff.
+# personal-override files are linked, one per file. The link points into the
+# store, not the working tree: Hyprland reloads on every change, and a git
+# checkout that briefly removes the repo file would load Omarchy's defaults
+# with a "module 'hypr.input' not found" error. Edits apply on nix-switch.
 {
   config,
   lib,
   pkgs,
   ...
 }:
-let
-  repo = "${config.home.homeDirectory}/personal/dotfiles";
-in
 lib.mkIf config.dotfiles.omarchy {
-  home.file.".config/hypr/input.lua".source =
-    config.lib.file.mkOutOfStoreSymlink "${repo}/packages/hypr/dot-config/hypr/input.lua";
+  home.file.".config/hypr/input.lua".source = ../../packages/hypr/dot-config/hypr/input.lua;
 
   # Caps Lock / Num Lock OSD (packages/omarchy/lock-keys-osd.sh).
   systemd.user.services.lock-keys-osd = {

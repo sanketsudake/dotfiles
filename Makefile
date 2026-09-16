@@ -10,7 +10,7 @@ PYTHON ?= $(shell for p in /etc/profiles/per-user/$$USER/bin/python3 $$HOME/.nix
 # $HOME dotfile packages, now linked per-file by home-manager (nix/home/).
 # packages/ stays the source of truth for content; this list drives
 # managed-targets.sh so doctor keeps health-checking every target.
-HM_PACKAGES := zsh git atuin btop gh bin
+HM_PACKAGES := zsh git atuin btop gh bin hypr
 
 UNAME_S := $(shell uname -s)
 # Absolute paths: make's shell (and sudo's secure_path) don't carry the
