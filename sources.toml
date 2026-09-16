@@ -129,6 +129,10 @@ category = "internal-automation"
 description = "Drive the user's real, already-running local Chrome \u2014 its live tabs, logins, and cookies, so it types no credentials \u2014 from the shell via the `chrome-cdp` CLI, which answers every command with one JSON envelope and a stable exit code. Use when a skill names `chrome-cdp`, or when a task needs addressing CSS cannot express (`--by name|ref|cell|label`, `--in-row`), cascade `select`, `grid` table reads, `wait --request`, or `console`/`net` to explain why an action did nothing. Triggers include \"click X in my browser\", \"read what's on my screen\", \"fill in this form in Chrome\", \"check console/network errors on this page\", \"automate this web app in my logged-in session\". The building block other logged-in-app skills follow to get a driven, signed-in tab."
 
 [[skill]]
+name = "file-workday-expense"
+category = "internal-automation"
+
+[[skill]]
 name = "fill-workday-timesheet"
 category = "internal-automation"
 
