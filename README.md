@@ -218,7 +218,7 @@ The split is deliberate:
 - **mise** keeps Omarchy's language runtimes and the `claude`/`codex` CLIs; `05-omarchy.zsh` activates it ahead of the nix profile and ports the rest of Omarchy's bash rc (env bootstrap, editor/browser exports, starship, eza aliases). The module is a no-op on macOS.
 
 Omarchy-owned paths are never linked over: `~/.config/hypr` and the desktop, `~/.config/git/config` (Omarchy writes it; `~/.gitconfig` wins), and `btop.conf` (its theme switcher repoints `color_theme`) — `dotfiles.omarchy = true` skips btop and the macOS-only `bin/` helpers.
-The exception is Omarchy's personal-override file `~/.config/hypr/input.lua` (Num Lock off at login), linked per file and out of store by `nix/home/omarchy.nix`, which also runs the `lock-keys-osd` user service: an Omarchy OSD whenever Caps Lock or Num Lock changes.
+The exception is Omarchy's personal-override file `~/.config/hypr/input.lua` (Num Lock off at login), linked per file into the store by `nix/home/omarchy.nix` (edits apply on `make nix-switch`), which also runs the `lock-keys-osd` user service: an Omarchy OSD whenever Caps Lock or Num Lock changes.
 Omarchy also seeds `~/.agents/skills` with its own skills, so there the skills are linked **per skill** (names from `sources.toml`, plus Omarchy's `omarchy` and `diagnose-crash`) into a directory that stays real; a newly fetched skill shows up after the next `make nix-switch`.
 The Claude profiles are per host too (`dotfiles.claudeProfiles`); the laptop has only `~/.claude-personal`, and plain `claude` goes straight to it.
 
