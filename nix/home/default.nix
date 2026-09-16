@@ -13,5 +13,6 @@
     ./packages.nix
     ./plannotator.nix
     ./harness.nix
+    ./omarchy.nix
   ];
 }
