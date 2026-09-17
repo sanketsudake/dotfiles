@@ -28,4 +28,12 @@ lib.mkIf config.dotfiles.omarchy {
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # Keep Omarchy's fcitx5 off. With fcitx5 in the key path, Ghostty got
+  # repeated and stray characters (g~~~~it); the only input method here is
+  # keyboard-us, so it only cost the CapsLock compose sequences. Mask, not
+  # disable: Omarchy migrations re-run `systemctl --user enable`, and a masked
+  # unit refuses both enable and start.
+  home.file.".config/systemd/user/omarchy-fcitx5.service".source =
+    config.lib.file.mkOutOfStoreSymlink "/dev/null";
 }
