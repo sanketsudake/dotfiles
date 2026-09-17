@@ -3,6 +3,8 @@
 # store, not the working tree: Hyprland reloads on every change, and a git
 # checkout that briefly removes the repo file would load Omarchy's defaults
 # with a "module 'hypr.input' not found" error. Edits apply on nix-switch.
+# Never link monitors.lua: Super+/ (omarchy-hyprland-monitor-scaling) and the
+# clamshell toggle rewrite it with sed -i, which replaces a link with a file.
 {
   config,
   lib,
