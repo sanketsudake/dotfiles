@@ -16,8 +16,9 @@ export BAT_THEME=ansi
 export MANROFFOPT="-c"
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 
-# mise owns Omarchy's language runtimes and the claude/codex CLIs; activating
-# it puts those ahead of the nix profile.
+# mise owns Omarchy's claude/codex/gh CLIs; activating it puts those ahead of
+# the nix profile. Node comes from nix: keep it out of mise (`mise rm -g node`)
+# so both hosts run the same version.
 command -v mise >/dev/null && eval "$(mise activate zsh)"
 [[ -o interactive && "${TERM:-}" != dumb ]] && command -v starship >/dev/null \
   && eval "$(starship init zsh)"

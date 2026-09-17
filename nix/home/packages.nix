@@ -77,7 +77,7 @@ in
     virtualenv
     python314
     rustup # toolchains live in ~/.rustup; run `rustup default stable` once
-    nodejs # replaces nvm; npm -g installs go to ~/.npm-globals (NPM_CONFIG_PREFIX)
+    nodejs # the node on both hosts (mise's is removed on Omarchy); npm -g installs go to ~/.npm-globals (NPM_CONFIG_PREFIX)
   ])
   # macOS only (here and below): the colima-backed docker client — on Omarchy
   # pacman's docker provides client + engine — and GUI apps with no Linux

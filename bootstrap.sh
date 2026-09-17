@@ -110,7 +110,7 @@ make skills-materialize harness-link || {
 }
 
 step "Tools (go/npm/pipx manifests)"
-# npm globals are skipped with a warning until nvm's node exists.
+# nix's node exists after the system switch above, so npm globals install here.
 make tools-install || true
 
 step "Helium browser defaults"
@@ -126,7 +126,6 @@ Bootstrap complete. Manual steps that need your credentials:
   2. atuin login   (history sync)
   3. git lfs install
   4. App Store sign-in, then: make nix-switch   (installs the mas apps)
-  5. nvm install --lts && make npm-install
-  6. Restore any machine-private ~/.ssh/config entries (host aliases, keys).
-  7. Open a new terminal so zsh picks up the managed config.
+  5. Restore any machine-private ~/.ssh/config entries (host aliases, keys).
+  6. Open a new terminal so zsh picks up the managed config.
 EOF
