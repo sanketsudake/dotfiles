@@ -29,7 +29,7 @@ if [ "$OS" = Darwin ]; then
   if command -v brew >/dev/null; then ok "brew $(brew --version | head -1 | awk '{print $2}')"; else bad "brew not found"; fi
 fi
 # npx is only needed for the optional skills-find/vendor targets.
-if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: nvm install --lts (needed only for skill vendoring)"; fi
+if command -v npx >/dev/null; then ok "npx ($(command -v npx))"; else warn "npx not found — run: make nix-switch (needed only for skill vendoring)"; fi
 
 if python3 -c 'import tomllib' 2>/dev/null; then
   ok "python3 with tomllib ($(python3 --version | awk '{print $2}'))"

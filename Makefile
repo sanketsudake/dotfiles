@@ -190,13 +190,13 @@ go-install:
 		go install "$$mod"; \
 	done
 
-# Warn-and-skip when npm is absent (fresh machine before nvm install --lts),
+# Warn-and-skip when npm is absent (fresh machine before the first nix-switch),
 # so tools-install still reaches pipx-install.
 npm-install:
 	@if command -v npm >/dev/null; then \
 		grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g; \
 	else \
-		echo "warn: npm not found — run 'nvm install --lts' then 'make npm-install'"; \
+		echo "warn: npm not found — run 'make nix-switch' then 'make npm-install'"; \
 	fi
 
 pipx-install:

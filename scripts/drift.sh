@@ -109,7 +109,7 @@ if command -v npm >/dev/null; then
   [ -n "$npm_extra" ] && drift "npm globals not in manifest — add there, or npm uninstall -g <pkg>:"$'\n'"$(printf '%s\n' "$npm_extra" | sed 's/^/    /')"
   [ -z "$npm_missing" ] && [ -z "$npm_extra" ] && ok "npm globals match manifest"
 else
-  warn "npm not on PATH — skipping (nvm not loaded in this shell?)"
+  warn "npm not on PATH — skipping (run make nix-switch?)"
 fi
 
 echo "== pipx (manifests/pipx-tools.txt) =="

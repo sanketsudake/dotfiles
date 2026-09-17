@@ -53,6 +53,13 @@ make skills-materialize || {
   echo "!! skills materialize failed (needs network). Re-run: make skills-materialize"
 }
 
+step "Node from nix, not mise"
+# Omarchy installs node through mise; nix's nodejs is the one both hosts use.
+if command -v mise >/dev/null && mise ls --global --current node 2>/dev/null | grep -q node; then
+  mise rm -g node
+fi
+echo "ok: node from nix"
+
 step "Tools (go/npm/pipx manifests)"
 make tools-install || true
 
