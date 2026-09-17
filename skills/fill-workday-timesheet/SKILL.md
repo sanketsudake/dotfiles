@@ -14,7 +14,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Fill Workday Timesheet
@@ -61,6 +61,8 @@ Follow **`login-microsoft-sso`** (app `workday`) to get a logged-in Workday tab;
    `wait --visible "Enter Time"` is not reliable here (it timed out on a loaded page); read the heading instead.
 3. **Assert the week heading after every navigation** — `chrome-cdp snap --role heading --json` — and never count clicks.
    `Previous Week`/`Next Week` clicks are occasionally dropped by Workday (one of three was, live), so a loop that assumes "three clicks = three weeks" silently reads the wrong week.
+   For a week that is far away, use the Time app's **Select Week** link instead; it opens a dialog to go to a week.
+   Its Date field is **not** one text input — it is three spinbuttons named `Month`, `Day` and `Year`: `chrome-cdp fill --by name "Month" --role spinbutton "07" --json` (the same for `Day` and `Year`), then `chrome-cdp click --by name "OK" --role button --json`.
 4. **Scope.**
    For "the current week", stop here.
    For "fill through <date>" or "make sure everything is entered", walk back with `Previous Week` from the newest week in scope until a week that already has hours (each week's cell reads `Hours: 0 Hours: 8 …`); every all-zero week between is in scope.
@@ -71,7 +73,8 @@ Follow **`login-microsoft-sso`** (app `workday`) to get a logged-in Workday tab;
 ## Phase 3 — Read each week and build the plan
 
 - `chrome-cdp snap --grep "Hours:" --role cell --json` reads a week's `Sun … Sat` headers and "Hours: N" values in one node.
-- Propose `DEFAULT_HOURS` Mon–Fri, 0 on weekends, unchanged where a day already meets the target; one row per week in scope.
+- Read the worker's approved absences before you propose hours (see Safety), so that no billable hours go on a leave day.
+- Propose `DEFAULT_HOURS` Mon–Fri, 0 on weekends and on approved leave days, unchanged where a day already meets the target; one row per week in scope.
 
 ## Phase 4 — Confirm the whole plan (easy one-tap accept)
 
@@ -121,6 +124,10 @@ The steps, for when the recipe needs adapting to a tenant:
    Options match by substring, so `Project Plan` matches the rendered `Project Plan Tasks`; `--role textbox` disambiguates the input from the same-named column header.
    `select` errors — never a false success — if the path is incomplete and the final segment is a category.
    Fallback for a different tenant tree: `type --by name "Time Type" "Time Entry\n"` (search-and-Enter).
+   **If the week already has entries**, the dialog opens with a row that already has the Time Type set (e.g. `<project> > Project > Time Entry`).
+   Do **not** run the cascade again — it can add a second row; fill only the empty day columns.
+   **Do not use `Auto-fill from Prior Week`.** It opens a dialog that needs a week from its `Select Prior Week` list first; without one it shows `Prior Week Hours: No items available`, and closing it opens a "Discard Changes?" modal.
+   There, **Discard** is correct, because that dialog has no hours to keep.
 3. Enter each day's hours with **`fill --by cell`** — addresses the input by its **day column header** and *replaces* the cell's `0` (not appends → `80`), so no per-day `snap` for input names, no session-specific ids: `chrome-cdp fill --by cell "Mon, 7/13" "8" --json`, repeated per weekday (day headers come from the grid, e.g. `Mon, 7/13` … `Fri, 7/17`).
    In a multi-row grid, disambiguate with `"<Time Type row>|Mon, 7/13"`.
    Run the five identical per-day fills as one **`session`** batch (one held connection, one envelope per line), not five process spawns — which is what the recipe is.
@@ -129,6 +136,8 @@ The steps, for when the recipe needs adapting to a tenant:
    **Never press `Escape` inside this dialog to "clear a popover"** — Workday answers it with a "Discard Changes?" modal; if it appears, click **Continue** (keeps the entered hours), not Discard.
 4. Only after confirmation, save and confirm in one call: `chrome-cdp click --by name "Save and Close" --role button --wait-text "saved" --json`.
    `--wait-text` blocks until Workday's "Your changes have been saved" appears — no separate verify.
+   The toast does not always show: a 2026-07-28 run saved three weeks with no toast.
+   If `--wait-text` times out, do **not** save again; first read the week back as in Phase 6, because the save has possibly already been applied.
    If a tenant shows **no toast**, confirm at the XHR level instead: identify the save endpoint once with `chrome-cdp net --xhr --json` after a manual save, then follow the click with `chrome-cdp wait --request "<endpoint substr>" --method POST --json` — the only reliable confirm for a toastless write.
 
 > **Why `select`, not `click`, for the menu option and the cascade prompt:** Workday renders these as portal popups that open on a real pointer sequence, mount briefly collapsed (zero-scale), then animate open, delegating events to capture-phase handlers.
@@ -162,6 +171,8 @@ Saving and submitting are different acts: a saved week is editable; a submitted 
 - Never save without the user's explicit confirmation of the per-day plan.
 - If a `select`/`fill`/save seems to do nothing, read the tab's own evidence before retrying — not a blind re-click or screenshot: `chrome-cdp console --only-errors --json` and `chrome-cdp net --failed --json` (reset with `--clear`, act, re-read).
 - Never enter time on a locked time period; surface it instead.
+- Read the worker's approved absences before you choose hours: Menu > Time > `My Time Off` (page title "My Absence") lists the Absence Requests, and `grid` reads them (Date / Day of the Week / Type / Requested / Unit of Time / Status).
+- Never put billable hours on an approved leave day — a live run found an approved 8-hour leave on a day that also had 8 billable hours.
 - Avoid native browser dialogs (they block cdp); prefer in-page controls.
 - If a step fails repeatedly or the UI differs, stop and report — don't guess.
 - Close the Workday tab you opened when done; a dirty Enter Time by Type dialog left open in the user's browser is a stray save waiting to happen — **Close → Discard** it if a run aborts mid-fill.

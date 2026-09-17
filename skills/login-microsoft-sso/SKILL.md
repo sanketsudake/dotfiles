@@ -14,7 +14,7 @@ disable-model-invocation: true
 license: Apache-2.0
 metadata:
   author: sanketsudake
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Login to an SSO app (Microsoft-federated)
@@ -37,6 +37,22 @@ The caller passes one app; the current set (add more in the local config):
 App URLs and SSO button labels are org/tenant-specific.
 They live in a never-committed local config, read at runtime: `~/.config/harness-configs/login-microsoft-sso/config` (`<APP>_HOME_URL`, `<APP>_SSO_BUTTON`).
 Do not hardcode URLs or button labels.
+
+**Put quotes around every value in that config file.**
+The file is `source`d as shell, and SSO button labels usually contain spaces.
+An unquoted value such as `WORKDAY_SSO_BUTTON=Single Sign-on Login Using SSO` becomes several shell words: the shell prints `command not found: Sign-on` and leaves the variable **empty**.
+A later `click --by name "$WORKDAY_SSO_BUTTON"` then clicks with an empty name, and can click the wrong control with no error.
+Correct form (example values):
+
+```bash
+WORKDAY_HOME_URL="https://wd5.myworkday.com/<tenant>/d/home.htmld"
+WORKDAY_SSO_BUTTON="Single Sign-on Login Using SSO"
+ENGAGE_HOME_URL="https://engage.example.com/"
+ENGAGE_SSO_BUTTON="Login with <Org>"
+OUTLOOK_HOME_URL="https://outlook.office.com/mail/"
+```
+
+`outlook` has no SSO button, so do not add an `OUTLOOK_SSO_BUTTON` line, not even an empty one.
 
 ## Steps
 
