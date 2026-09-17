@@ -3,6 +3,8 @@
 # store, not the working tree: Hyprland reloads on every change, and a git
 # checkout that briefly removes the repo file would load Omarchy's defaults
 # with a "module 'hypr.input' not found" error. Edits apply on nix-switch.
+# Never link monitors.lua: Super+/ (omarchy-hyprland-monitor-scaling) and the
+# clamshell toggle rewrite it with sed -i, which replaces a link with a file.
 {
   config,
   lib,
@@ -28,4 +30,12 @@ lib.mkIf config.dotfiles.omarchy {
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # Keep Omarchy's fcitx5 off. With fcitx5 in the key path, Ghostty got
+  # repeated and stray characters (g~~~~it); the only input method here is
+  # keyboard-us, so it only cost the CapsLock compose sequences. Mask, not
+  # disable: Omarchy migrations re-run `systemctl --user enable`, and a masked
+  # unit refuses both enable and start.
+  home.file.".config/systemd/user/omarchy-fcitx5.service".source =
+    config.lib.file.mkOutOfStoreSymlink "/dev/null";
 }
