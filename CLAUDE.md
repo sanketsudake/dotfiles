@@ -223,7 +223,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - Authored skills carry `license: Apache-2.0` in `SKILL.md` frontmatter, matching the repo's top-level `LICENSE` — not MIT.
 - Before committing a new or changed skill, run `make skills-scan NAME=<skill>`; fix real findings, and accept a false positive only with a reason in `skills/.security/skillspector/<skill>.json`.
 - Before committing any change, run the pre-flight gate: `make preflight` (both doctors — which cover the catalog, suites, and the context budget — plus `bash -n`/`py_compile` over every script) and `make test` (every `scripts/test-*.{sh,py}`).
-  The gate is defined once in the Makefile and enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.sh` as a project-scoped `PreToolUse` hook that blocks any `git commit` while `make preflight` fails, and `.github/workflows/checks.yml` runs `make preflight`, `make test`, and the SkillSpector scan on push and PR.
+  The gate is defined once in the Makefile and enforced twice: `.claude/settings.json` wires `scripts/precommit-gate-hook.py` as a project-scoped `PreToolUse` hook that blocks a `git commit` targeting this repo (or one of its worktrees) while `make preflight` fails — commits to other repos pass through — and `.github/workflows/checks.yml` runs `make preflight`, `make test`, and the SkillSpector scan on push and PR.
 
 ## Cross-platform rules (Mac + Omarchy)
 

@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/precommit-gate-hook.sh",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/scripts/precommit-gate-hook.py",
             "timeout": 60,
             "statusMessage": "Running skill pre-flight gate"
           }
