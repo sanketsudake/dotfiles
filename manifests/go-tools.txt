@@ -27,7 +27,6 @@ github.com/favadi/protoc-go-inject-tag
 
 # kubernetes & misc
 sigs.k8s.io/controller-runtime/tools/setup-envtest
-github.com/grafana/dashboard-linter
 github.com/darccio/diffty/cmd/diffty
 
 # personal tools (was brew taps)
