@@ -68,6 +68,16 @@ make -s skills-catalog
 make -s skills-doctor
 make -s skills-catalog CHECK=1
 
+echo "== runtime artifact dirs under skills/ are not skills"
+# skills/bin (a binary a skill downloads) and skills/synced (Claude Code's
+# synced first-party skills, dropped in through the profile symlink) have no
+# SKILL.md and must not be reported as broken skills.
+mkdir -p skills/bin skills/synced/pdf
+touch skills/bin/some-binary skills/synced/pdf/SKILL.md
+make -s skills-doctor || fail "doctor flags a runtime artifact dir"
+make -s skills-list | grep -qE '^ *(bin|synced) ' && fail "list shows a runtime artifact dir"
+rm -rf skills/bin skills/synced
+
 echo "== delete (also drops the skill's scan baseline)"
 mkdir -p skills/.security/skillspector && echo '{"version":2,"rules":[]}' > "skills/.security/skillspector/$NAME.json"
 make -s skills-delete NAME=$NAME YES=1
