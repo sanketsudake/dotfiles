@@ -447,7 +447,7 @@ agents-doctor:
 
 # The pre-flight gate, defined once: both doctors (skills-doctor already covers
 # catalog, suites, and the context budget) plus a syntax pass over every script.
-# The project commit-gate hook (scripts/precommit-gate-hook.sh) and CI run this
+# The project commit-gate hook (scripts/precommit-gate-hook.py) and CI run this
 # same target; a new check goes here and nowhere else.
 preflight: python-check skills-doctor agents-doctor lint nix-check-soft
 
