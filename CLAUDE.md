@@ -201,6 +201,8 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
   The vendored skill dirs (a managed block in `.gitignore`, one `/skills/<name>/` line each — rewritten by `resource-manager.sh`) are materialized from `sources.toml`, so after a fresh clone they're absent until `make install` (or `make skills-materialize`) reconstructs them.
   `docs/superpowers/` holds local-only design artifacts (brainstorming specs, implementation plans).
   `skills/bin/` holds the `parakeet-cpp-transcribe` binary the `transcribe` skill downloads at runtime — under the symlinked profiles its `../bin` resolves back into the repo, so it's ignored to keep the blob out of git.
+  `skills/synced/` holds Claude Code's own synced first-party skills, which it writes into the profile's skills dir — a symlink to this tree; they are its copies, not ours.
+  `skills/bin/` and `skills/synced/` are runtime artifacts rather than skills, so `resource-manager.sh` skips both in every `skills/` scan (`is_runtime_dir`) and `skills-doctor` does not flag them.
   Don't expect any of these to be present after a fresh clone.
 
 ## Conventions when editing

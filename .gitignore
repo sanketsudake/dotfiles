@@ -23,6 +23,10 @@ docs/superpowers/
 # docs call this an "ignored" dir; under the symlinked Claude profiles it
 # resolves into the repo tree, so ignore it to keep the blob out of git.
 skills/bin/
+
+# Claude Code's synced first-party skills: it writes them into the profile's
+# skills dir, which is a symlink to this tree. They are its copies, not ours.
+skills/synced/
 __pycache__/
 .DS_Store
 

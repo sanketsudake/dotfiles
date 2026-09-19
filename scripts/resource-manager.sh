@@ -140,7 +140,9 @@ iter_resources() {
     skill)
       local dir
       for dir in "$RESOURCE_ROOT"/*/; do
-        [[ -d "$dir" ]] && basename "$dir"
+        [[ -d "$dir" ]] || continue
+        is_runtime_dir "$(basename "$dir")" && continue
+        basename "$dir"
       done
       ;;
     agent)
@@ -153,6 +155,12 @@ iter_resources() {
 }
 
 # --- shared helpers --------------------------------------------------------
+
+# Runtime artifact dirs under skills/: not skills, so list/doctor/catalog skip
+# them. `bin` holds a binary a skill downloads at run time (the transcribe
+# skill's parakeet build); `synced` holds Claude Code's own synced first-party
+# skills, which land here through the profile symlink. Both are gitignored.
+is_runtime_dir() { [[ "$KIND" == "skill" ]] && [[ "$1" == "bin" || "$1" == "synced" ]]; }
 
 # Normalize a repo reference into a clone URL.
 #   owner/name            -> https://github.com/owner/name
@@ -269,7 +277,8 @@ manifest_set_category() {
 
 all_skill_names() {
   { manifest_names
-    local d; for d in "$RESOURCE_ROOT"/*/; do [[ -d "$d" ]] && basename "$d"; done
+    local d n; for d in "$RESOURCE_ROOT"/*/; do [[ -d "$d" ]] || continue; n="$(basename "$d")"
+      is_runtime_dir "$n" || printf '%s\n' "$n"; done
   } | sort -u
 }
 skill_exists()      { is_vendored "$1" || [[ -f "$RESOURCE_ROOT/$1/SKILL.md" ]]; }
@@ -362,6 +371,7 @@ find_vendored_orphans() {
   for d in "$RESOURCE_ROOT"/*/; do
     [[ -d "$d" ]] || continue
     name="$(basename "$d")"
+    is_runtime_dir "$name" && continue
     [[ -f "$d/.source.json" ]] || continue
     repo="$(jq -r '.repo // "null"' "$d/.source.json" 2>/dev/null || echo null)"
     [[ "$repo" != "null" && -n "$repo" ]] || continue   # authored/unmanaged -> skip
@@ -545,6 +555,7 @@ list_data_skill() {
   for dir in "$RESOURCE_ROOT"/*/; do
     [[ -d "$dir" ]] || continue
     name="$(basename "$dir")"
+    is_runtime_dir "$name" && continue
     is_vendored "$name" && continue
     if [[ -z "$(manifest_entry "$name")" ]]; then
       status=unmanaged; category=uncategorized
@@ -1112,6 +1123,7 @@ cmd_doctor() {
     for dir in "$RESOURCE_ROOT"/*/; do
       [[ -d "$dir" ]] || continue
       name="$(basename "$dir")"
+      is_runtime_dir "$name" && continue
       is_vendored "$name" && continue
       md="$dir/SKILL.md"
       [[ -f "$md" ]] || { flag "$name: missing $(rel "$md")"; continue; }
