@@ -37,6 +37,7 @@
       "1password-cli"
       "balenaetcher" # flash OS images to USB/SD
       "claude-code@latest"
+      "codex" # OpenAI's coding agent; nixpkgs lags the fast release cadence
       "copilot-cli"
       "devin-cli"
       "ghostty"
