@@ -5,6 +5,11 @@
         "bash": "bash \"$HOME/.copilot/hooks/herdr-agent-state.sh\"",
         "timeoutSec": 10,
         "type": "command"
+      },
+      {
+        "bash": "bash '/Users/sanketsudake/.copilot/hooks/herdr-agent-state.sh'",
+        "timeoutSec": 10,
+        "type": "command"
       }
     ]
   },
