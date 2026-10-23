@@ -1,6 +1,11 @@
 # CLI packages from nixpkgs (was homebrew brews), migrated in batches —
 # see the Nix migration plan. Grouped to mirror the old Brewfile sections.
-{ lib, pkgs, inputs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
   system = pkgs.stdenv.hostPlatform.system;
 in

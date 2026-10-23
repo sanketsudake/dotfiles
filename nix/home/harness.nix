@@ -26,7 +26,7 @@ let
   # from sources.toml, which lists every skill; the gitignored vendored dirs
   # are invisible to the flake, their manifest entries are not. A new skill
   # appears after the next switch. The Mac keeps whole-dir links.
-  skillNames = map (s: s.name) (builtins.fromTOML (builtins.readFile ../../sources.toml)).skill;
+  skillNames = map (s: s.name) (lib.importTOML ../../sources.toml).skill;
   omarchySkills = [
     "omarchy"
     "diagnose-crash"
@@ -44,18 +44,19 @@ let
       }) omarchySkills
     );
 
-  claudeLinks = lib.listToAttrs (
-    lib.concatMap (
-      prof:
-      map (e: {
-        name = "${prof}/${e}";
-        value.source = link "packages/claude/${e}";
-      }) (if omarchy then lib.remove "skills" claudeEntries else claudeEntries)
-    ) claudeProfiles
-  )
-  // lib.optionalAttrs omarchy (
-    lib.mergeAttrsList (map (prof: skillEntryLinks "${prof}/skills") claudeProfiles)
-  );
+  claudeLinks =
+    lib.listToAttrs (
+      lib.concatMap (
+        prof:
+        map (e: {
+          name = "${prof}/${e}";
+          value.source = link "packages/claude/${e}";
+        }) (if omarchy then lib.remove "skills" claudeEntries else claudeEntries)
+      ) claudeProfiles
+    )
+    // lib.optionalAttrs omarchy (
+      lib.mergeAttrsList (map (prof: skillEntryLinks "${prof}/skills") claudeProfiles)
+    );
 
   # Entry names come from the package dir itself, so a vendored addition is
   # picked up by the next switch without editing this file.
