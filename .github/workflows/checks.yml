@@ -44,12 +44,16 @@ jobs:
         run: make skills-scan QUIET=1
 
   nix:
-    name: nix (flake check, darwin + home eval, statix)
+    name: nix (flake check, darwin + home eval, statix, fmt)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v23
       - run: nix flake check
+      # treefmt has no read-only mode: --ci formats, then fails if it changed
+      # anything. On a throwaway runner the rewrite is harmless, and it is the
+      # only way to hold `make nix-fmt` output stable.
+      - run: nix fmt -- --ci
       # Pure eval type-checks every host's darwin + home-manager module tree;
       # no macOS runner needed, and new hosts are covered automatically.
       # Block scalar on purpose: an inline `run:` value that holds `: ` is not
