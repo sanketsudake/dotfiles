@@ -35,6 +35,12 @@ __pycache__/
 skills/*/node_modules/
 skills/*/package-lock.json
 
+# Local trash dir the `skills` CLI leaves behind when it removes a skill.
+# Must stay OUTSIDE the managed block below: sync_gitignore rewrites that block
+# from the manifest, so a hand-added line inside it is dropped on the next fetch
+# or delete (and scripts/test-resource-manager.sh then fails on the dirty tree).
+/skills/.trash/
+
 # >>> vendored skills (managed by resource-manager.sh; materialized by `make install`)
 /skills/agent-browser/
 /skills/brave-search/
@@ -82,7 +88,6 @@ skills/*/package-lock.json
 /skills/wayfinder/
 /skills/xlsx/
 /skills/youtube-transcript/
-/skills/.trash/
 # <<< vendored skills
 
 # nix build output symlink
