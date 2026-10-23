@@ -1,6 +1,9 @@
 {
   "agent": {
-    "model": "kimi-k3-low"
+    "model": "deepseek-v4-1-flash-1017-high",
+    "preferred_family_models": {
+      "deepseek-v4-1-flash-1017": "deepseek-v4-1-flash-1017-high"
+    }
   },
   "hooks": {
     "PermissionRequest": [
@@ -77,7 +80,9 @@
   "version": 1,
   "permissions": {
     "allow": [
-      "Exec(sed)"
+      "Exec(sed)",
+      "Exec(ls)",
+      "Exec(cat)"
     ]
   }
 }

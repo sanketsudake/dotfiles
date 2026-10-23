@@ -82,6 +82,7 @@ skills/*/package-lock.json
 /skills/wayfinder/
 /skills/xlsx/
 /skills/youtube-transcript/
+/skills/.trash/
 # <<< vendored skills
 
 # nix build output symlink
