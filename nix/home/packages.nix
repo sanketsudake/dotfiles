@@ -104,6 +104,7 @@ in
     kind
     ko
     kustomize
+    devspace # devspace.sh: in-cluster dev loops (dev/deploy/enter) over kubectl
     skaffold
     skopeo
     stern
