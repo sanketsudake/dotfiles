@@ -119,6 +119,13 @@ Commit the rest — don't skip the whole group; a partial group is still progres
 - **`git stash pop` hazard.**
   On a clean tree, `git stash` is a silent no-op, so a later `git stash pop` can unstash a *pre-existing* WIP entry from another session and conflict.
   Run `git stash list` before any pop; recover a contaminated tree with `git checkout HEAD -- <files>`.
+- **Local `go` older than the module's `go` directive breaks codegen tools.**
+  A generator built by `go install`/`go run` inside *another* module (e.g. a copied `k8s.io/code-generator` with an older `go` directive) compiles with the raw `go` binary on PATH, not the toolchain the repo's own directive selects.
+  `go version` hides this: in the repo it reports the switched toolchain, but the PATH binary can be older (distro/nix/homebrew installs).
+  The generator then type-checks the repo's packages against the *new* stdlib with an *old* `go/types`, which rejects newer language features — e.g. Go 1.27 stdlib generic methods fail with `method must have no type parameters` in `math/rand/v2`.
+  Fix: run the codegen step with `GOTOOLCHAIN=<version from go.mod>` (e.g. `GOTOOLCHAIN=go1.27.3 make codegen`) so the generator is built by the same toolchain whose stdlib it reads.
+  CI is unaffected when it installs Go from `go-version-file: go.mod`.
+  Diagnose: compare `go env GOROOT` inside the generator's module against the repo's.
 
 ## Canonical outline
 
