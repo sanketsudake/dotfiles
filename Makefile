@@ -171,7 +171,7 @@ brew-dump:
 
 # Take over apps that were installed outside brew (pkg-based casks prompt for sudo).
 cask-adopt:
-	brew install --cask --adopt 1password claude devin-desktop google-chrome \
+	brew install --cask --adopt 1password devin-desktop google-chrome \
 		openvpn-connect tailscale-app wispr-flow
 
 else

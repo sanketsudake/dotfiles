@@ -102,6 +102,7 @@ in
     kubernetes-helm
     k9s
     kind
+    vcluster # virtual Kubernetes clusters inside a host cluster (loft-sh)
     ko
     kustomize
     devspace # devspace.sh: in-cluster dev loops (dev/deploy/enter) over kubectl

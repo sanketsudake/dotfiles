@@ -29,32 +29,21 @@
     casks = [
       # Previously direct-download apps, adopted into brew management.
       "1password"
-      "claude"
       "devin-desktop"
       "google-chrome"
       "wispr-flow"
 
       "1password-cli"
-      "balenaetcher" # flash OS images to USB/SD
       "claude-code@latest"
-      "codex" # OpenAI's coding agent; nixpkgs lags the fast release cadence
-      "copilot-cli"
       "devin-cli"
       "ghostty"
       "helium-browser" # Chromium-based; to replace google-chrome eventually
       "obsidian"
       "slack"
       "visual-studio-code"
-      "zoom"
       # cc-proxy, chrome-cdp and portless moved to nix — each repo exposes a
       # flake, wired as an input in flake.nix and installed from
-      # nix/home/packages.nix. cines stays a cask: it is a Qt .app from a
-      # universal DMG, and nix on darwin would land it in
-      # ~/Applications/Home Manager Apps, which Spotlight indexes poorly.
-      {
-        name = "sanketsudake/tap/cines";
-        trusted = true;
-      }
+      # nix/home/packages.nix.
     ];
 
     # App Store apps (need App Store sign-in on a new Mac).
