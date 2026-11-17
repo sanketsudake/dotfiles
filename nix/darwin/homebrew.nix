@@ -34,6 +34,7 @@
       "wispr-flow"
 
       "1password-cli"
+      "antigravity-cli"
       "claude-code@latest"
       "devin-cli"
       "ghostty"
