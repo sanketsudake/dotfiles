@@ -13,10 +13,10 @@ home_packages="$(sed -n 's/^HM_PACKAGES := //p' "$repo_root/Makefile")"
 [ -n "$home_packages" ] || { echo "managed-targets: HM_PACKAGES not found in Makefile" >&2; exit 1; }
 cd "$repo_root/packages"
 # Omarchy owns btop's config (theme switcher) and has no use for the macOS-only
-# bin/ helpers, so nix/home skips both there (dotfiles.omarchy); hypr is linked
-# only there (nix/home/omarchy.nix). Mirror that.
+# bin/ helpers or rex, so nix/home skips all three there (dotfiles.omarchy);
+# hypr is linked only there (nix/home/omarchy.nix). Mirror that.
 if [ -d /usr/share/omarchy ]; then
-  home_packages="$(printf '%s\n' $home_packages | grep -vxE 'btop|bin' | tr '\n' ' ')"
+  home_packages="$(printf '%s\n' $home_packages | grep -vxE 'btop|bin|rex' | tr '\n' ' ')"
 else
   home_packages="$(printf '%s\n' $home_packages | grep -vxE 'hypr' | tr '\n' ' ')"
 fi

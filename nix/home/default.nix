@@ -9,6 +9,7 @@
     ./btop.nix
     ./gh.nix
     ./bin.nix
+    ./rex.nix
     ./zsh.nix
     ./packages.nix
     ./plannotator.nix

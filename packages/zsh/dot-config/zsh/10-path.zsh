@@ -9,3 +9,7 @@ export PATH="$HOME/go/bin:$PATH"
 export PATH="$HOME/.codeium/windsurf/bin:$PATH"
 export PATH="$HOME/.npm-globals/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+# rex binary dir, when set by the rex installer/env.
+if [ -n "$REX_BIN_DIR" ]; then
+    export PATH="$REX_BIN_DIR:$PATH"
+fi

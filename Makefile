@@ -10,7 +10,7 @@ PYTHON ?= $(shell for p in /etc/profiles/per-user/$$USER/bin/python3 $$HOME/.nix
 # $HOME dotfile packages, now linked per-file by home-manager (nix/home/).
 # packages/ stays the source of truth for content; this list drives
 # managed-targets.sh so doctor keeps health-checking every target.
-HM_PACKAGES := zsh git atuin btop gh bin hypr
+HM_PACKAGES := zsh git atuin btop gh bin hypr rex
 
 UNAME_S := $(shell uname -s)
 # Absolute paths: make's shell (and sudo's secure_path) don't carry the
@@ -85,7 +85,7 @@ BASH := $(shell for p in /etc/profiles/per-user/$$USER/bin/bash $$HOME/.nix-prof
 	nix-build nix-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update nix-gc \
 	brew-install brew-check brew-dump cask-adopt pacman-install \
 	go-install npm-install pipx-install tools-install \
-	macos-apply raycast-export \
+	macos-apply raycast-export rex-reload \
 	harness-link harness-unlink \
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
@@ -107,6 +107,7 @@ nix-build:
 
 nix-switch:
 	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST)
+	$(MAKE) rex-reload
 
 nix-rollback:
 	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST) --rollback
@@ -218,8 +219,19 @@ macos-apply:
 # Raycast Settings -> Advanced -> Import.
 raycast-export:
 	open "raycast://extensions/raycast/raycast/export-settings-data"
+
+# Rex doesn't watch ~/.config/rex/init.lua — the server must be told to reload.
+# rex lives inside the app bundle and reaches PATH only via REX_BIN_DIR in the
+# interactive shell, so fall back to the bundle path under make's bare PATH.
+# Warn-and-skip when rex or its server is absent; a switch must not fail on it.
+rex-reload:
+	@rex=$$(command -v rex || true); \
+	[ -n "$$rex" ] || rex="$(HOME)/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex"; \
+	[ -x "$$rex" ] || { echo "rex not installed — skipping reload"; exit 0; }; \
+	[ -f $(HOME)/.config/rex/init.lua ] || { echo "no rex config — skipping reload"; exit 0; }; \
+	"$$rex" config reload || echo "warn: rex config reload failed — run 'rex config check'"
 else
-macos-apply raycast-export:
+macos-apply raycast-export rex-reload:
 	@echo "$@: macOS only"
 endif
 
