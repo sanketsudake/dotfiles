@@ -7,6 +7,3 @@
 -- Panes
 rex.bind("cmd+d", "pane.split", { direction = "right" })
 rex.bind("cmd+shift+d", "pane.split", { direction = "down" })
-
--- Windows
-rex.bind("cmd+shift+n", "window.new")
