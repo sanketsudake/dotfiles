@@ -59,7 +59,6 @@ Do not rewrap a full paragraph only to change one sentence.
 - My browser is **Helium**, not Chrome; it holds the live logins.
 Read "the user's real Chrome" in any skill as Helium.
 - Attach to the running browser; never launch a new one.
-- Default to `/agent-browser`; use `/drive-chrome-cdp` when a skill names it or needs its primitives.
-- Attaching raises one consent prompt per session:
-start the `chrome-cdp` daemon, run one probe, and wait — do not stack probes.
+- Attaching raises one consent prompt per session;
+run one probe and wait — do not stack probes.
 - Type no credentials; stop at a login or passkey page and ask me to sign in.
