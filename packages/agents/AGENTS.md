@@ -1,9 +1,10 @@
 # AGENTS.md
 
 Global, always-on rules for the CLI coding agents that are not Claude Code:
+Antigravity loads this via its global plugin (`~/.gemini/config/plugins/dotfiles-harness/rules/AGENTS.md`),
 Devin CLI reads this file at `~/.config/devin/AGENTS.md`,
 GitHub Copilot CLI reads the same content at `~/.copilot/copilot-instructions.md`.
-Both links come from `packages/agents/AGENTS.md` in the dotfiles repo.
+All links come from `packages/agents/AGENTS.md` in the dotfiles repo.
 
 Claude Code has its own file (`packages/claude/CLAUDE.md`),
 because it uses `$CLAUDE_CONFIG_DIR` paths and profile-specific tooling that do not apply here.
@@ -11,7 +12,8 @@ Keep this file harness-neutral: no tool-specific paths, no slash commands.
 
 ## Skills first
 
-Shared skills live in `~/.agents/skills/`, which both CLIs read.
+Shared skills live in `~/.agents/skills/`, which all non-Claude coding agents read
+(Antigravity also discovers them globally via `~/.gemini/config/skills.json`).
 Each skill is a directory with a `SKILL.md` file.
 Before you start a task, check for a skill that covers it, and follow the skill instead of improvising.
 Keep this file short — a rule that only applies to one kind of task belongs in a skill.
@@ -51,3 +53,12 @@ CommonMark renders a single newline as a space,
 thus the rendered output does not change,
 but each `git diff` shows one thought per line.
 Do not rewrap a full paragraph only to change one sentence.
+
+## Interacting with browser
+
+- My browser is **Helium**, not Chrome; it holds the live logins.
+Read "the user's real Chrome" in any skill as Helium.
+- Attach to the running browser; never launch a new one.
+- Attaching raises one consent prompt per session;
+run one probe and wait — do not stack probes.
+- Type no credentials; stop at a login or passkey page and ask me to sign in.

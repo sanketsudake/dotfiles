@@ -1,0 +1,6 @@
+{
+  "name": "dotfiles-harness",
+  "displayName": "Dotfiles AI Harness",
+  "description": "Subagents, rules, and safety hooks from dotfiles",
+  "version": "1.0.0"
+}

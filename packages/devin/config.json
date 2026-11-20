@@ -1,10 +1,10 @@
 {
   "agent": {
-    "model": "adaptive",
+    "model": "deepseek-v4-1-flash-1017-high",
     "preferred_family_models": {
-      "deepseek-v4-1-flash-1017": "deepseek-v4-1-flash-1017-high",
+      "glm-5-3-flash": "glm-5-3-flash-max",
       "Adaptive": "adaptive",
-      "glm-5-3-flash": "glm-5-3-flash-max"
+      "deepseek-v4-1-flash-1017": "deepseek-v4-1-flash-1017-high"
     }
   },
   "hooks": {
