@@ -1,6 +1,6 @@
 # dotfiles
 
-One repo for the whole machine: a Nix-declared macOS setup (nix-darwin + home-manager flake, Homebrew for casks, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) profiles, [pi](https://github.com/badlogic/pi-mono), [Devin CLI](https://docs.devin.ai/cli/), and [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli).
+One repo for the whole machine: a Nix-declared macOS setup (nix-darwin + home-manager flake, Homebrew for casks, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) profiles, [pi](https://github.com/badlogic/pi-mono), [Devin CLI](https://docs.devin.ai/cli/), [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli), and [Antigravity](https://antigravity.google/) CLI & IDE.
 
 A personal repo, published so others can borrow the architecture.
 Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#adopt-it)).
@@ -28,8 +28,9 @@ Same repo, same `make install`, different system layer — see [Omarchy host](#o
 ## Ideas worth stealing
 
 - **One source of truth, many harnesses.**
-  A single `skills/` tree feeds Claude Code, pi, Devin CLI, and Copilot CLI; edit once, every harness sees it immediately.
-  Devin reads `~/.agents/skills` and Copilot reads `~/.copilot/skills`; both links point at the same tree, and the same `agents/*.md` files link into each CLI under the name it expects.
+  A single `skills/` tree feeds Claude Code, pi, Devin CLI, Copilot CLI, and Antigravity; edit once, every harness sees it immediately.
+  Devin reads `~/.agents/skills`, Copilot reads `~/.copilot/skills`, and Antigravity is handed the same tree through a generated `skills.json`;
+  every link points at the same tree, and the same `agents/*.md` files link into each CLI under the name it expects.
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
   `pclaude` / `wclaude` wrappers keep personal and work accounts isolated while sharing the same skills and rules.
 - **Per-resource source tracking.**
@@ -38,7 +39,7 @@ Same repo, same `make install`, different system layer — see [Omarchy host](#o
   `skills/README.md` is generated from that metadata; `make skills-doctor` fails when anything drifts.
 - **Guardrails as code, not hope.**
   Extensions for pi confirm before destructive actions, block dirty-repo commits, and protect paths;
-  a `PreToolUse` safety hook does the same for Claude Code (deny/ask on dangerous shell, secrets, and VCS internals);
+  a `PreToolUse` safety hook does the same for Claude Code and for Antigravity (deny/ask on dangerous shell, secrets, and VCS internals);
   `plugins.txt` declares the plugin set and `make plugins-check` reports drift per profile.
 - **Skills are scanned before they land.**
   `make skills-scan` runs [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) over every skill, `skills-fetch`/`skills-update` refuse a skill that fails, and accepted findings carry a reason in `skills/.security/skillspector/`.
@@ -58,9 +59,10 @@ dotfiles/
 ├── manifests/      # non-brew tools: go-tools.txt, npm-globals.txt, pipx-tools.txt
 ├── macos/          # deliberately-changed macOS defaults (make macos-apply)
 ├── packages/       # dotfile sources for $HOME (zsh, git, atuin, btop, gh, bin), linked by home-manager
-│   ├── agents/     #   AGENTS.md — global rules shared by Devin CLI + Copilot CLI
-│   ├── devin/      #   Devin CLI config.json
-│   └── copilot/    #   Copilot CLI settings.json
+│   ├── agents/      #   AGENTS.md — global rules shared by Devin, Copilot, and Antigravity
+│   ├── antigravity/ #   Antigravity plugin (rules, subagents, safety hook) + statusline
+│   ├── copilot/     #   Copilot CLI settings.json
+│   └── devin/       #   Devin CLI config.json
 ├── claude/         # Claude Code config, symlinked into both profiles
 │   ├── CLAUDE.md   #   shared global user instructions
 │   ├── commands/   #   slash commands
@@ -76,8 +78,8 @@ dotfiles/
 └── scripts/        # repo tooling (doctor, drift, resource manager — not symlinked)
 ```
 
-`make install` links `skills/` and `claude/*` into both Claude profiles, `pi/` into `~/.pi`, and the shared skills, agents, and configs into Devin CLI and Copilot CLI (home-manager out-of-store symlinks) — safe to re-run.
-Because everything is symlinked, one edit here applies to every profile and both harnesses at once.
+`make install` links `skills/` and `claude/*` into both Claude profiles, `pi/` into `~/.pi`, and the shared skills, agents, and configs into Devin CLI, Copilot CLI, and Antigravity (home-manager out-of-store symlinks) — safe to re-run.
+Because everything is symlinked, one edit here applies to every profile and every harness at once.
 
 ## What's inside
 
@@ -227,7 +229,7 @@ CI evaluates every `homeConfigurations` entry alongside the darwin hosts.
 
 ### Harness links
 
-The harness targets (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
+The harness targets (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`, `~/.gemini`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
 the linked content stays mutable, so vendored skills materialize in place and repo edits apply live.
 `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file on purpose: those tools write state beside them,
 and a whole-dir link would let a tool write into the repo.
@@ -238,6 +240,11 @@ The subagents in `packages/claude/agents/` link into `~/.config/devin/agents/<na
 Global always-on rules come from `packages/agents/AGENTS.md`, linked as `~/.config/devin/AGENTS.md` and `~/.copilot/copilot-instructions.md`.
 Of each CLI's own config, only the user-editable file is managed (`~/.config/devin/config.json`, `~/.copilot/settings.json`);
 `~/.copilot/config.json` holds login state and the two `herdr-agent-state.sh` hook scripts are installed by herdr, so all three stay local files.
+
+Antigravity has no rules or agent path of its own: it loads the `dotfiles-harness` plugin, whose `rules/AGENTS.md` is a symlink to the shared `packages/agents/AGENTS.md` and whose `rules/browser.md` adds the Antigravity-only slash-command hints.
+Its subagents are Antigravity copies under `packages/antigravity/plugins/dotfiles-harness/agents/` — the frontmatter differs (`subagent`, `mainAgent`, native `tools` names), so the Claude files cannot be linked in as-is.
+`~/.gemini/config/skills.json` is **generated** by home-manager from the same repo path the other links use, instead of a per-machine copy tracked in the repo.
+The plugin also carries the `PreToolUse` safety gate (`scripts/safety-guard-hook.py`), which reads Antigravity's `toolCall` payload and answers `allow`/`ask`/`deny`.
 
 #### Verifying what each CLI actually loaded
 
@@ -257,6 +264,9 @@ Do not trust the `~/.agents/skills` path from the GitHub docs alone; the running
 For the rest, `copilot --log-level debug --log-dir /tmp/cop -p 'hi'` is the ground truth:
 the log warns per agent file on an unknown frontmatter key (`effort` is Claude-only, and both CLIs ignore it),
 and records that `model: haiku` maps to `claude-haiku-4.5`.
+
+Antigravity has its own readback: `agy plugin list` names the loaded components (`6 agents, 2 rules, 1 hook`),
+and `agy plugin validate ~/.gemini/config/plugins/dotfiles-harness --strict` fails on a rule that can never apply or a hook that cannot load.
 
 zsh keeps its drop-in idea: `~/.zshrc` is a thin loader sourcing `~/.config/zsh/*.zsh` in `NN-` prefix order,
 and machine-local uncommitted overrides go in `~/.config/zsh/90-local.zsh`

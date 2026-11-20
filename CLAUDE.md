@@ -173,10 +173,16 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
   To check what each CLI really loaded (not just that the link exists), see README.md § "Verifying what each CLI actually loaded": `devin doctor` / `devin skills list` / `devin rules list`, and for Copilot a `--log-level debug` run.
   Copilot has no `skill` subcommand and no non-interactive readback, so trust `/skills list` in a session over the docs and over the `SKILLS_INSTRUCTIONS` debug-log flag (which reads `false` while `/skills` works).
   `packages/agents/AGENTS.md` is the shared global rules file for these two CLIs (linked as `~/.config/devin/AGENTS.md` and `~/.copilot/copilot-instructions.md`); keep it harness-neutral — `packages/claude/CLAUDE.md` stays Claude-only because it uses `$CLAUDE_CONFIG_DIR` paths.
+- **Antigravity reads its customizations from a plugin, not from paths of its own** (`nix/home/harness.nix`).
+  `~/.gemini/config/plugins/dotfiles-harness` is a whole-dir link to `packages/antigravity/plugins/dotfiles-harness`, and its `rules/AGENTS.md` is a symlink to the shared `packages/agents/AGENTS.md`, so the global rules keep one source.
+  Its `agents/` are Antigravity copies, because the frontmatter differs (`subagent`, `mainAgent`, native `tools` names) — change them alongside `packages/claude/agents/` when an agent changes.
+  `~/.gemini/config/skills.json` is generated (`home.file.*.text`) with the absolute `skills/` path and must not be tracked in the repo; the doctor accepts a nix-store path for it.
+  The safety hook reads Antigravity's `toolCall.args` (`CommandLine` for `run_command`, `TargetFile` for `write_file`/`edit_file`) — a wrong key fails open, so `scripts/test-antigravity-safety-guard-hook.py` pins it.
+  Verify with `agy plugin list` and `agy plugin validate <plugin> --strict`; the latter fails on a rule whose frontmatter has no `trigger`.
 - **`packages/pi/extensions/subagent/` is a directory extension** (listed without `.ts` suffix in `PI_EXTENSIONS`); the rest are single-file TS extensions.
   Adding a new upstream extension requires editing `PI_EXTENSIONS` in the Makefile.
-- **`skills/` is the single source of truth** for skills across pi, both Claude profiles, Devin CLI, and Copilot CLI.
-  The `claude` and `pi` packages each carry a committed `skills -> ../../skills` symlink, so the harness links expose the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`; `~/.agents/skills` and `~/.copilot/skills` link straight to `skills/` for Devin and Copilot.
+- **`skills/` is the single source of truth** for skills across pi, both Claude profiles, Devin CLI, Copilot CLI, and Antigravity.
+  The `claude` and `pi` packages each carry a committed `skills -> ../../skills` symlink, so the harness links expose the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`; `~/.agents/skills` and `~/.copilot/skills` link straight to `skills/` for Devin and Copilot, and the generated `~/.gemini/config/skills.json` names it for Antigravity.
   What's *committed* under it, though, is only the authored skill dirs (their source records live in `sources.toml`); vendored skill dirs are gitignored and materialized into place (see the manifest model above), so the symlinked tree the tools read is authored-committed + vendored-materialized.
 - **`packages/claude/commands/`, `packages/claude/rules/`, `packages/claude/scripts/`, and `packages/claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
 `commands-link` / `rules-link` / `scripts-link` / `agents-link` symlink them into `~/.claude-personal/` and `~/.claude-work/` (not into `~/.pi/` — pi doesn't consume these; pi has its own vendored `packages/pi/extensions/subagent/agents/`).
@@ -240,7 +246,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 ## Dotfiles conventions
 
 - `$HOME` dotfiles are linked per-file by home-manager (`nix/home/*.nix` pointing at `packages/` sources) — the per-file discipline is a security invariant, explained in README.md § "The nix model"; never point `home.file` at a whole directory.
-  The harness links (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file because those tools write state beside them.
+  The harness links (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`, `~/.gemini`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file because those tools write state beside them.
 - File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`), mapped by the `home.file` entries in `nix/home/`.
 - Never add packages for credential-bearing dirs or files: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`, `~/.copilot/config.json`.
 - `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`; the one prebuilt-binary exception is `nix/home/plannotator.nix` (a pinned GitHub release asset, not in nixpkgs).
