@@ -113,7 +113,8 @@ def main() -> None:
                 return
 
     elif tool_name in ("write_file", "edit_file"):
-        path = args.get("Path", "")
+        # write_file/edit_file name their argument TargetFile; read_file uses Path.
+        path = args.get("TargetFile") or args.get("Path") or ""
         if path and not any(p.search(path) for p in PATH_ALLOW):
             for label, pat in PATH_DENY:
                 if pat.search(path):

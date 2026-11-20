@@ -474,7 +474,8 @@ python-check:
 
 lint:
 	@for f in scripts/*.sh packages/claude/scripts/*.sh; do $(BASH) -n "$$f" || exit 1; done
-	@$(PYTHON) -m py_compile scripts/*.py packages/claude/scripts/*.py
+	@$(PYTHON) -m py_compile scripts/*.py packages/claude/scripts/*.py \
+		packages/antigravity/scripts/*.py packages/antigravity/plugins/dotfiles-harness/scripts/*.py
 
 # The repo's own regression tests: every scripts/test-*.sh and scripts/test-*.py.
 test:
