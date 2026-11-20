@@ -10,6 +10,7 @@ One repo for the whole machine:
 - **Omarchy (Arch Linux) laptop** — the same `nix/home` tree as a standalone home-manager config (`homeConfigurations."chronin@chronin"` via `mkHomeHost`, host module `nix/hosts/omarchy.nix`) on top of pacman/yay; `bootstrap-omarchy.sh` for new installs. See README.md § "Omarchy host".
 - **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is linked into `~/.pi` by home-manager (`nix/home/harness.nix`).
 - **Devin CLI and GitHub Copilot CLI** — each CLI's user-editable config lives under `packages/devin/` and `packages/copilot/`, its global rules in the shared `packages/agents/AGENTS.md`, and each reads the repo's `skills/` tree through its own link — `~/.agents/skills` for Devin, `~/.copilot/skills` for Copilot (`nix/home/harness.nix`).
+- **Antigravity CLI & IDE** — config and global harness plugin live under `packages/antigravity/` and are linked into `~/.gemini/` by home-manager (`nix/home/harness.nix`); reads global rules and subagents via the `dotfiles-harness` plugin and discovers skills via `skills.json`.
 - **Claude Code** — a shared global `CLAUDE.md`, `skills/`, `commands/`, `rules/`, `scripts/`, and `agents/` are symlinked into `~/.claude-personal/` and `~/.claude-work/`.
 
 There is no application to build/test/lint.

@@ -1,0 +1,26 @@
+{
+  "safety-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./scripts/safety-guard-hook.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./scripts/safety-guard-hook.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

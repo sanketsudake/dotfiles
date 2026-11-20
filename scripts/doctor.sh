@@ -185,7 +185,9 @@ fi
 harness_targets=("$HOME/.claude-personal/CLAUDE.md" "$HOME/.pi/skills" \
          "$HOME/.config/devin/config.json" "$HOME/.config/devin/AGENTS.md" \
          "$HOME/.copilot/settings.json" "$HOME/.copilot/copilot-instructions.md" \
-         "$HOME/.copilot/skills")
+         "$HOME/.copilot/skills" \
+         "$HOME/.gemini/config/skills.json" "$HOME/.gemini/config/plugins/dotfiles-harness" \
+         "$HOME/.gemini/antigravity-cli/statusline.sh")
 # The work profile is optional per host (dotfiles.claudeProfiles).
 [ -d "$HOME/.claude-work" ] && harness_targets+=("$HOME/.claude-work/CLAUDE.md")
 if [ -d /usr/share/omarchy ]; then
