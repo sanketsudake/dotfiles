@@ -185,7 +185,9 @@ fi
 harness_targets=("$HOME/.claude-personal/CLAUDE.md" "$HOME/.pi/skills" \
          "$HOME/.config/devin/config.json" "$HOME/.config/devin/AGENTS.md" \
          "$HOME/.copilot/settings.json" "$HOME/.copilot/copilot-instructions.md" \
-         "$HOME/.copilot/skills")
+         "$HOME/.copilot/skills" \
+         "$HOME/.gemini/config/plugins/dotfiles-harness" \
+         "$HOME/.gemini/antigravity-cli/statusline.py")
 # The work profile is optional per host (dotfiles.claudeProfiles).
 [ -d "$HOME/.claude-work" ] && harness_targets+=("$HOME/.claude-work/CLAUDE.md")
 if [ -d /usr/share/omarchy ]; then
@@ -206,6 +208,19 @@ for t in "${harness_targets[@]}"; do
     *) bad "$t does not resolve into $REPO_DIR — run: make nix-switch" ;;
   esac
 done
+# skills.json is nix-generated (.text), not a repo symlink — verify it exists
+# and is managed by home-manager (nix store path).
+agy_skills="$HOME/.gemini/config/skills.json"
+if [ -f "$agy_skills" ]; then
+  r="$(resolve "$agy_skills")"
+  case "$r" in
+    /nix/store/*) ok "$agy_skills -> nix store (generated)" ;;
+    "$REPO_DIR"/*) ok "$agy_skills -> repo" ;;
+    *) bad "$agy_skills is unmanaged — run: make nix-switch" ;;
+  esac
+else
+  bad "$agy_skills missing — run: make nix-switch"
+fi
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then echo "doctor: all checks passed"; else echo "doctor: FAILURES above"; fi

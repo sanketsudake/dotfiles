@@ -1,5 +1,5 @@
 # AI-harness links (was `make harness-link` / stow): the Claude profiles, ~/.pi,
-# Devin CLI and Copilot CLI get out-of-store symlinks into the repo working
+# Devin CLI, Copilot CLI, and Antigravity get out-of-store symlinks into the repo working
 # tree, so vendored skills stay materialized/mutable and repo edits apply live.
 # ~/.pi/agent, ~/.pi/extensions and the Devin/Copilot agent dirs link per-file
 # on purpose: those tools write state beside them, and a whole-dir link would
@@ -107,8 +107,26 @@ let
   };
   agentsSkillLinks =
     if omarchy then skillEntryLinks ".agents/skills" else { ".agents/skills".source = link "skills"; };
+  # Antigravity discovers skills from a JSON manifest, so that file is generated
+  # with an absolute path instead of tracking a per-machine copy in the repo.
+  # The plugin is a whole-dir link on purpose: hooks and subagents are read-only
+  # there, and the CLI keeps its own state in PLUGIN_DATA, not beside them.
+  antigravityLinks = {
+    ".gemini/config/skills.json".text = builtins.toJSON {
+      entries = [ { path = "${repo}/skills"; } ];
+    };
+    ".gemini/config/plugins/dotfiles-harness".source =
+      link "packages/antigravity/plugins/dotfiles-harness";
+    ".gemini/antigravity-cli/statusline.py".source = link "packages/antigravity/scripts/statusline.py";
+  };
 in
 {
   home.file =
-    claudeLinks // piLinks // devinAgentLinks // copilotAgentLinks // cliLinks // agentsSkillLinks;
+    claudeLinks
+    // piLinks
+    // devinAgentLinks
+    // copilotAgentLinks
+    // cliLinks
+    // agentsSkillLinks
+    // antigravityLinks;
 }
