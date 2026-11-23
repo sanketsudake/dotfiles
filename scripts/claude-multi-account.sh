@@ -48,11 +48,11 @@ _claude_proxy_env() {
   export ANTHROPIC_BASE_URL="http://localhost:$port"
 }
 
-_claude_with_profile() {
+_claude_with_profile() (
   export CLAUDE_CONFIG_DIR="$1"
   _claude_proxy_env
   command claude "${@:2}"
-}
+)
 
 # Personal profile
 pclaude() {

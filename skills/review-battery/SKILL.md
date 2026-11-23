@@ -1,12 +1,8 @@
 ---
 name: review-battery
 description: >-
-  Full review of a change set — the working diff, a branch vs a base ref, or a
-  GitHub PR number reviewed in an isolated worktree — using the thermos
-  subagents plus cleanup passes, consolidated into one verified list and a
-  verdict delivered in chat, as PR comments, or as a local markdown file. Use
-  for "review battery", "review this branch", "review PR 123", "full review",
-  or "thermos review with cleanup passes".
+  Review a working tree, branch, or GitHub pull request for correctness and
+  maintainability. Use for a full review or when the user asks for review-battery.
 license: Apache-2.0
 metadata:
   author: sanketsudake
@@ -17,20 +13,22 @@ disable-model-invocation: true
 # Review battery
 
 One entry point for reviewing a change set.
-It runs the two thermo-nuclear review subagents (the vendored `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` rubrics) in parallel, adds the `/simplify` and `/deslop` passes, and consolidates everything into one verified list and a verdict.
+Apply the correctness and maintainability rubrics and consolidate the findings into one verified list and verdict.
 
-Arguments (`$ARGUMENTS`):
+Use the arguments supplied with the skill or in the request.
 
-- empty — review the current checkout: the working-tree diff plus this branch's commits vs the default branch;
-- a git ref (`main`, `origin/release-1.2`) — use it as the base instead of the default branch;
-- a PR number (`3606`), optionally followed by a delivery mode: `post` (default, comment on the PR) or `local` (aliases `md`, `no-post`: write a markdown file, touch nothing on GitHub).
-  A delivery the user asked for in conversation wins over the default.
+- No argument reviews the current checkout against the default branch.
+- A git ref sets the base for the current checkout.
+- A PR number reviews that PR in an isolated worktree.
+  Report in chat by default.
+  Use `local` for a local Markdown report or `post` to prepare comments for explicit approval.
 
 ## 1. Scope
 
 **Local mode.**
 Base = the ref argument if given, else the default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, falling back to `origin/HEAD`).
-Scope = `git diff` (working tree) plus `git diff <base>...HEAD`.
+Scope = `git diff HEAD` (staged and unstaged tracked changes) plus `git diff <base>...HEAD`.
+Use `git ls-files --others --exclude-standard` to include relevant untracked files.
 If the scoped diff is empty, say so and stop.
 
 **PR mode.**
@@ -55,14 +53,17 @@ Everything else gets the full run.
 Collect, once, the scoped diff and the full contents of each in-scope changed file, as two labeled sections — `### Git / diff output` and `### Changed file contents` — which is the shape both subagents expect.
 Large files: include the changed hunks with generous surrounding context rather than nothing; say which files were truncated.
 
-## 4. Review passes — findings first, then the passes that apply changes
+## 4. Review passes
 
-1. In one message, launch both thermos subagents with `run_in_background: true`, each given the same context and asked for prioritized findings with `file:line` and evidence:
-   - `subagent_type: "thermo-nuclear-review-subagent"` — bugs, breakages, security, devex regressions, feature-flag leaks;
-   - `subagent_type: "thermo-nuclear-code-quality-review-subagent"` — maintainability, structure, file-size growth, spaghetti, abstractions.
-   Wait for both; do not predict their results.
-2. Then run the cleanup passes, which apply changes by design and so come after the findings passes to keep the reviewed diff stable: `/deslop` (this repo's skill) and `/simplify` when the harness provides it (it is bundled with Claude Code, not with this repo; if it is absent, skip it and say so).
-   In PR mode they run on the throwaway worktree: treat what they change as evidence for `suggestion` blocks, never as commits to keep.
+1. Load the shared `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` rubrics.
+   For a trivial diff, use only the correctness rubric.
+   Ask each reviewer for prioritized findings with file and line references and evidence.
+   In Claude Code, use the matching named reviewer agents when available.
+   In Codex or another harness with delegation enabled, give each available reviewer the rubric and scoped context.
+   If delegation is unavailable, apply the rubrics sequentially.
+2. Run cleanup passes only when the user requests edits or cleanup suggestions.
+   Use `deslop` and, if available, `simplify` after collecting the review findings.
+   Keep PR cleanup edits in the temporary worktree and use them as evidence for suggested changes.
 
 ## 5. Consolidate
 
@@ -76,7 +77,7 @@ Large files: include the changed hunks with generous surrounding context rather 
 
 ## 6. Deliver
 
-**Local mode:** one list in chat, grouped by category and ranked by severity within each group, each entry with `file:line`, severity, and a one-sentence issue statement; verdict last.
+**Chat mode (default):** one list in chat, grouped by category and ranked by severity within each group, each entry with `file:line`, severity, and a one-sentence issue statement; verdict last.
 Apply no fixes beyond what the cleanup passes already applied; wait for the user to pick findings to fix.
 
 **PR mode, `post`:** draft first, publish second.
