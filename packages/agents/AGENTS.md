@@ -3,6 +3,7 @@
 Global, always-on rules for the CLI coding agents that are not Claude Code:
 Antigravity loads this via its global plugin (`~/.gemini/config/plugins/dotfiles-harness/rules/AGENTS.md`),
 Devin CLI reads this file at `~/.config/devin/AGENTS.md`,
+Codex reads it at `~/.codex/AGENTS.md`,
 GitHub Copilot CLI reads the same content at `~/.copilot/copilot-instructions.md`.
 All links come from `packages/agents/AGENTS.md` in the dotfiles repo.
 

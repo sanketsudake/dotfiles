@@ -1,6 +1,6 @@
 # dotfiles
 
-One repo for the whole machine: a Nix-declared macOS setup (nix-darwin + home-manager flake, Homebrew for casks, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) profiles, [pi](https://github.com/badlogic/pi-mono), [Devin CLI](https://docs.devin.ai/cli/), [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli), and [Antigravity](https://antigravity.google/) CLI & IDE.
+One repo for the whole machine: a Nix-declared macOS setup (nix-darwin + home-manager flake, Homebrew for casks, a one-shot bootstrap) **and** portable AI coding-harness configs — shared skills, commands, rules, agents, and settings — provisioned from **one source of truth** across multiple [Claude Code](https://claude.com/claude-code) profiles, [pi](https://github.com/badlogic/pi-mono), [Devin CLI](https://docs.devin.ai/cli/), [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli), [Codex](https://github.com/openai/codex), and [Antigravity](https://antigravity.google/) CLI & IDE.
 
 A personal repo, published so others can borrow the architecture.
 Paths are hardcoded to one machine — adapt before adopting (see [Adopt it](#adopt-it)).
@@ -28,9 +28,9 @@ Same repo, same `make install`, different system layer — see [Omarchy host](#o
 ## Ideas worth stealing
 
 - **One source of truth, many harnesses.**
-  A single `skills/` tree feeds Claude Code, pi, Devin CLI, Copilot CLI, and Antigravity; edit once, every harness sees it immediately.
-  Devin reads `~/.agents/skills`, Copilot reads `~/.copilot/skills`, and Antigravity is handed the same tree through a generated `skills.json`;
-  every link points at the same tree, and the same `agents/*.md` files link into each CLI under the name it expects.
+  A single `skills/` tree feeds Claude Code, pi, Devin CLI, Copilot CLI, Codex, and Antigravity; edit once, every harness sees it immediately.
+  Devin and Codex read `~/.agents/skills`, Copilot reads `~/.copilot/skills`, and Antigravity is handed the same tree through a generated `skills.json`.
+  Devin and Copilot also share the Claude subagent files under the names each expects.
 - **Two Claude profiles via `CLAUDE_CONFIG_DIR`.**
   `pclaude` / `wclaude` wrappers keep personal and work accounts isolated while sharing the same skills and rules.
 - **Per-resource source tracking.**
@@ -59,7 +59,7 @@ dotfiles/
 ├── manifests/      # non-brew tools: go-tools.txt, npm-globals.txt, pipx-tools.txt
 ├── macos/          # deliberately-changed macOS defaults (make macos-apply)
 ├── packages/       # dotfile sources for $HOME (zsh, git, atuin, btop, gh, bin), linked by home-manager
-│   ├── agents/      #   AGENTS.md — global rules shared by Devin, Copilot, and Antigravity
+│   ├── agents/      #   AGENTS.md — global rules shared by Devin, Copilot, Codex, and Antigravity
 │   ├── antigravity/ #   Antigravity plugin (rules, subagents, safety hook) + statusline
 │   ├── copilot/     #   Copilot CLI settings.json
 │   └── devin/       #   Devin CLI config.json
@@ -200,7 +200,7 @@ Dotfile sources stay in `packages/` with their `dot-` names;
 home-manager links each file individually into `$HOME`,
 so `~/.config/<tool>` stays a real directory and credential files written beside managed configs
 (e.g. `gh`'s `hosts.yml`) can never land in the repo — the old `--no-folding` invariant, kept.
-Never declare files from credential-bearing dirs (`gcloud`, `1Password`, `op`, `github-copilot`) or credential-bearing files (`gh/hosts.yml`, `~/.copilot/config.json`).
+Never declare files from credential-bearing dirs (`gcloud`, `1Password`, `op`, `github-copilot`) or credential-bearing files (`gh/hosts.yml`, `~/.copilot/config.json`, `~/.codex/auth.json`, `~/.codex/config.toml`).
 Every switch is a numbered generation; `make nix-rollback` returns to the previous one.
 Homebrew remains for casks/taps/mas (declared in `nix/darwin/homebrew.nix`, applied by the same switch,
 `cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first).
@@ -229,21 +229,34 @@ CI evaluates every `homeConfigurations` entry alongside the darwin hosts.
 
 ### Harness links
 
-The harness targets (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`, `~/.gemini`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
+The harness targets (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`, `~/.codex`, `~/.gemini`) are home-manager **out-of-store** symlinks into the repo working tree (`nix/home/harness.nix`) —
 the linked content stays mutable, so vendored skills materialize in place and repo edits apply live.
 `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file on purpose: those tools write state beside them,
 and a whole-dir link would let a tool write into the repo.
 
-Devin CLI reads personal skills from `~/.agents/skills`; Copilot CLI 0.0.417 scans `~/.copilot/skills` (plus `~/.claude/skills` and the project dirs) and does not look at `~/.agents/skills` yet.
-Each CLI therefore gets its own link to the same `skills/` tree — the paths never collide, so no skill is discovered twice.
+Devin CLI and Codex read personal skills from `~/.agents/skills`; Copilot CLI 0.0.417 scans `~/.copilot/skills` (plus `~/.claude/skills` and the project dirs) and does not look at `~/.agents/skills` yet.
+Home Manager links each skill in `sources.toml` into the managed discovery roots individually.
+Run `make nix-switch` after adding, renaming, or removing a manifest entry.
+Each Claude profile has its own writable `skills/synced/` directory.
+The old shared `skills/synced/` remains on disk outside managed discovery.
+Claude may sync fresh copies into each profile.
+
+Invoke a skill explicitly with `$skill-name` in Codex, `/skill-name` in Claude Code, or `/skill:skill-name` in Pi.
+Use `pclaude` or `wclaude` to select the managed Claude profile from zsh.
 The subagents in `packages/claude/agents/` link into `~/.config/devin/agents/<name>.md` and `~/.copilot/agents/<name>.agent.md` — same file, two names.
-Global always-on rules come from `packages/agents/AGENTS.md`, linked as `~/.config/devin/AGENTS.md` and `~/.copilot/copilot-instructions.md`.
-Of each CLI's own config, only the user-editable file is managed (`~/.config/devin/config.json`, `~/.copilot/settings.json`);
+Global always-on rules come from `packages/agents/AGENTS.md`, linked as `~/.config/devin/AGENTS.md`, `~/.copilot/copilot-instructions.md`, and `~/.codex/AGENTS.md`.
+For Devin and Copilot, only the user-editable config is managed (`~/.config/devin/config.json`, `~/.copilot/settings.json`);
 `~/.copilot/config.json` holds login state and the two `herdr-agent-state.sh` hook scripts are installed by herdr, so all three stay local files.
+
+Codex is installed by the Homebrew cask on macOS and by Omarchy's mise setup on Linux.
+After `make nix-switch`, run `codex` and sign in when prompted.
+Codex uses its own default model and approval settings; `~/.codex/config.toml`, login state, and session data remain local because Codex writes them and they may contain credentials.
+The shared Claude subagents are not registered as Codex agent roles.
+Use `/skills` in Codex to check skill discovery, and note that a local `~/.codex/AGENTS.override.md` takes precedence over the shared rules.
 
 Antigravity has no rules or agent path of its own: it loads the `dotfiles-harness` plugin, whose `rules/AGENTS.md` is a symlink to the shared `packages/agents/AGENTS.md` and whose `rules/browser.md` adds the Antigravity-only slash-command hints.
 Its subagents are Antigravity copies under `packages/antigravity/plugins/dotfiles-harness/agents/` — the frontmatter differs (`subagent`, `mainAgent`, native `tools` names), so the Claude files cannot be linked in as-is.
-`~/.gemini/config/skills.json` is **generated** by home-manager from the same repo path the other links use, instead of a per-machine copy tracked in the repo.
+`~/.gemini/config/skills.json` is **generated** by home-manager from the shared user skill discovery path, instead of a per-machine copy tracked in the repo.
 The plugin also carries the `PreToolUse` safety gate (`scripts/safety-guard-hook.py`), which reads Antigravity's `toolCall` payload and answers `allow`/`ask`/`deny`.
 
 #### Verifying what each CLI actually loaded

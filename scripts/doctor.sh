@@ -116,7 +116,7 @@ while IFS= read -r target; do
 done < <("$REPO_DIR/scripts/managed-targets.sh")
 
 echo "== secret safety =="
-for dir in .config/gh .config/git .config/zsh .config/devin .copilot; do
+for dir in .config/gh .config/git .config/zsh .config/devin .copilot .codex; do
   if [ -d "$HOME/$dir" ] && [ ! -L "$HOME/$dir" ]; then
     ok "~/$dir is a real directory"
   else
@@ -139,6 +139,14 @@ elif [ -L "$HOME/.copilot/config.json" ]; then
 else
   ok "copilot config.json absent (run copilot then /login)"
 fi
+# Codex may store credentials in auth.json or config.toml; keep both local.
+for file in auth.json config.toml; do
+  if [ -L "$HOME/.codex/$file" ]; then
+    bad "codex $file is a symlink — credentials may be inside the repo"
+  else
+    ok "codex $file is local or absent"
+  fi
+done
 leaks="$(cd "$REPO_DIR" && git ls-files | grep -Ei 'hosts\.yml|\.env($|\.)|\.pem$|\.key$|token|credential' || true)"
 if [ -z "$leaks" ]; then
   ok "no secret-pattern filenames tracked by git"
@@ -182,25 +190,60 @@ if [ -r "$REPO_DIR/scripts/claude-multi-account.sh" ]; then
 else
   bad "claude-multi-account.sh missing"
 fi
-harness_targets=("$HOME/.claude-personal/CLAUDE.md" "$HOME/.pi/skills" \
+harness_targets=("$HOME/.claude-personal/CLAUDE.md" \
          "$HOME/.config/devin/config.json" "$HOME/.config/devin/AGENTS.md" \
+         "$HOME/.codex/AGENTS.md" \
          "$HOME/.copilot/settings.json" "$HOME/.copilot/copilot-instructions.md" \
-         "$HOME/.copilot/skills" \
          "$HOME/.gemini/config/plugins/dotfiles-harness" \
          "$HOME/.gemini/antigravity-cli/statusline.py")
 # The work profile is optional per host (dotfiles.claudeProfiles).
 [ -d "$HOME/.claude-work" ] && harness_targets+=("$HOME/.claude-work/CLAUDE.md")
-if [ -d /usr/share/omarchy ]; then
-  # Omarchy: ~/.agents/skills stays a real dir holding one link per skill.
-  if [ -d "$HOME/.agents/skills" ] && [ ! -L "$HOME/.agents/skills" ]; then
-    ok "~/.agents/skills is a real directory (per-skill links)"
-  else
-    bad "~/.agents/skills should be a real directory on Omarchy — run: make nix-switch"
-  fi
-  harness_targets+=("$HOME/.agents/skills/harvest-automation")
+skill_roots=("$HOME/.agents/skills" "$HOME/.copilot/skills" "$HOME/.pi/skills"
+             "$HOME/.claude-personal/skills")
+[ -d "$HOME/.claude-work" ] && skill_roots+=("$HOME/.claude-work/skills")
+if python3 - "$REPO_DIR" "${skill_roots[@]}" <<'PYTHON'
+import re
+import sys
+import tomllib
+from pathlib import Path
+
+repo = Path(sys.argv[1])
+with (repo / "sources.toml").open("rb") as manifest:
+    names = [entry["name"] for entry in tomllib.load(manifest)["skill"]]
+issues = []
+if len(names) != len(set(names)):
+    issues.append("duplicate skill names in sources.toml")
+for name in names:
+    source = repo / "skills" / name / "SKILL.md"
+    if not source.is_file():
+        issues.append(f"missing {source}")
+        continue
+    sections = source.read_text().split("---", 2)
+    match = re.search(r"^name:[ \t]*(.+)$", sections[1], re.M) if len(sections) == 3 else None
+    if not match or match[1].strip().strip("'\"") != name:
+        issues.append(f"{source}: frontmatter name must match {name}")
+for directory in map(Path, sys.argv[2:]):
+    if not directory.is_dir() or directory.is_symlink():
+        issues.append(f"{directory}: expected a real directory with per-skill links")
+        continue
+    for name in names:
+        installed = directory / name / "SKILL.md"
+        source = repo / "skills" / name / "SKILL.md"
+        if not installed.is_file() or installed.resolve() != source.resolve():
+            issues.append(f"{installed}: missing or resolves to the wrong source")
+for issue in issues:
+    print(f"  {issue}", file=sys.stderr)
+sys.exit(bool(issues))
+PYTHON
+then
+  ok "shared skill inventory matches sources.toml"
 else
-  harness_targets+=("$HOME/.agents/skills")
+  bad "shared skill inventory differs from sources.toml — run: make nix-switch"
 fi
+[ -x "$HOME/.local/bin/browser-endpoint" ] \
+  && ok "browser-endpoint helper installed" \
+  || bad "browser-endpoint helper missing — run: make nix-switch"
+command -v chrome-cdp >/dev/null || warn "chrome-cdp missing — required for shared Helium workflows"
 for t in "${harness_targets[@]}"; do
   r="$(resolve "$t")"
   case "$r" in
