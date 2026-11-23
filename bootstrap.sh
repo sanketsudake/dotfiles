@@ -97,6 +97,7 @@ else
   # pinned system from the flake and use its own darwin-rebuild.
   nix build "$DOTFILES_DIR#darwinConfigurations.$NIX_HOST.system"
   sudo ./result/sw/bin/darwin-rebuild switch --flake "$DOTFILES_DIR#$NIX_HOST"
+  make home-switch
 fi
 if [ -d "$backup_dir" ]; then
   echo "!! Pre-existing files were moved to $backup_dir — port anything you need"
@@ -110,7 +111,7 @@ make skills-materialize harness-link || {
 }
 
 step "Tools (go/npm/pipx manifests)"
-# nix's node exists after the system switch above, so npm globals install here.
+# Home Manager's Node.js is available after the switch above.
 make tools-install || true
 
 step "Helium browser defaults"

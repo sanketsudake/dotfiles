@@ -4,8 +4,8 @@ PI_TARGET := $(HOME)/.pi
 # Absolute nix-profile path (python314 in nix/home/packages.nix): hooks and CI
 # invoke make without the interactive shell's PATH. Falls back to PATH python3
 # where the profile doesn't exist (e.g. Linux CI).
-# Linux hosts use standalone home-manager, whose profile is ~/.nix-profile.
-PYTHON ?= $(shell for p in /etc/profiles/per-user/$$USER/bin/python3 $$HOME/.nix-profile/bin/python3; do [ -x $$p ] && { echo $$p; exit; }; done; echo python3)
+# Standalone Home Manager installs into ~/.nix-profile.
+PYTHON ?= $(shell for p in $$HOME/.nix-profile/bin/python3 /etc/profiles/per-user/$$USER/bin/python3; do [ -x $$p ] && { echo $$p; exit; }; done; echo python3)
 
 # $HOME dotfile packages, now linked per-file by home-manager (nix/home/).
 # packages/ stays the source of truth for content; this list drives
@@ -24,10 +24,9 @@ ifeq ($(UNAME_S),Darwin)
 NIX_HOST := $(shell scutil --get LocalHostName)
 DARWIN_REBUILD := /run/current-system/sw/bin/darwin-rebuild
 else
-# Linux hosts are standalone home-manager configs keyed <user>@<hostname>
-# (homeConfigurations in flake.nix, see mkHomeHost).
-HM_TARGET := $(USER)@$(shell uname -n)
+NIX_HOST := $(shell uname -n)
 endif
+HM_TARGET := $(USER)@$(NIX_HOST)
 MANIFESTS := $(CURDIR)/manifests
 
 PI_SKILLS_REPO := https://github.com/badlogic/pi-skills
@@ -79,10 +78,10 @@ PI_EXTENSIONS := \
 SHELL := /bin/bash
 # Modern bash for the repo's scripts: /bin/bash is 3.2 (parser bugs bite
 # drift.sh); prefer the nix profile bash, fall back to PATH bash (Linux CI).
-BASH := $(shell for p in /etc/profiles/per-user/$$USER/bin/bash $$HOME/.nix-profile/bin/bash; do [ -x $$p ] && { echo $$p; exit; }; done; echo bash)
+BASH := $(shell for p in $$HOME/.nix-profile/bin/bash /etc/profiles/per-user/$$USER/bin/bash; do [ -x $$p ] && { echo $$p; exit; }; done; echo bash)
 
 .PHONY: install uninstall doctor drift python-check \
-	nix-build nix-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update nix-gc \
+	nix-build nix-switch home-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update nix-gc \
 	brew-install brew-check brew-dump cask-adopt pacman-install \
 	go-install npm-install pipx-install tools-install \
 	macos-apply raycast-export rex-reload \
@@ -100,14 +99,14 @@ install: nix-switch skills-materialize tools-install
 uninstall:
 	@echo "the declared system is removed by darwin-uninstaller; see nix-darwin docs"
 
-# Nix (nix-darwin + home-manager). nix-build previews without activating;
-# nix-switch is the apply verb for the whole declared system.
+# Preview both configurations without activating either.
 nix-build:
 	$(DARWIN_REBUILD) build --flake $(CURDIR)#$(NIX_HOST)
+	$(NIX) build --no-link '$(CURDIR)#homeConfigurations."$(HM_TARGET)".activationPackage'
 
 nix-switch:
 	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST)
-	$(MAKE) rex-reload
+	$(MAKE) home-switch
 
 nix-rollback:
 	sudo $(DARWIN_REBUILD) switch --flake $(CURDIR)#$(NIX_HOST) --rollback
@@ -125,9 +124,7 @@ nix-build:
 # -b hm-backup: a real file at a managed path is moved aside, not refused
 # (doctor reports leftover *.hm-backup files). The profiles dir must exist
 # before the first standalone activation.
-nix-switch:
-	@mkdir -p $(HOME)/.local/state/nix/profiles
-	PATH=$(dir $(NIX)):$$PATH $(NIX) run $(CURDIR)#home-manager -- switch -b hm-backup --flake $(CURDIR)#$(HM_TARGET)
+nix-switch: home-switch
 
 nix-rollback:
 	@echo "list generations:   nix run $(CURDIR)#home-manager -- generations"
@@ -137,6 +134,13 @@ nix-rollback:
 pacman-install:
 	@command -v yay >/dev/null || { echo "yay not found (Omarchy ships it)"; exit 1; }
 	grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/arch-packages.txt | xargs yay -S --needed --noconfirm
+endif
+
+home-switch:
+	@mkdir -p "$(HOME)/.local/state/nix/profiles"
+	PATH=$(dir $(NIX)):$$PATH $(NIX) run "$(CURDIR)#home-manager" -- switch -b hm-backup --flake "$(CURDIR)#$(HM_TARGET)"
+ifeq ($(UNAME_S),Darwin)
+	$(MAKE) rex-reload
 endif
 
 nix-check:
@@ -180,24 +184,25 @@ brew-install brew-check brew-dump cask-adopt:
 	@echo "$@: macOS only"
 endif
 
+tools-install: export PATH := $(HOME)/.nix-profile/bin:$(PATH)
 tools-install: go-install npm-install pipx-install
 
 # Installs each module from manifests/go-tools.txt; lines without @version get @latest.
 go-install:
-	@command -v go >/dev/null || { echo "go not found — run: make nix-switch"; exit 1; }
+	@command -v go >/dev/null || { echo "go not found — run: make home-switch"; exit 1; }
 	@grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/go-tools.txt | while read -r mod; do \
 		case "$$mod" in *@*) ;; *) mod="$$mod@latest" ;; esac; \
 		echo "go install $$mod"; \
 		go install "$$mod"; \
 	done
 
-# Warn-and-skip when npm is absent (fresh machine before the first nix-switch),
+# Warn-and-skip when npm is absent (fresh machine before the first home-switch),
 # so tools-install still reaches pipx-install.
 npm-install:
 	@if command -v npm >/dev/null; then \
 		grep -vE '^[[:space:]]*#|^[[:space:]]*$$' $(MANIFESTS)/npm-globals.txt | xargs npm install -g; \
 	else \
-		echo "warn: npm not found — run 'make nix-switch' then 'make npm-install'"; \
+		echo "warn: npm not found — run 'make home-switch' then 'make npm-install'"; \
 	fi
 
 pipx-install:
@@ -243,10 +248,10 @@ drift:
 
 # Harness links are created by home-manager (nix/home/harness.nix).
 harness-link:
-	@echo "harness links are managed by home-manager — run: make nix-switch"
+	@echo "harness links are managed by home-manager — run: make home-switch"
 
 harness-unlink:
-	@echo "remove nix/home/harness.nix from nix/home/default.nix and run: make nix-switch"
+	@echo "remove nix/home/harness.nix from nix/home/default.nix and run: make home-switch"
 
 plugins-check:
 	@test -f $(PLUGINS_FILE) || { echo "missing: $(PLUGINS_FILE)"; exit 1; }

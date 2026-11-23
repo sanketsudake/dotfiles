@@ -1,5 +1,5 @@
 # Not on Omarchy: Rex runs on the Mac only.
-# Rex does not watch the file — `make nix-switch` calls `rex config reload`
+# Rex does not watch the file — `make home-switch` calls `rex config reload`
 # (see the rex-reload make target).
 { config, lib, ... }:
 {
