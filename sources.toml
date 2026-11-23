@@ -79,6 +79,15 @@ category = "meta"
 description = "Terse caveman voice: answer first, fluff gone, every technical fact kept. Use for /caveman, \"caveman mode\", \"talk like caveman\", \"be brief\", \"less tokens\". Stays on until \"stop caveman\" or \"normal mode\"."
 
 [[skill]]
+name = "code-review"
+repo = "https://github.com/mattpocock/skills"
+subpath = "skills/engineering/code-review"
+ref = "main"
+commit = "abeeaf95660ba9e8b7c753eb38f441ca707a8823"
+category = "engineering"
+description = "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
+
+[[skill]]
 name = "codebase-design"
 repo = "https://github.com/mattpocock/skills"
 subpath = "skills/engineering/codebase-design"
@@ -262,15 +271,6 @@ ref = "main"
 commit = "7a583913eb1b8d1a0ee76753d1a2cf072e7b54f9"
 category = "pr-review"
 description = "Prepare PRs for review by cleaning noisy history, improving PR descriptions, and adding reviewer guidance without changing code behavior. Use for \"make this easy to review\", \"tidy this PR\", \"clean up commits\", or \"annotate the diff\"."
-
-[[skill]]
-name = "code-review"
-repo = "https://github.com/mattpocock/skills"
-subpath = "skills/engineering/code-review"
-ref = "main"
-commit = "abeeaf95660ba9e8b7c753eb38f441ca707a8823"
-category = "engineering"
-description = "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
 
 [[skill]]
 name = "optimize-svg"
