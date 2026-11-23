@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "AR2",
+      "path": "SKILL.md",
+      "message": "without warning",
+      "reason": "The phrase describes unannounced review questions during a tutoring session that the user requested."
+    }
+  ]
+}
