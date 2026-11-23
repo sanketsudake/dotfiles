@@ -15,14 +15,14 @@ jobs:
     name: preflight (doctors, catalog, budget, lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - run: make preflight
 
   script-tests:
     name: script tests (make test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - uses: astral-sh/setup-uv@v6
       # ffmpeg (with libass and libx264) and a sans-serif font are not on the runner image;
       # scripts/test-polish-demo-recording.sh skips silently without them, so install them here.
@@ -34,7 +34,7 @@ jobs:
     name: SkillSpector scan (static)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - uses: astral-sh/setup-uv@v6
       - name: install skillspector (pinned via SKILLSPECTOR_REF in the Makefile)
         run: make skillspector-install
@@ -47,7 +47,7 @@ jobs:
     name: nix (flake check, darwin + home eval, statix, fmt)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - uses: DeterminateSystems/nix-installer-action@v23
       - run: nix flake check
       # treefmt has no read-only mode: --ci formats, then fails if it changed
