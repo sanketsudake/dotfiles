@@ -1,10 +1,11 @@
 {
   "agent": {
-    "model": "deepseek-v4-1-flash-1017-high",
+    "model": "gpt-6-1-terra-medium",
     "preferred_family_models": {
-      "glm-5-3-flash": "glm-5-3-flash-max",
+      "deepseek-v4-1-flash-1017": "deepseek-v4-1-flash-1017-high",
       "Adaptive": "adaptive",
-      "deepseek-v4-1-flash-1017": "deepseek-v4-1-flash-1017-high"
+      "glm-5-3-flash": "glm-5-3-flash-max",
+      "gpt-6-1-terra": "gpt-6-1-terra-medium"
     }
   },
   "hooks": {
