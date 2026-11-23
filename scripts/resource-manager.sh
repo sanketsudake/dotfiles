@@ -316,7 +316,7 @@ sync_gitignore() {
   local blk tmp
   blk="$(mktemp)"; tmp="$(mktemp)"
   { printf '%s\n' "$GI_BEGIN"
-    vendored_names | sort | while IFS= read -r n; do [[ -n "$n" ]] && printf '/skills/%s/\n' "$n"; done
+    vendored_names | LC_ALL=C sort | while IFS= read -r n; do [[ -n "$n" ]] && printf '/skills/%s/\n' "$n"; done
     printf '%s\n' "$GI_END"
   } > "$blk"
   if [[ -f "$GITIGNORE" ]] && grep -qxF "$GI_BEGIN" "$GITIGNORE"; then
