@@ -34,10 +34,12 @@ let
         name = "${dir}/${n}";
         value.source = link "skills/${n}";
       }) skillNames
-      ++ lib.optionals omarchy (map (n: {
-        name = "${dir}/${n}";
-        value.source = config.lib.file.mkOutOfStoreSymlink "/usr/share/omarchy/default/agents/skills/${n}";
-      }) omarchySkills)
+      ++ lib.optionals omarchy (
+        map (n: {
+          name = "${dir}/${n}";
+          value.source = config.lib.file.mkOutOfStoreSymlink "/usr/share/omarchy/default/agents/skills/${n}";
+        }) omarchySkills
+      )
     );
 
   claudeLinks =
@@ -97,7 +99,11 @@ let
     ".copilot/settings.json".source = link "packages/copilot/settings.json";
     ".copilot/copilot-instructions.md".source = link "packages/agents/AGENTS.md";
   };
-  sharedSkillRoots = [ ".agents/skills" ".copilot/skills" ".pi/skills" ];
+  sharedSkillRoots = [
+    ".agents/skills"
+    ".copilot/skills"
+    ".pi/skills"
+  ];
   agentsSkillLinks = lib.mergeAttrsList (map skillEntryLinks sharedSkillRoots);
   managedSkillRoots = sharedSkillRoots ++ map (prof: "${prof}/skills") claudeProfiles;
   # Antigravity discovers skills from a JSON manifest, so that file is generated
