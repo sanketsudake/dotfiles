@@ -460,6 +460,15 @@ category = "engineering"
 description = "Configure this repo for the engineering skills: set up its issue tracker, triage label vocabulary, and domain doc layout. Run once before first use of the other engineering skills."
 
 [[skill]]
+name = "socratic-tutor"
+repo = "https://github.com/janestreet/agent_skills"
+subpath = "socratic-tutor"
+ref = "master"
+commit = "469868f4489cbdbe178c775a0af05bb6bef63689"
+category = "learning"
+description = "Structured Socratic tutoring when the user explicitly asks to be taught, quizzed, or drilled to mastery on a topic: diagnostic placement, a skill map with levels 0-5, spaced review, and a final assessment. Trigger phrases: 'teach me', 'tutor me', 'quiz me', 'drill me', 'help me master'. Not for one-off 'explain X' or 'what is X' questions."
+
+[[skill]]
 name = "source-code-for-gh-advisory"
 category = "gh-security"
 note = "Local skill, maintained in this repo"
