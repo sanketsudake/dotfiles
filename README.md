@@ -253,6 +253,9 @@ After `make nix-switch`, run `codex` and sign in when prompted.
 Codex uses its own default model and approval settings; `~/.codex/config.toml`, login state, and session data remain local because Codex writes them and they may contain credentials.
 The shared Claude subagents are not registered as Codex agent roles.
 Use `/skills` in Codex to check skill discovery, and note that a local `~/.codex/AGENTS.override.md` takes precedence over the shared rules.
+Run `pcodex` from zsh to launch Codex with the shared footer layout.
+It shows model and reasoning, project, branch, context used, and remaining rate limits.
+The override applies to that launch and accepts normal Codex arguments, such as `pcodex resume --last`.
 
 Antigravity has no rules or agent path of its own: it loads the `dotfiles-harness` plugin, whose `rules/AGENTS.md` is a symlink to the shared `packages/agents/AGENTS.md` and whose `rules/browser.md` adds the Antigravity-only slash-command hints.
 Its subagents are Antigravity copies under `packages/antigravity/plugins/dotfiles-harness/agents/` — the frontmatter differs (`subagent`, `mainAgent`, native `tools` names), so the Claude files cannot be linked in as-is.
