@@ -1,7 +1,7 @@
 -- Rex configuration.
 -- Docs: https://www.superlogical.com/rex/docs/customize/config
 -- Validate: rex config check
--- Apply: rex config reload (make nix-switch runs it)
+-- Apply: rex config reload (make home-switch runs it)
 -- Split into more files with require("keys") etc. when this grows.
 
 -- Panes
