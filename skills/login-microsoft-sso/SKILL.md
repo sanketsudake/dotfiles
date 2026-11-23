@@ -1,15 +1,9 @@
 ---
 name: login-microsoft-sso
 description: >-
-  Ensures a browser tab is signed in to an app behind your organization's
-  Microsoft (Entra) SSO (e.g. Workday, Engage, Outlook), driven by the
-  `chrome-cdp` CLI on the user's real, already-logged-in browser — so it
-  types no credentials.
-  Use when another skill or task needs a logged-in tab before automating
-  Workday, Engage, or Outlook web, or when the user runs
-  /login-microsoft-sso.
-  A building block for other automation skills, not a standalone task —
-  invoke it first with the target app so those skills get a logged-in tab.
+  Find or open a signed-in Workday, Engage, or Outlook tab in Helium using
+  chrome-cdp. Use when another workflow needs a Microsoft Entra session or
+  the user invokes this skill. Stop for the user to complete sign-in.
 disable-model-invocation: true
 license: Apache-2.0
 metadata:
@@ -64,8 +58,8 @@ Parse the envelope and branch on the exit code (see `drive-chrome-cdp`).
    so pass the endpoint and start the daemon first (one consent prompt per session):
 
    ```sh
-   EP="$("$CLAUDE_CONFIG_DIR"/scripts/browser-endpoint.sh)"
-   chrome-cdp daemon start --endpoint "$EP" --json
+   EP="$(browser-endpoint)" &&
+     chrome-cdp daemon start --endpoint "$EP" --json
    ```
 
    Then run `chrome-cdp doctor --json`.

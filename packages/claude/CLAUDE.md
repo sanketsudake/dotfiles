@@ -39,7 +39,7 @@ It preserves rendered output, code blocks, tables, and frontmatter.
 - My browser is **Helium**, not Chrome; it holds the live logins.
 Read "the user's real Chrome" in any skill as Helium.
 - Attach to the running browser; never launch a new one.
-`$CLAUDE_CONFIG_DIR/scripts/browser-endpoint.sh` prints the CDP endpoint to pass explicitly —
+`browser-endpoint` prints the CDP endpoint to pass explicitly —
 port-only attach times out.
 If the script fails, ask me to enable `helium://inspect/#remote-debugging`.
 - Default to `/agent-browser`; use `/drive-chrome-cdp` when a skill names it or needs its primitives.

@@ -1,16 +1,9 @@
 ---
 name: polish-demo-recording
 description: >-
-  Turns a raw narrated screen recording (macOS screen capture, Slack or Loom
-  export, any VFR .mov/.mp4 with the presenter's own voice) into a customer-ready
-  product demo with ffmpeg only: measured audio clean-up and loudness, browser
-  chrome replaced by a branded strip, chapter cards placed in real pauses,
-  fast-forwarded waits, eased zooms, lower-third callouts, a ducked music bed,
-  captions and an .srt. Use when the user says "beautify / polish / clean up
-  this recording", "make this demo presentable", "remove the noise from my
-  voice", "add title cards and music", "the video flickers at the transitions",
-  or hands over a screen recording to share with a customer. Not for generating
-  narration (the presenter records it) or for cutting a teaser from finished footage.
+  Polish a narrated screen recording into a customer-ready demo with ffmpeg.
+  Use for audio cleanup, browser branding, chapter cards, faster waits,
+  zooms, callouts, music, or captions on an existing recording.
 license: Apache-2.0
 compatibility: "ffmpeg 6+, ffprobe, uv; macOS or Linux (transcription: mlx-whisper on Apple Silicon, faster-whisper elsewhere); fonts: Arial, DejaVu Sans, Liberation Sans, or brand.fonts"
 metadata:
