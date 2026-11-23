@@ -24,8 +24,7 @@ docs/superpowers/
 # resolves into the repo tree, so ignore it to keep the blob out of git.
 skills/bin/
 
-# Claude Code's synced first-party skills: it writes them into the profile's
-# skills dir, which is a symlink to this tree. They are its copies, not ours.
+# Legacy Claude Code sync data from the old whole-directory links.
 skills/synced/
 __pycache__/
 .DS_Store
@@ -61,7 +60,7 @@ skills/*/package-lock.json
 /skills/improve-codebase-architecture/
 /skills/itr-india/
 /skills/make-pr-easy-to-review/
-/skills/matt-code-review/
+/skills/code-review/
 /skills/pdf/
 /skills/plannotator-annotate/
 /skills/plannotator-last/

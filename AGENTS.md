@@ -7,7 +7,7 @@ This file provides repository-level guidance to AI coding agents (Antigravity, D
 Personal dotfiles for macOS and Linux (Omarchy):
 - Nix-darwin + Home Manager flake (`flake.nix`, `nix/`).
 - Dotfile sources live under `packages/` (stow-style `dot-` names, linked per-file by home-manager).
-- AI harness configurations live in `packages/` (`claude`, `antigravity`, `devin`, `copilot`, `pi`, `agents`).
+- AI harness configurations live in `packages/` (`claude`, `antigravity`, `devin`, `copilot`, `pi`, `agents`); Codex uses the shared agents rules and skills.
 - Curated AI skills live in `skills/` (managed via `make skills-*` and `sources.toml`).
 - Tool manifests live under `manifests/`.
 

@@ -10,6 +10,8 @@ One repo for the whole machine:
 - **Omarchy (Arch Linux) laptop** — the same `nix/home` tree as a standalone home-manager config (`homeConfigurations."chronin@chronin"` via `mkHomeHost`, host module `nix/hosts/omarchy.nix`) on top of pacman/yay; `bootstrap-omarchy.sh` for new installs. See README.md § "Omarchy host".
 - **pi** (the `pi-mono` coding agent) — config lives under `packages/pi/` and is linked into `~/.pi` by home-manager (`nix/home/harness.nix`).
 - **Devin CLI and GitHub Copilot CLI** — each CLI's user-editable config lives under `packages/devin/` and `packages/copilot/`, its global rules in the shared `packages/agents/AGENTS.md`, and each reads the repo's `skills/` tree through its own link — `~/.agents/skills` for Devin, `~/.copilot/skills` for Copilot (`nix/home/harness.nix`).
+- **Codex CLI** — installed by the macOS Homebrew cask or Omarchy's mise setup; reads the shared rules at `~/.codex/AGENTS.md` and skills at `~/.agents/skills`.
+  Codex's mutable config, credentials, and state stay local.
 - **Antigravity CLI & IDE** — config and global harness plugin live under `packages/antigravity/` and are linked into `~/.gemini/` by home-manager (`nix/home/harness.nix`); reads global rules and subagents via the `dotfiles-harness` plugin and discovers skills via `skills.json`.
 - **Claude Code** — a shared global `CLAUDE.md`, `skills/`, `commands/`, `rules/`, `scripts/`, and `agents/` are symlinked into `~/.claude-personal/` and `~/.claude-work/`.
 
@@ -181,7 +183,7 @@ Why not let the `skills` CLI own installation directly (its `add`/`update`/`expe
   Verify with `agy plugin list` and `agy plugin validate <plugin> --strict`; the latter fails on a rule whose frontmatter has no `trigger`.
 - **`packages/pi/extensions/subagent/` is a directory extension** (listed without `.ts` suffix in `PI_EXTENSIONS`); the rest are single-file TS extensions.
   Adding a new upstream extension requires editing `PI_EXTENSIONS` in the Makefile.
-- **`skills/` is the single source of truth** for skills across pi, both Claude profiles, Devin CLI, Copilot CLI, and Antigravity.
+- **`skills/` is the single source of truth** for skills across pi, both Claude profiles, Devin CLI, Copilot CLI, Codex, and Antigravity.
   The `claude` and `pi` packages each carry a committed `skills -> ../../skills` symlink, so the harness links expose the tree at `~/.pi/skills`, `~/.claude-personal/skills`, `~/.claude-work/skills`; `~/.agents/skills` and `~/.copilot/skills` link straight to `skills/` for Devin and Copilot, and the generated `~/.gemini/config/skills.json` names it for Antigravity.
   What's *committed* under it, though, is only the authored skill dirs (their source records live in `sources.toml`); vendored skill dirs are gitignored and materialized into place (see the manifest model above), so the symlinked tree the tools read is authored-committed + vendored-materialized.
 - **`packages/claude/commands/`, `packages/claude/rules/`, `packages/claude/scripts/`, and `packages/claude/agents/`** are the single source of truth for user-scoped slash commands, rules, helper scripts, and subagents across both Claude profiles.
@@ -208,7 +210,8 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
   The vendored skill dirs (a managed block in `.gitignore`, one `/skills/<name>/` line each — rewritten by `resource-manager.sh`) are materialized from `sources.toml`, so after a fresh clone they're absent until `make install` (or `make skills-materialize`) reconstructs them.
   `docs/superpowers/` holds local-only design artifacts (brainstorming specs, implementation plans).
   `skills/bin/` holds the `parakeet-cpp-transcribe` binary the `transcribe` skill downloads at runtime — under the symlinked profiles its `../bin` resolves back into the repo, so it's ignored to keep the blob out of git.
-  `skills/synced/` holds Claude Code's own synced first-party skills, which it writes into the profile's skills dir — a symlink to this tree; they are its copies, not ours.
+  `skills/synced/` can contain Claude Code sync data from the old whole-directory links.
+  Current profiles keep their sync data in their own `skills/synced/` directories.
   `skills/bin/` and `skills/synced/` are runtime artifacts rather than skills, so `resource-manager.sh` skips both in every `skills/` scan (`is_runtime_dir`) and `skills-doctor` does not flag them.
   Don't expect any of these to be present after a fresh clone.
 
@@ -248,7 +251,7 @@ Agents are single `.md` files fetched and tracked by `resource-manager.sh` (see 
 - `$HOME` dotfiles are linked per-file by home-manager (`nix/home/*.nix` pointing at `packages/` sources) — the per-file discipline is a security invariant, explained in README.md § "The nix model"; never point `home.file` at a whole directory.
   The harness links (`~/.claude-*`, `~/.pi`, `~/.agents`, `~/.config/devin`, `~/.copilot`, `~/.gemini`) are home-manager out-of-store symlinks (`nix/home/harness.nix`) so the linked content stays mutable; `~/.pi/agent`, `~/.pi/extensions`, and the Devin/Copilot agent dirs link per-file because those tools write state beside them.
 - File names in `packages/` use the `dot-` prefix (`dot-zshrc` → `~/.zshrc`), mapped by the `home.file` entries in `nix/home/`.
-- Never add packages for credential-bearing dirs or files: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`, `~/.copilot/config.json`.
+- Never add packages for credential-bearing dirs or files: `gh/hosts.yml`, `gcloud`, `1Password`, `op`, `github-copilot`, `~/.copilot/config.json`, `~/.codex/auth.json`, `~/.codex/config.toml`.
 - `nix/darwin/homebrew.nix` is the curated brew list (`cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first); `Brewfile.dump` (gitignored) is regenerated via `make brew-dump` for re-curation diffs only. CLI packages come from nixpkgs via `nix/home/packages.nix`; the one prebuilt-binary exception is `nix/home/plannotator.nix` (a pinned GitHub release asset, not in nixpkgs).
 - `bootstrap.sh` is the new-Mac entry point; keep it idempotent, check-then-act.
 - To add a new tool config, follow the numbered recipe in README.md § "Adding a new tool config"; it is the canonical version.

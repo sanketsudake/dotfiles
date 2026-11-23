@@ -36,6 +36,7 @@
       "1password-cli"
       "antigravity-cli"
       "claude-code@latest"
+      "codex" # OpenAI's coding agent; the cask tracks its rapid releases
       "devin-cli"
       "ghostty"
       "helium-browser" # Chromium-based; to replace google-chrome eventually
