@@ -238,7 +238,7 @@ PYTHON
 then
   ok "shared skill inventory matches sources.toml"
 else
-  bad "shared skill inventory differs from sources.toml — run: make nix-switch"
+  bad "shared skill inventory differs from sources.toml — run: make skills-materialize and make home-switch"
 fi
 [ -x "$HOME/.local/bin/browser-endpoint" ] \
   && ok "browser-endpoint helper installed" \

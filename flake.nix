@@ -38,29 +38,16 @@
         extraModules:
         nix-darwin.lib.darwinSystem {
           specialArgs = { inherit inputs; };
-          modules = [
-            ./nix/darwin
-            inputs.home-manager.darwinModules.home-manager
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
-                backupFileExtension = "hm-backup";
-                users.sanketsudake = import ./nix/home;
-              };
-            }
-          ]
-          ++ extraModules;
+          modules = [ ./nix/darwin ] ++ extraModules;
         };
 
-      # Non-NixOS Linux hosts: standalone home-manager over the distro (no
-      # system layer). Same shared nix/home tree; the host module sets the
-      # user and the per-host dotfiles.* knobs.
+      mac = mkDarwinHost [ ];
+
+      # Standalone Home Manager uses the same modules on macOS and Linux.
       mkHomeHost =
-        system: hostModule:
+        pkgs: hostModule:
         inputs.home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.${system};
+          inherit pkgs;
           extraSpecialArgs = { inherit inputs; };
           modules = [
             ./nix/home
@@ -69,13 +56,18 @@
         };
     in
     {
-      darwinConfigurations."Sankets-MacBook-Air" = mkDarwinHost [ ];
+      darwinConfigurations."Sankets-MacBook-Air" = mac;
 
-      # Key is <user>@<hostname>, which the Makefile derives on Linux.
-      homeConfigurations."chronin@chronin" = mkHomeHost "x86_64-linux" ./nix/hosts/omarchy.nix;
+      # Keys are <user>@<hostname>, as used by the Makefile.
+      homeConfigurations."sanketsudake@Sankets-MacBook-Air" = mkHomeHost mac.pkgs {
+        home.username = mac.config.system.primaryUser;
+        home.homeDirectory = mac.config.users.users.${mac.config.system.primaryUser}.home;
+      };
+      homeConfigurations."chronin@chronin" =
+        mkHomeHost nixpkgs.legacyPackages.x86_64-linux ./nix/hosts/omarchy.nix;
 
-      # The home-manager CLI pinned by flake.lock (make nix-switch runs it),
-      # so a Linux host needs no separately installed home-manager.
+      # make home-switch uses the Home Manager CLI pinned by flake.lock.
+      packages.aarch64-darwin.home-manager = inputs.home-manager.packages.aarch64-darwin.default;
       packages.x86_64-linux.home-manager = inputs.home-manager.packages.x86_64-linux.default;
 
       formatter.aarch64-darwin = nixpkgs.legacyPackages.aarch64-darwin.nixfmt-tree;

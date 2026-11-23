@@ -178,6 +178,7 @@ they use its `` !`command` `` injection, so pi, Devin, and Copilot see them as i
 |--------|------|
 | `install` | `nix-switch` + harness links + `tools-install` |
 | `nix-switch` / `nix-build` | Apply the whole declared system / build-only preview |
+| `home-switch` | Apply user packages, dotfiles, and shared skill links without sudo |
 | `nix-check` / `nix-fmt` | Flake check + statix lint / format the nix files |
 | `nix-update` | Bump `flake.lock`; review the diff like a Brewfile re-curation |
 | `nix-rollback` | Switch back to the previous system generation |
@@ -192,16 +193,20 @@ they use its `` !`command` `` injection, so pi, Devin, and Copilot see them as i
 
 ### The nix model
 
-The machine is declared once and applied with `make nix-switch`:
+On macOS, `make nix-switch` applies the system with sudo, then runs `make home-switch` as your user.
 `flake.nix` pins nixpkgs, nix-darwin, and home-manager in `flake.lock`,
 `nix/darwin/` declares the system (macOS defaults, and every brew/cask/mas/vscode entry via the homebrew module),
 and `nix/home/` declares the user environment (dotfile links and CLI packages).
+If you are upgrading from a configuration with Home Manager embedded in nix-darwin,
+run `make nix-switch` once to move your home configuration to the standalone profile.
+After that, use `make home-switch` for home and skill changes.
 Dotfile sources stay in `packages/` with their `dot-` names;
 home-manager links each file individually into `$HOME`,
 so `~/.config/<tool>` stays a real directory and credential files written beside managed configs
 (e.g. `gh`'s `hosts.yml`) can never land in the repo — the old `--no-folding` invariant, kept.
 Never declare files from credential-bearing dirs (`gcloud`, `1Password`, `op`, `github-copilot`) or credential-bearing files (`gh/hosts.yml`, `~/.copilot/config.json`, `~/.codex/auth.json`, `~/.codex/config.toml`).
-Every switch is a numbered generation; `make nix-rollback` returns to the previous one.
+System and home switches have separate generations.
+`make nix-rollback` rolls back the system, and `nix run .#home-manager -- generations` lists the home generations.
 Homebrew remains for casks/taps/mas (declared in `nix/darwin/homebrew.nix`, applied by the same switch,
 `cleanup = "uninstall"`: an undeclared install is removed on the next switch — promote keepers first).
 
@@ -236,7 +241,7 @@ and a whole-dir link would let a tool write into the repo.
 
 Devin CLI and Codex read personal skills from `~/.agents/skills`; Copilot CLI 0.0.417 scans `~/.copilot/skills` (plus `~/.claude/skills` and the project dirs) and does not look at `~/.agents/skills` yet.
 Home Manager links each skill in `sources.toml` into the managed discovery roots individually.
-Run `make nix-switch` after adding, renaming, or removing a manifest entry.
+Run `make home-switch` after adding, renaming, or removing a manifest entry.
 Each Claude profile has its own writable `skills/synced/` directory.
 The old shared `skills/synced/` remains on disk outside managed discovery.
 Claude may sync fresh copies into each profile.
@@ -249,7 +254,7 @@ For Devin and Copilot, only the user-editable config is managed (`~/.config/devi
 `~/.copilot/config.json` holds login state and the two `herdr-agent-state.sh` hook scripts are installed by herdr, so all three stay local files.
 
 Codex is installed by the Homebrew cask on macOS and by Omarchy's mise setup on Linux.
-After `make nix-switch`, run `codex` and sign in when prompted.
+After `make home-switch`, run `codex` and sign in when prompted.
 Codex uses its own default model and approval settings; `~/.codex/config.toml`, login state, and session data remain local because Codex writes them and they may contain credentials.
 The shared Claude subagents are not registered as Codex agent roles.
 Use `/skills` in Codex to check skill discovery, and note that a local `~/.codex/AGENTS.override.md` takes precedence over the shared rules.
@@ -292,7 +297,7 @@ and machine-local uncommitted overrides go in `~/.config/zsh/90-local.zsh`
 
 1. `mkdir -p packages/<tool>/dot-config/<tool>` and copy the non-secret config file(s) in, using `dot-` names for anything dotted.
 2. Add a `home.file` entry for each file in a new `nix/home/<tool>.nix`, import it from `nix/home/default.nix`, and add `<tool>` to `HM_PACKAGES` in the Makefile (drives doctor's link checks).
-3. `git add` the new files, `make nix-switch`, review, then commit.
+3. `git add` the new files, `make home-switch`, review, then commit.
 
 ### Secrets policy
 
