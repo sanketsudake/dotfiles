@@ -267,6 +267,15 @@ Its subagents are Antigravity copies under `packages/antigravity/plugins/dotfile
 `~/.gemini/config/skills.json` is **generated** by home-manager from the shared user skill discovery path, instead of a per-machine copy tracked in the repo.
 The plugin also carries the `PreToolUse` safety gate (`scripts/safety-guard-hook.py`), which reads Antigravity's `toolCall` payload and answers `allow`/`ask`/`deny`.
 
+#### Rex agent skill on macOS
+
+Run `make rex-agent-setup DRY_RUN=1` to preview the skill and startup hook changes.
+Run `make rex-agent-setup` to install the shared skill for Codex and Pi and set up each existing Claude profile.
+Rex writes the skill into the local discovery directories and updates the local hook files.
+The skill reads its guide from the installed Rex binary, so the guide follows Rex upgrades.
+Start a new agent session inside Rex and approve the Codex startup hook with `/hooks`.
+The [Rex agent docs](https://www.superlogical.com/rex/docs/automate/agent-skill) cover status checks and hook removal.
+
 #### Verifying what each CLI actually loaded
 
 `make doctor` checks that the links resolve into the repo; these commands check that the tools *use* them.

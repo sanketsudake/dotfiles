@@ -84,7 +84,7 @@ BASH := $(shell for p in $$HOME/.nix-profile/bin/bash /etc/profiles/per-user/$$U
 	nix-build nix-switch home-switch nix-check nix-check-soft nix-fmt nix-rollback nix-update nix-gc \
 	brew-install brew-check brew-dump cask-adopt pacman-install \
 	go-install npm-install pipx-install tools-install \
-	macos-apply raycast-export rex-reload \
+	macos-apply raycast-export rex-reload rex-agent-setup \
 	harness-link harness-unlink \
 	skills-sync extensions-sync plugins-check plugins-sync \
 	skills-find skills-add \
@@ -225,18 +225,27 @@ macos-apply:
 raycast-export:
 	open "raycast://extensions/raycast/raycast/export-settings-data"
 
+# Rex can be on PATH or installed inside its server app bundle.
+REX_BUNDLE_CLI := $(HOME)/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex
+
 # Rex doesn't watch ~/.config/rex/init.lua — the server must be told to reload.
-# rex lives inside the app bundle and reaches PATH only via REX_BIN_DIR in the
-# interactive shell, so fall back to the bundle path under make's bare PATH.
 # Warn-and-skip when rex or its server is absent; a switch must not fail on it.
 rex-reload:
-	@rex=$$(command -v rex || true); \
-	[ -n "$$rex" ] || rex="$(HOME)/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex"; \
+	@rex=$$(command -v rex || printf '%s\n' "$(REX_BUNDLE_CLI)"); \
 	[ -x "$$rex" ] || { echo "rex not installed — skipping reload"; exit 0; }; \
-	[ -f $(HOME)/.config/rex/init.lua ] || { echo "no rex config — skipping reload"; exit 0; }; \
+	[ -f "$(HOME)/.config/rex/init.lua" ] || { echo "no rex config — skipping reload"; exit 0; }; \
 	"$$rex" config reload || echo "warn: rex config reload failed — run 'rex config check'"
+
+rex-agent-setup:
+	@set -e; \
+	rex=$$(command -v rex || printf '%s\n' "$(REX_BUNDLE_CLI)"); \
+	[ -x "$$rex" ] || { echo "rex not installed"; exit 1; }; \
+	"$$rex" skill setup $(if $(filter 1,$(DRY_RUN)),--dry-run) --agent codex --agent pi; \
+	for profile in $(foreach profile,$(CLAUDE_CONFIG_DIRS),"$(profile)"); do \
+		CLAUDE_CONFIG_DIR="$$profile" "$$rex" skill setup $(if $(filter 1,$(DRY_RUN)),--dry-run) --agent claude; \
+	done
 else
-macos-apply raycast-export rex-reload:
+macos-apply raycast-export rex-reload rex-agent-setup:
 	@echo "$@: macOS only"
 endif
 
