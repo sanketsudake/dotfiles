@@ -23,7 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: "false"
       # ffmpeg (with libass and libx264) and a sans-serif font are not on the runner image;
       # scripts/test-polish-demo-recording.sh skips silently without them, so install them here.
       - run: sudo apt-get update -qq -o Acquire::Retries=3 || true
@@ -35,7 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: "false"
       - name: install skillspector (pinned via SKILLSPECTOR_REF in the Makefile)
         run: make skillspector-install
       - name: materialize vendored skills
